@@ -89,3 +89,5 @@
   的规则表格式（needle + 可选 tail 边界字符）
 - 需要 Android 模块规范细节（module.prop、脚本钩子、system 覆盖方式）→
   先建 `knowledge/android/` 下的条目再读
+- 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`
+  （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.8.8.md`（组件签名与硬约束）
