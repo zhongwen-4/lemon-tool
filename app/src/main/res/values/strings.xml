@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">模块风险检测</string>
+    <string name="pick">选择模块 zip 检查</string>
+    <string name="hint">只检查未安装的模块包，不改动设备，不需要 root。</string>
+    <string name="scanning">扫描中…</string>
+</resources>

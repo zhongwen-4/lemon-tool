@@ -1,0 +1,76 @@
+name: android
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  core:
+    name: core tests (host)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S core -B build/host -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build/host --parallel
+
+      - name: Run scanner tests
+        shell: pwsh
+        run: ./core/tests/run_tests.ps1 -Exe build/host/mrs
+
+  apk:
+    name: apk (arm64-v8a)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install NDK, CMake and platform
+        run: |
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" \
+            "cmake;3.22.1" "ndk;27.0.12077973"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Generate signing key
+        run: |
+          keytool -genkeypair -keystore "$RUNNER_TEMP/release.jks" \
+            -storepass android -keypass android -alias mrs \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=mrs,OU=dev,O=lemon_tool,C=CN"
+
+      - name: Build release APK
+        env:
+          MRS_KEYSTORE: ${{ runner.temp }}/release.jks
+          MRS_STORE_PASSWORD: android
+          MRS_KEY_ALIAS: mrs
+          MRS_KEY_PASSWORD: android
+        run: gradle assembleRelease --no-daemon
+
+      - name: Check APK size
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          bytes=$(stat -c%s "$apk")
+          echo "$apk is $((bytes / 1024)) KiB"
+          if [ "$bytes" -gt 4194304 ]; then
+            echo "APK 超过 4 MiB 预算，检查是否引入了多余依赖或多余的 ABI" >&2
+            exit 1
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mrs-apk
+          path: app/build/outputs/apk/release/*.apk
