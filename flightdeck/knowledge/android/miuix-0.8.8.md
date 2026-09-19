@@ -50,3 +50,15 @@ https://repo1.maven.org/maven2/top/yukonga/miuix/kmp/miuix-android/<版本>/miui
 
 sources jar 里 `commonMain/…/*.kt` 是真实签名；AAR 里 `classes.jar` 可列包结构、
 `aar-metadata.properties` 给出 minCompileSdk。本机 `repo1.maven.org` 可达（GitHub 不可达）。
+
+## 会顺带把 Compose 版本拉高（0.8.8 实查 .module 文件）
+
+MiuiX 是 Compose Multiplatform 构件，android 变体暴露的是 `org.jetbrains.compose.*`：
+
+- `androidApiElements-published`：`org.jetbrains.compose.foundation:foundation:1.10.3`、kotlin-stdlib 2.3.20
+- 而 `org.jetbrains.compose.foundation:foundation:1.10.3` 的 android 变体又依赖
+  `androidx.compose.foundation:foundation:**1.10.5**`
+
+所以 app 里显式写的 `androidx.compose.ui:ui:1.9.5` 之类**会被依赖解析升到 1.10.x**，实际生效版本
+以解析结果为准，不要以为声明写了 1.9.5 就真是 1.9.5。`androidx.compose.ui:ui:1.10.5` 的 AAR 元数据
+是 `minCompileSdk=35`、`minAndroidGradlePluginVersion=8.6.0`，compileSdk 36 + AGP 8.11.1 都满足。

@@ -30,20 +30,26 @@
   `SmallTitle` + `Text`），SAF 选 zip → 后台线程扫描 → 用 JSON 结果渲染模块信息、
   高/中/低危计数、逐条发现（按等级配色）、提示与截断说明。
 - `app/src/main/cpp/jni_bridge.cpp` 改为只暴露 `nativeScanJson`，返回核心的 JSON。
+- 2026-09-20 核心对外收敛成一个入口 `mrs::scan_path()`：用 `stat` + `S_ISREG` 判文件还是目录
+  （原来 CLI 用 `fopen` 判定，**Linux 上 fopen 打开目录会成功**，导致目录被当 zip 解析，
+  CI 的 `core` job 因此红过一次；见 `knowledge/build/posix-vs-win32-portability.md`）。
+- 2026-09-20 **CI 首次全绿**：run `35475236439`（commit `646931e`）两个 job 都过，产出
+  `mrs-apk`：`app-release.apk` **1127142 字节 ≈ 1.07 MiB**，内含
+  `lib/arm64-v8a/libmrs_jni.so`（252 KB），远低于 12 MiB 预算。
 
 ## 未验证 / 风险
 
 - APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。
 - 真机没连过（`adb devices` 为空），报告在设备上的实际显示效果没验证过。
-- **本机连不上 GitHub**：2026-09-20 试 `git fetch` 报 `Failed to connect to github.com
-  port 443 after 21072 ms`。远程 `lemon-tool`（github.com/zhongwen-4/lemon-tool.git）已配置，
-  远端停在 `af1133b`，本地领先 2 个提交。CI 要跑起来得先能推上去（多半需要开代理）。
+- ~~本机连不上 GitHub~~ 已解决：本机 FlClash 代理 `http://127.0.0.1:7890` 可用，
+  `git -c http.proxy=http://127.0.0.1:7890 push lemon-tool main` 稳定成功。
+  读 CI 日志的办法见 `knowledge/tooling/github-actions-logs-via-api.md`。
 - **Kotlin/Compose 这条构建链本机一次都没编过**：本机没有 Kotlin 编译器也没有 gradle，
   MiuiX 的 API 用法是靠拉 sources jar 逐个核对签名得来的（已核对：Text/Button/Card/Scaffold/
   SmallTopAppBar/SmallTitle/CircularProgressIndicator/MiuixTheme 及所用样式与色名）。第一次真
   编译会发生在 CI。
-- **AGP 8.11.1 + Gradle 8.13 + Kotlin 2.3.20 这个组合没实测过**。AGP 对最低 Gradle 有硬性要求，
-  CI 若报 `Minimum supported Gradle version is X`，按提示把 `gradle-version` 改到 X 即可。
+- AGP 8.11.1 + Gradle 8.13 + Kotlin 2.3.20 + MiuiX/Compose 这条链**已由 CI 实测通过**
+  （2026-09-20），不再算风险项。
 
 ## 已知缺陷
 
@@ -59,19 +65,21 @@
 
 1. 重构检测规则模型：行为与风险分离、组合判定、路径敏感（先修误报，再加规则）。
 2. 给 zip 条目数设上限。
-3. 推到 GitHub 跑 workflow，确认 APK 能出（体积守卫 12 MiB）。
-4. 装到真机，验证「选 zip → 出报告」整条链路。
+3. ~~推到 GitHub 跑 workflow~~ 已完成（见上）。
+4. 装到真机，验证「选 zip → 出报告」整条链路 —— **等用户测试反馈**。
 
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
 - 2026-09-20 核心实现完成并在宿主端通过全部断言；APK 外壳与 CI 已就绪，待 CI 验证。
 - 2026-09-20 界面改为 MiuiX(Compose)，compileSdk 跟到 36；同日发现规则误报缺陷。
+- 2026-09-20 修掉 Linux 上「目录被当 zip」的路径判定 bug；CI 两个 job 全绿，APK 1.07 MiB。
 
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
-- `knowledge/build/msvc-utf8-source.md` — 动 C++ 源码前扫一眼，省一次编译失败
+- `knowledge/build/msvc-utf8-source.md`、`knowledge/build/posix-vs-win32-portability.md`
+  — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.8.8.md` — 动界面（MiuiX/Compose）前必读
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
 
