@@ -1,18 +1,31 @@
 package com.lemon.mrs
 
+import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -22,10 +35,14 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -33,12 +50,31 @@ import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Button
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardColors
+import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Scaffold
-import top.yukonga.miuix.kmp.basic.SmallTitle
-import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.ExpandLess
+import top.yukonga.miuix.kmp.icon.extended.ExpandMore
+import top.yukonga.miuix.kmp.icon.extended.Layers
+import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.utils.PressFeedbackType
+
+private const val HERO_WEIGHT = 0.4f
+
+private val HERO_ICON_SIZE = 72.dp
+private val HEADER_ICON_SIZE = 40.dp
+private val HEADER_ICON_GAP = 3.dp
+private val PANEL_BORDER = 1.5.dp
+private val PANEL_SHAPE = RoundedCornerShape(CardDefaults.CornerRadius)
+
+private val WARNING_ON_LIGHT = Color(0xFFBF6A00)
+private val WARNING_ON_DARK = Color(0xFFFFC24B)
 
 private sealed interface ScanState {
     data object Idle : ScanState
@@ -74,17 +110,16 @@ data class ScanReport(
 @Composable
 fun ScannerScreen(scan: (String) -> String) {
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
+    var expanded by remember { mutableStateOf(emptySet<Int>()) }
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         state = ScanState.Scanning
+        expanded = emptySet()
         scope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                runCatching {
-                    val path = MainActivity.copyToCache(context, uri)
-                    parseReport(scan(path))
-                }
+                runCatching { parseReport(scan(MainActivity.copyToCache(context, uri))) }
             }
             state = outcome.fold(
                 onSuccess = { ScanState.Done(it) },
@@ -93,146 +128,211 @@ fun ScannerScreen(scan: (String) -> String) {
         }
     }
 
-    MiuixTheme {
-        Scaffold(
-            topBar = { SmallTopAppBar(title = "模块风险检测") },
-        ) { innerPadding ->
+    MiuixTheme(controller = remember { ThemeController(colorSchemeMode = ColorSchemeMode.MonetSystem) }) {
+        Scaffold(topBar = { AppHeader() }) { innerPadding ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-                    .verticalScroll(rememberScrollState())
                     .padding(horizontal = 16.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Card {
-                    Text(
-                        text = "只检查未安装的模块包，不改动设备，不需要 root。",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                    Spacer(Modifier.height(12.dp))
-                    Button(
-                        onClick = { picker.launch(arrayOf("*/*")) },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text("选择模块 zip 检查", style = MiuixTheme.textStyles.button)
-                    }
-                }
-
-                when (val current = state) {
-                    ScanState.Idle -> Unit
-                    ScanState.Scanning -> Card {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(size = 20.dp)
-                            Spacer(Modifier.width(12.dp))
-                            Text("扫描中…", style = MiuixTheme.textStyles.body2)
-                        }
-                    }
-                    is ScanState.Failed -> Card {
-                        Text(
-                            text = current.message,
-                            style = MiuixTheme.textStyles.body2,
-                            color = MiuixTheme.colorScheme.error,
-                        )
-                    }
-                    is ScanState.Done -> ReportBody(current.report)
-                }
+                ModulePanel(
+                    state = state,
+                    onPick = { picker.launch(arrayOf("*/*")) },
+                    modifier = Modifier.weight(HERO_WEIGHT).fillMaxWidth(),
+                )
+                Spacer(Modifier.height(12.dp))
+                FindingList(
+                    state = state,
+                    expanded = expanded,
+                    onToggle = { index ->
+                        expanded = if (index in expanded) expanded - index else expanded + index
+                    },
+                    modifier = Modifier.weight(1f - HERO_WEIGHT).fillMaxWidth(),
+                )
             }
         }
     }
 }
 
 @Composable
-private fun ReportBody(report: ScanReport) {
-    Card {
-        Text(
-            text = report.moduleName.ifBlank { "(模块未提供名称)" },
-            style = MiuixTheme.textStyles.title4,
+private fun AppHeader() {
+    val context = LocalContext.current
+    val version = remember(context) { appVersion(context) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top))
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            painter = painterResource(R.drawable.ic_app_mark),
+            contentDescription = null,
+            modifier = Modifier.size(HEADER_ICON_SIZE),
+            tint = Color.Unspecified,
         )
-        if (report.moduleId.isNotBlank()) {
+        Spacer(Modifier.width(HEADER_ICON_GAP))
+        Column {
+            Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
             Text(
-                text = report.moduleId,
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-        }
-        val versionLine = listOfNotNull(
-            report.version.takeIf { it.isNotBlank() }?.let { "版本 $it" },
-            report.author.takeIf { it.isNotBlank() }?.let { "作者 $it" },
-            "文件数 ${report.fileCount}",
-        ).joinToString(" · ")
-        Spacer(Modifier.height(6.dp))
-        Text(
-            text = versionLine,
-            style = MiuixTheme.textStyles.footnote1,
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
-        Spacer(Modifier.height(10.dp))
-        Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-            CountLabel("高危", report.high, MiuixTheme.colorScheme.error)
-            CountLabel("中危", report.medium, MiuixTheme.colorScheme.primary)
-            CountLabel("低危", report.low, MiuixTheme.colorScheme.onSurfaceVariantSummary)
-            CountLabel("信息", report.info, MiuixTheme.colorScheme.onSurfaceVariantSummary)
-        }
-        if (report.verdict.isNotBlank()) {
-            Spacer(Modifier.height(10.dp))
-            Text(
-                text = report.verdict,
-                style = MiuixTheme.textStyles.footnote1,
-                color = when {
-                    report.high > 0 -> MiuixTheme.colorScheme.error
-                    report.medium > 0 -> MiuixTheme.colorScheme.primary
-                    else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
-                },
-            )
-        }
-        if (report.truncated) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                text = "部分条目过大，只扫描了前一段内容",
+                text = "版本 $version",
                 style = MiuixTheme.textStyles.footnote2,
                 color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
         }
     }
+}
 
-    if (report.findings.isEmpty()) {
-        Card {
-            Text("未发现风险特征。", style = MiuixTheme.textStyles.body2)
-        }
-        return
-    }
+@Composable
+private fun ModulePanel(state: ScanState, onPick: () -> Unit, modifier: Modifier = Modifier) {
+    Card(modifier = modifier, colors = panelColors()) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 20.dp, vertical = 18.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(modifier = Modifier.height(HERO_ICON_SIZE), contentAlignment = Alignment.Center) {
+                if (state == ScanState.Scanning) {
+                    CircularProgressIndicator(size = HERO_ICON_SIZE * 0.55f)
+                } else {
+                    Icon(
+                        imageVector = MiuixIcons.Layers,
+                        contentDescription = null,
+                        modifier = Modifier.size(HERO_ICON_SIZE),
+                        tint = MiuixTheme.colorScheme.primary,
+                    )
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            when (state) {
+                ScanState.Idle -> {
+                    Text(text = "尚未选择模块", style = MiuixTheme.textStyles.title3)
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = "只检查未安装的模块 zip，不解包安装、不改动设备",
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
 
-    SmallTitle("发现 ${report.findings.size} 项")
-    Card {
-        report.findings.forEachIndexed { index, finding ->
-            if (index > 0) Spacer(Modifier.height(14.dp))
-            Text(
-                text = "[${severityLabel(finding.severity)}] ${finding.rule}",
-                style = MiuixTheme.textStyles.footnote1,
-                color = severityColor(finding.severity),
-            )
-            if (finding.file.isNotBlank()) {
-                val location = if (finding.line > 0) "${finding.file}:${finding.line}" else finding.file
+                ScanState.Scanning -> Text(text = "正在检查…", style = MiuixTheme.textStyles.title3)
+
+                is ScanState.Done -> {
+                    Text(
+                        text = state.report.moduleName.ifBlank { "未知模块" },
+                        style = MiuixTheme.textStyles.title3,
+                    )
+                    val subtitle = moduleSubtitle(state.report)
+                    if (subtitle.isNotEmpty()) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = subtitle,
+                            style = MiuixTheme.textStyles.footnote2,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                }
+
+                is ScanState.Failed -> {
+                    Text(
+                        text = "检查失败",
+                        style = MiuixTheme.textStyles.title3,
+                        color = MiuixTheme.colorScheme.error,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    Text(
+                        text = state.message,
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+            Spacer(Modifier.height(16.dp))
+            Button(
+                onClick = onPick,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = state != ScanState.Scanning,
+            ) {
                 Text(
-                    text = location,
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    fontFamily = FontFamily.Monospace,
+                    text = if (state is ScanState.Done) "重新选择模块" else "选择模块 zip",
+                    style = MiuixTheme.textStyles.button,
                 )
             }
-            Text(text = finding.detail, style = MiuixTheme.textStyles.footnote1)
         }
     }
+}
 
-    if (report.notes.isNotEmpty()) {
-        SmallTitle("提示")
-        Card {
-            report.notes.forEach { note ->
+@Composable
+private fun FindingList(
+    state: ScanState,
+    expanded: Set<Int>,
+    onToggle: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val report = (state as? ScanState.Done)?.report
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+        contentPadding = PaddingValues(bottom = 4.dp),
+    ) {
+        if (report == null) {
+            item {
+                HintCard(
+                    text = (state as? ScanState.Failed)?.message
+                        ?: "选择模块 zip 后，检测项会按高危、中危、低危列在这里。",
+                )
+            }
+            return@LazyColumn
+        }
+        item { SummaryCard(report) }
+        if (report.findings.isEmpty()) {
+            item { HintCard(text = "未发现风险特征。") }
+        }
+        itemsIndexed(report.findings) { index, finding ->
+            FindingCard(
+                finding = finding,
+                expanded = index in expanded,
+                onToggle = { onToggle(index) },
+            )
+        }
+        if (report.notes.isNotEmpty()) {
+            item { NotesCard(report.notes) }
+        }
+    }
+}
+
+@Composable
+private fun SummaryCard(report: ScanReport) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                CountLabel("高危", report.high, severityTextColor("high"))
+                CountLabel("中危", report.medium, severityTextColor("medium"))
+                CountLabel("低危", report.low, severityTextColor("low"))
+                CountLabel("信息", report.info, severityTextColor("info"))
+            }
+            if (report.verdict.isNotBlank()) {
+                Spacer(Modifier.height(10.dp))
                 Text(
-                    text = "· $note",
+                    text = report.verdict,
                     style = MiuixTheme.textStyles.footnote1,
+                    color = if (report.high > 0) {
+                        MiuixTheme.colorScheme.error
+                    } else {
+                        MiuixTheme.colorScheme.onSurfaceVariantSummary
+                    },
+                )
+            }
+            if (report.truncated) {
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "部分条目过大，只扫描了前一段内容。",
+                    style = MiuixTheme.textStyles.footnote2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
             }
@@ -241,9 +341,9 @@ private fun ReportBody(report: ScanReport) {
 }
 
 @Composable
-private fun CountLabel(label: String, value: Int, color: androidx.compose.ui.graphics.Color) {
+private fun CountLabel(label: String, value: Int, color: Color) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = "$value", style = MiuixTheme.textStyles.title3, color = color)
+        Text(text = value.toString(), style = MiuixTheme.textStyles.title3, color = color)
         Text(
             text = label,
             style = MiuixTheme.textStyles.footnote2,
@@ -253,9 +353,101 @@ private fun CountLabel(label: String, value: Int, color: androidx.compose.ui.gra
 }
 
 @Composable
-private fun severityColor(severity: String) = when (severity) {
+private fun FindingCard(finding: Finding, expanded: Boolean, onToggle: () -> Unit) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .border(PANEL_BORDER, severityBorder(finding.severity), PANEL_SHAPE),
+        colors = panelColors(),
+        pressFeedbackType = PressFeedbackType.Sink,
+        onClick = onToggle,
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(text = finding.rule, style = MiuixTheme.textStyles.footnote1)
+                    Spacer(Modifier.height(2.dp))
+                    Text(
+                        text = severityLabel(finding.severity),
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = severityTextColor(finding.severity),
+                    )
+                }
+                Icon(
+                    imageVector = if (expanded) MiuixIcons.ExpandLess else MiuixIcons.ExpandMore,
+                    contentDescription = null,
+                    modifier = Modifier.size(18.dp),
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+            if (expanded) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = finding.detail,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurfaceContainerVariant,
+                )
+                Spacer(Modifier.height(8.dp))
+                Text(text = locationLine(finding), style = MiuixTheme.textStyles.footnote2)
+                if (finding.file.isNotBlank()) {
+                    Text(
+                        text = finding.file,
+                        style = MiuixTheme.textStyles.footnote2,
+                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun HintCard(text: String) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors()) {
+        Text(
+            text = text,
+            modifier = Modifier.padding(16.dp),
+            style = MiuixTheme.textStyles.footnote1,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+    }
+}
+
+@Composable
+private fun NotesCard(notes: List<String>) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            notes.forEach { note ->
+                Text(
+                    text = "· $note",
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun panelColors(): CardColors =
+    CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh)
+
+@Composable
+private fun warningColor(): Color =
+    if (MiuixTheme.colorScheme.surface.luminance() > 0.5f) WARNING_ON_LIGHT else WARNING_ON_DARK
+
+@Composable
+private fun severityBorder(severity: String): Color = when (severity) {
     "high" -> MiuixTheme.colorScheme.error
-    "medium" -> MiuixTheme.colorScheme.primary
+    "medium" -> warningColor()
+    else -> Color.Transparent
+}
+
+@Composable
+private fun severityTextColor(severity: String): Color = when (severity) {
+    "high" -> MiuixTheme.colorScheme.error
+    "medium" -> warningColor()
     else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
 }
 
@@ -265,6 +457,24 @@ private fun severityLabel(severity: String) = when (severity) {
     "low" -> "低危"
     else -> "信息"
 }
+
+private fun moduleSubtitle(report: ScanReport): String = listOfNotNull(
+    report.version.takeIf { it.isNotBlank() }?.let { "v$it" },
+    report.author.takeIf { it.isNotBlank() },
+    report.moduleId.takeIf { it.isNotBlank() },
+).joinToString(" · ")
+
+private fun locationLine(finding: Finding): String {
+    if (finding.file.isBlank()) return "未定位到具体文件"
+    val name = finding.file.substringAfterLast('/').ifBlank { finding.file }
+    return if (finding.line > 0) "文件($name)第 ${finding.line} 行" else "文件($name)"
+}
+
+@Suppress("DEPRECATION")
+private fun appVersion(context: Context): String =
+    runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
+        .getOrNull()
+        .orEmpty()
 
 private fun parseReport(json: String): ScanReport {
     val root = JSONObject(json)
