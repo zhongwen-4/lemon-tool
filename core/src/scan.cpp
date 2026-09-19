@@ -58,19 +58,6 @@ bool is_base64_run(const std::string& line) {
     return false;
 }
 
-bool tail_ok(const std::string& line, const Rule& rule) {
-    if (!rule.tail) return true;
-    size_t needle_len = strlen(rule.needle);
-    size_t pos = 0;
-    while ((pos = line.find(rule.needle, pos)) != std::string::npos) {
-        size_t after = pos + needle_len;
-        if (after >= line.size()) return true;
-        if (strchr(rule.tail, line[after]) != nullptr) return true;
-        pos = after;
-    }
-    return false;
-}
-
 bool is_hook(const std::string& name) {
     static const char* kHooks[] = {"post-fs-data.sh", "service.sh", "customize.sh",
                                    "uninstall.sh", "boot-completed.sh"};
@@ -78,6 +65,10 @@ bool is_hook(const std::string& name) {
     for (size_t i = 0; i < sizeof(kHooks) / sizeof(kHooks[0]); i++)
         if (base == kHooks[i]) return true;
     return false;
+}
+
+bool is_script(const std::string& name) {
+    return has_suffix(to_lower(name), ".sh") || is_hook(name);
 }
 
 void parse_prop(const std::string& text, ModuleInfo& info) {
@@ -129,6 +120,13 @@ struct Scanner {
     void scan_text(const std::string& name, const std::string& text) {
         size_t rule_count = 0;
         const Rule* rules = rule_table(rule_count);
+        size_t escalation_count = 0;
+        const Escalation* escalations = escalation_table(escalation_count);
+        bool script = is_script(name);
+        bool saw_eval = false;
+        bool saw_payload = false;
+        int eval_line = 0;
+
         size_t start = 0;
         int line_no = 0;
         while (start <= text.size()) {
@@ -136,15 +134,29 @@ struct Scanner {
             if (end == std::string::npos) end = text.size();
             std::string line = text.substr(start, end - start);
             line_no++;
-            for (size_t i = 0; i < rule_count; i++) {
-                if (line.find(rules[i].needle) != std::string::npos && tail_ok(line, rules[i]))
+            for (size_t i = 0; i < rule_count; i++)
+                if (line.find(rules[i].needle) != std::string::npos)
                     add(rules[i].sev, rules[i].id, name, line_no, rules[i].detail);
+            for (size_t i = 0; i < escalation_count; i++)
+                if (escalations[i].match(line))
+                    add(escalations[i].sev, escalations[i].id, name, line_no, escalations[i].detail);
+            if (script && is_base64_run(line))
+                add(Severity::Medium, "obf.blob", name, line_no,
+                    "脚本里出现超长 base64 串，疑似混淆载荷");
+            if (!saw_eval && line.find("eval ") != std::string::npos) {
+                saw_eval = true;
+                eval_line = line_no;
             }
-            if (is_base64_run(line))
-                add(Severity::Medium, "obf.blob", name, line_no, "出现超长 base64 串，疑似混淆载荷");
+            if (line.find("curl ") != std::string::npos ||
+                line.find("wget ") != std::string::npos ||
+                line.find("base64 -d") != std::string::npos)
+                saw_payload = true;
             if (end == text.size()) break;
             start = end + 1;
         }
+        if (saw_eval && saw_payload)
+            add(Severity::High, "obf.eval-dynamic", name, eval_line,
+                "同一文件里既有动态执行又有下载/解码，疑似远程载荷");
         extract_iocs(text, urls, ips);
     }
 
@@ -182,7 +194,7 @@ struct Scanner {
             add(Severity::Medium, "module.prop.missing", "module.prop", 0,
                 "缺少 module.prop，可能不是标准模块包");
         for (size_t i = 0; i < urls.size(); i++)
-            add(Severity::Medium, "net.url", "", 0, "脚本引用外部地址：" + urls[i]);
+            add(Severity::Low, "net.url", "", 0, "脚本引用外部地址：" + urls[i]);
         for (size_t i = 0; i < ips.size(); i++)
             add(Severity::Low, "net.ip", "", 0, "脚本出现 IP 地址：" + ips[i]);
 

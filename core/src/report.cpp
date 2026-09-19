@@ -48,6 +48,16 @@ int rank(Severity sev) {
     }
 }
 
+std::string verdict_text(const int counts[4]) {
+    if (counts[0] > 0)
+        return "发现 " + std::to_string(counts[0]) +
+               " 项高危行为，建议不要安装；确需安装请先逐条核对高危项。";
+    if (counts[1] > 0)
+        return "未发现高危行为，有 " + std::to_string(counts[1]) +
+               " 项需要留意（中危）；低危与信息只是模块的行为记录。";
+    return "未发现高危或中危行为，其余条目只是模块的正常行为记录。";
+}
+
 }
 
 const char* severity_name(Severity sev) {
@@ -75,6 +85,7 @@ std::string to_text(const Report& report) {
     out += "文件数：" + std::to_string(report.file_count) + "\n";
     out += "风险统计：高危 " + std::to_string(counts[0]) + " · 中危 " + std::to_string(counts[1]) +
            " · 低危 " + std::to_string(counts[2]) + " · 信息 " + std::to_string(counts[3]) + "\n";
+    out += "结论：" + verdict_text(counts) + "\n";
     if (report.truncated) out += "注意：部分条目过大，只扫描了前一段内容\n";
     out += "\n";
 
@@ -129,6 +140,7 @@ std::string to_json(const Report& report) {
     out += "\"counts\":{\"high\":" + std::to_string(counts[0]) +
            ",\"medium\":" + std::to_string(counts[1]) + ",\"low\":" + std::to_string(counts[2]) +
            ",\"info\":" + std::to_string(counts[3]) + "},";
+    out += "\"verdict\":\"" + json_escape(verdict_text(counts)) + "\",";
     out += "\"findings\":[";
     for (size_t i = 0; i < report.findings.size(); i++) {
         const Finding& finding = report.findings[i];

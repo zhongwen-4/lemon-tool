@@ -65,6 +65,7 @@ data class ScanReport(
     val medium: Int,
     val low: Int,
     val info: Int,
+    val verdict: String,
     val truncated: Boolean,
     val findings: List<Finding>,
     val notes: List<String>,
@@ -174,6 +175,18 @@ private fun ReportBody(report: ScanReport) {
             CountLabel("低危", report.low, MiuixTheme.colorScheme.onSurfaceVariantSummary)
             CountLabel("信息", report.info, MiuixTheme.colorScheme.onSurfaceVariantSummary)
         }
+        if (report.verdict.isNotBlank()) {
+            Spacer(Modifier.height(10.dp))
+            Text(
+                text = report.verdict,
+                style = MiuixTheme.textStyles.footnote1,
+                color = when {
+                    report.high > 0 -> MiuixTheme.colorScheme.error
+                    report.medium > 0 -> MiuixTheme.colorScheme.primary
+                    else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+                },
+            )
+        }
         if (report.truncated) {
             Spacer(Modifier.height(8.dp))
             Text(
@@ -270,6 +283,7 @@ private fun parseReport(json: String): ScanReport {
         medium = counts.optInt("medium"),
         low = counts.optInt("low"),
         info = counts.optInt("info"),
+        verdict = root.optString("verdict"),
         truncated = root.optBoolean("truncated"),
         findings = (0 until findings.length()).map { index ->
             val item = findings.getJSONObject(index)

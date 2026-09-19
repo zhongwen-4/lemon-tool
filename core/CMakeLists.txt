@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 option(MRS_BUILD_CLI "Build the command line scanner" ON)
 
 add_library(mrs_core STATIC
+    src/escalate.cpp
     src/inflate.cpp
     src/report.cpp
     src/rules.cpp

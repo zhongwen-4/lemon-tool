@@ -53,20 +53,20 @@
 
 ## 已知缺陷
 
-- **误报严重，报告可信度不足**：2026-09-20 用自己的善意样本（只有一行
-  `rm -rf /data/local/tmp/good_cache`）跑出「高危 1」。平铺关键词匹配会把
-  `chmod 755`、`mount -o`、`setprop`、`busybox`、`hosts` 这类正常行为一并报出。
-  必须改成「单特征只给信息/低危，组合或路径敏感才升级高危」，详见
-  `knowledge/detection/rule-design.md`。**这条优先级高于继续加规则**。
+- ~~误报严重~~ **2026-09-20 已修**：规则拆成「特征表（最高中危）+ 升级表（组合/路径敏感才高危）」，
+  并加了 `verdict` 定性结论。善意夹具断言写死「高危 0 · 中危 0」，恶意夹具断言 9 条升级规则全中。
+  模型细节见 `knowledge/detection/rule-design.md`。
+  残留风险：目前调参只靠自造的两个夹具，**还没有真实模块样本**，路径分档与升级阈值可能需要再调。
 - **条目数没有上限**：`core/src/zip.cpp`/`scan.cpp` 对单个条目有 8 MB 上限，但没限制
   zip 条目数量；构造一个几十万条目的 zip 可以撑爆内存。需要加条目数上限并给报告截断。
 
 ## 下一步
 
-1. 重构检测规则模型：行为与风险分离、组合判定、路径敏感（先修误报，再加规则）。
+1. ~~重构检测规则模型~~ 已完成（2026-09-20）。
 2. 给 zip 条目数设上限。
-3. ~~推到 GitHub 跑 workflow~~ 已完成（见上）。
-4. 装到真机，验证「选 zip → 出报告」整条链路 —— **等用户测试反馈**。
+3. 用真实模块样本压误报（现在是自造夹具，覆盖面有限）。
+4. ~~推到 GitHub 跑 workflow~~ 已完成（见上）。
+5. 装到真机，验证「选 zip → 出报告」整条链路 —— **等用户测试反馈**。
 
 ## 进度
 
@@ -74,6 +74,8 @@
 - 2026-09-20 核心实现完成并在宿主端通过全部断言；APK 外壳与 CI 已就绪，待 CI 验证。
 - 2026-09-20 界面改为 MiuiX(Compose)，compileSdk 跟到 36；同日发现规则误报缺陷。
 - 2026-09-20 修掉 Linux 上「目录被当 zip」的路径判定 bug；CI 两个 job 全绿，APK 1.07 MiB。
+- 2026-09-20 重做规则模型（特征表 + 升级表）修掉误报：善意样本「高危 0 · 中危 0」，
+  恶意样本 6 高危；报告与界面都加了定性结论。
 
 ## Read now
 
@@ -86,7 +88,8 @@
 ## Read if
 
 - 要加检测规则 → 先读 `knowledge/detection/rule-design.md`，再看 `core/src/rules.cpp`
-  的规则表格式（needle + 可选 tail 边界字符）
+  的特征表格式（`id/sev/needle/detail`）与 `core/src/escalate.cpp` 的升级表
+- 脚本断言「CI 全过、本机全红」→ 读 `knowledge/tooling/powershell-chinese-encoding-traps.md`
 - 需要 Android 模块规范细节（module.prop、脚本钩子、system 覆盖方式）→
   先建 `knowledge/android/` 下的条目再读
 - 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`

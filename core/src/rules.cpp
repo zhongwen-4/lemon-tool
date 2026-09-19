@@ -7,26 +7,28 @@ namespace mrs {
 namespace {
 
 const Rule kRules[] = {
-    {"cmd.rm-rf", Severity::High, "rm -rf", "递归强制删除，可能清空系统或数据目录"},
-    {"cmd.rm-rf-root", Severity::High, "rm -rf /", "删除根路径", " \t;&|"},
-    {"cmd.dd", Severity::High, "dd if=", "底层块设备写入，可能损坏分区"},
-    {"cmd.curl-sh", Severity::High, "curl ", "运行时下载外部内容（远程代码执行风险）"},
-    {"cmd.wget-sh", Severity::High, "wget ", "运行时下载外部内容（远程代码执行风险）"},
-    {"obf.eval", Severity::High, "eval ", "动态执行字符串，常见于混淆载荷"},
-    {"obf.base64", Severity::High, "base64 -d", "解码后执行，常见于混淆载荷"},
-    {"obf.xxd", Severity::Medium, "xxd -r", "十六进制还原，常见于混淆载荷"},
-    {"cmd.chmod777", Severity::Medium, "chmod 777", "权限放宽到所有人可写可执行"},
-    {"cmd.su", Severity::Medium, "su -c", "以 root 身份执行命令"},
-    {"cmd.setenforce", Severity::Medium, "setenforce", "修改 SELinux 强制模式"},
+    // 特征表：一条命中只说明「模块干了这件事」，不定性。定性交给 escalate.cpp。
+    // 因此这里最高只到中危，且只有确实值得留意几个月的才给中危。
+    {"cmd.rm-rf", Severity::Low, "rm -rf", "递归强制删除（风险取决于删的是什么）"},
+    {"cmd.dd", Severity::Low, "dd if=", "按块读写数据"},
+    {"cmd.curl", Severity::Low, "curl ", "运行时下载外部内容"},
+    {"cmd.wget", Severity::Low, "wget ", "运行时下载外部内容"},
+    {"obf.eval", Severity::Low, "eval ", "动态执行字符串"},
+    {"obf.base64", Severity::Low, "base64 -d", "解码内容，模块常用它打包二进制"},
+    {"obf.xxd", Severity::Low, "xxd -r", "十六进制还原"},
+    {"cmd.chmod777", Severity::Low, "chmod 777", "权限放宽到所有人可写可执行"},
+    {"cmd.su", Severity::Low, "su -c", "以 root 身份执行命令"},
+    {"cmd.setenforce", Severity::Low, "setenforce", "触碰 SELinux 强制模式"},
     {"cmd.resetprop", Severity::Medium, "resetprop", "绕过只读属性保护写入系统属性"},
-    {"cmd.iptables", Severity::Medium, "iptables", "修改防火墙规则"},
-    {"cmd.mount", Severity::Medium, "mount -o", "重新挂载分区，可能改动只读系统分区"},
-    {"net.nvram", Severity::Medium, "nvram", "改动设备持久化参数"},
-    {"net.hosts", Severity::Medium, "/etc/hosts", "可能篡改域名解析"},
-    {"cmd.chmod755", Severity::Low, "chmod 755", "设置可执行权限"},
-    {"cmd.setprop", Severity::Low, "setprop ", "修改系统属性"},
-    {"cmd.busybox", Severity::Low, "busybox", "使用 busybox 工具集"},
+    {"cmd.iptables", Severity::Low, "iptables", "修改防火墙规则"},
+    {"cmd.mount", Severity::Low, "mount -o", "挂载或重挂载分区"},
+    {"net.nvram", Severity::Low, "nvram", "改动设备持久化参数"},
+    {"net.hosts", Severity::Low, "/etc/hosts", "改动域名解析"},
+    {"cmd.setprop-ro", Severity::Medium, "setprop ro.", "写只读系统属性"},
     {"cmd.insmod", Severity::Medium, "insmod", "加载内核模块"},
+    {"cmd.chmod755", Severity::Info, "chmod 755", "设置可执行权限"},
+    {"cmd.setprop", Severity::Info, "setprop ", "修改系统属性"},
+    {"cmd.busybox", Severity::Info, "busybox", "使用 busybox 工具集"},
 };
 
 bool is_url_char(char c) {

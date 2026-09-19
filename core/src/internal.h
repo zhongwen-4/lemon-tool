@@ -38,10 +38,20 @@ struct Rule {
     Severity sev;
     const char* needle;
     const char* detail;
-    const char* tail = nullptr;
 };
 
 const Rule* rule_table(size_t& count);
+
+// 升级判定：只有「组合」或「路径敏感」这类明确情形才给高危。
+// 单条特征命中由 rule_table 负责，最高只到中危。
+struct Escalation {
+    const char* id;
+    Severity sev;
+    const char* detail;
+    bool (*match)(const std::string& line);
+};
+
+const Escalation* escalation_table(size_t& count);
 
 void extract_iocs(const std::string& text, std::vector<std::string>& urls,
                   std::vector<std::string>& ips);
