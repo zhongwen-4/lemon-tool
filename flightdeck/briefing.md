@@ -10,6 +10,7 @@
 5. commit 说明用 `[core]` 或 `[UI]` 加简短改动描述；core 和 UI 都涉及就两个都写，
    例如 `[core][UI] 说明`。
 6. 与我的对话、以及 flightdeck 里的文件内容，一律用中文。
+7. 如果你认为我说的不对，请直接反驳，并给出你认为正确的做法与理由。
 
 <!-- 章节标题（Focus / In flight / Next / Open questions / Conventions /
      Subscriptions）保留英文，它们是 flightdeck 协议自己的字段名，正文一律中文。 -->

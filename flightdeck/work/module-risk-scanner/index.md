@@ -33,8 +33,7 @@
 
 ## 未验证 / 风险
 
-- APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。NDK
-  `27.0.12077973` 与 AGP 8.6.1 / Gradle 8.9 的组合是首次尝试，CI 报错就按提示调版本。
+- APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。
 - 真机没连过（`adb devices` 为空），报告在设备上的实际显示效果没验证过。
 - **本机连不上 GitHub**：2026-09-20 试 `git fetch` 报 `Failed to connect to github.com
   port 443 after 21072 ms`。远程 `lemon-tool`（github.com/zhongwen-4/lemon-tool.git）已配置，
@@ -46,25 +45,39 @@
 - **AGP 8.11.1 + Gradle 8.13 + Kotlin 2.3.20 这个组合没实测过**。AGP 对最低 Gradle 有硬性要求，
   CI 若报 `Minimum supported Gradle version is X`，按提示把 `gradle-version` 改到 X 即可。
 
+## 已知缺陷
+
+- **误报严重，报告可信度不足**：2026-09-20 用自己的善意样本（只有一行
+  `rm -rf /data/local/tmp/good_cache`）跑出「高危 1」。平铺关键词匹配会把
+  `chmod 755`、`mount -o`、`setprop`、`busybox`、`hosts` 这类正常行为一并报出。
+  必须改成「单特征只给信息/低危，组合或路径敏感才升级高危」，详见
+  `knowledge/detection/rule-design.md`。**这条优先级高于继续加规则**。
+- **条目数没有上限**：`core/src/zip.cpp`/`scan.cpp` 对单个条目有 8 MB 上限，但没限制
+  zip 条目数量；构造一个几十万条目的 zip 可以撑爆内存。需要加条目数上限并给报告截断。
+
 ## 下一步
 
-1. 推到 GitHub 跑 workflow，确认 APK 能出且小于 4 MiB。
-2. 装到真机，验证「选 zip → 出报告」整条链路。
-3. 拿真实模块样本调规则、压误报。
+1. 重构检测规则模型：行为与风险分离、组合判定、路径敏感（先修误报，再加规则）。
+2. 给 zip 条目数设上限。
+3. 推到 GitHub 跑 workflow，确认 APK 能出（体积守卫 12 MiB）。
+4. 装到真机，验证「选 zip → 出报告」整条链路。
 
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
 - 2026-09-20 核心实现完成并在宿主端通过全部断言；APK 外壳与 CI 已就绪，待 CI 验证。
+- 2026-09-20 界面改为 MiuiX(Compose)，compileSdk 跟到 36；同日发现规则误报缺陷。
 
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
 - `knowledge/build/msvc-utf8-source.md` — 动 C++ 源码前扫一眼，省一次编译失败
 - `knowledge/android/miuix-0.8.8.md` — 动界面（MiuiX/Compose）前必读
+- `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
 
 ## Read if
 
-- 要加检测规则 → 看 `core/src/rules.cpp` 的规则表格式（needle + 可选 tail 边界字符）
+- 要加检测规则 → 先读 `knowledge/detection/rule-design.md`，再看 `core/src/rules.cpp`
+  的规则表格式（needle + 可选 tail 边界字符）
 - 需要 Android 模块规范细节（module.prop、脚本钩子、system 覆盖方式）→
   先建 `knowledge/android/` 下的条目再读
