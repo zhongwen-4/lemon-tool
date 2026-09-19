@@ -5,11 +5,12 @@
 #include <string>
 #include <vector>
 
+#include <sys/stat.h>
+
 #ifdef _WIN32
 #include <io.h>
 #else
 #include <dirent.h>
-#include <sys/stat.h>
 #endif
 
 namespace mrs {
@@ -21,6 +22,16 @@ const size_t kSniffBytes = 4096;
 const size_t kMaxFindings = 500;
 const size_t kBase64Run = 200;
 const int kMaxDepth = 16;
+
+bool is_regular_file(const std::string& path) {
+    struct stat info;
+    if (stat(path.c_str(), &info) != 0) return false;
+#ifdef _WIN32
+    return (info.st_mode & _S_IFMT) == _S_IFREG;
+#else
+    return S_ISREG(info.st_mode);
+#endif
+}
 
 std::string trim(const std::string& text) {
     size_t begin = 0;
@@ -296,6 +307,11 @@ Report scan_dir(const std::string& path, std::string* error) {
     if (scanner.report.file_count == 0) *error = "目录为空或无法读取";
     scanner.finish();
     return scanner.report;
+}
+
+Report scan_path(const std::string& path, std::string* error) {
+    if (is_regular_file(path)) return scan_zip(path, error);
+    return scan_dir(path, error);
 }
 
 }

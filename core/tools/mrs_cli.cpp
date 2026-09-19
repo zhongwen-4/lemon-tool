@@ -21,16 +21,7 @@ int main(int argc, char** argv) {
     }
 
     std::string error;
-    mrs::Report report;
-    FILE* probe = fopen(path.c_str(), "rb");
-    bool is_file = probe != nullptr;
-    if (probe) fclose(probe);
-
-    if (is_file) {
-        report = mrs::scan_zip(path, &error);
-    } else {
-        report = mrs::scan_dir(path, &error);
-    }
+    mrs::Report report = mrs::scan_path(path, &error);
 
     if (!error.empty()) {
         fprintf(stderr, "扫描失败: %s\n", error.c_str());

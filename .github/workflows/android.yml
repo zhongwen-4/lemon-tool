@@ -34,11 +34,16 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - uses: android-actions/setup-android@v3
-
+      # ubuntu runner 自带 Android SDK；android-actions/setup-android 默认安装的
+      # "tools" 包已从 SDK 仓库下架，会让整个 job 直接失败，因此直接调用自带 sdkmanager
       - name: Install NDK, CMake and platform
+        env:
+          ANDROID_HOME: /usr/local/lib/android/sdk
+          ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
         run: |
-          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" \
+          sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" --install "platforms;android-36" "build-tools;36.0.0" \
             "cmake;3.22.1" "ndk;27.0.12077973"
 
       - uses: gradle/actions/setup-gradle@v4

@@ -13,7 +13,7 @@ Java_com_lemon_mrs_MainActivity_nativeScanJson(JNIEnv* env, jobject thiz, jstrin
     if (raw) env->ReleaseStringUTFChars(path, raw);
 
     std::string error;
-    mrs::Report report = mrs::scan_zip(target, &error);
+    mrs::Report report = mrs::scan_path(target, &error);
     if (!error.empty()) {
         return env->NewStringUTF(("{\"error\":\"" + error + "\"}").c_str());
     }

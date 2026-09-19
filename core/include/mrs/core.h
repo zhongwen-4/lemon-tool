@@ -38,6 +38,7 @@ struct Report {
 
 Report scan_zip(const std::string& path, std::string* error);
 Report scan_dir(const std::string& path, std::string* error);
+Report scan_path(const std::string& path, std::string* error);
 
 std::string to_text(const Report& report);
 std::string to_json(const Report& report);
