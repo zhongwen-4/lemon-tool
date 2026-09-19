@@ -38,12 +38,12 @@ jobs:
 
       - name: Install NDK, CMake and platform
         run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" \
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" \
             "cmake;3.22.1" "ndk;27.0.12077973"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.9'
+          gradle-version: '8.13'
 
       - name: Generate signing key
         run: |
@@ -65,8 +65,9 @@ jobs:
           apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
           bytes=$(stat -c%s "$apk")
           echo "$apk is $((bytes / 1024)) KiB"
-          if [ "$bytes" -gt 4194304 ]; then
-            echo "APK 超过 4 MiB 预算，检查是否引入了多余依赖或多余的 ABI" >&2
+          # MiuiX/Compose 体系本身就有几 MB 体积，比纯 View 外壳大得多，预算相应放宽
+          if [ "$bytes" -gt 12582912 ]; then
+            echo "APK 超过 12 MiB 预算，检查是否引入了多余依赖或多余的 ABI" >&2
             exit 1
           fi
 
