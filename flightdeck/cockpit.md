@@ -2,8 +2,8 @@
 
 Focus:
 
-做 root 管理器（Magisk / KernelSU / APatch）模块的风险检测工具。
-当前处于需求澄清阶段，形态与检测范围未定。
+做 root 管理器（Magisk / KernelSU / APatch）模块的风险检测工具，在 Android 设备上
+以 C++ 实现，体积优先。当前处于需求澄清收尾阶段。
 
 ## In flight
 
@@ -11,13 +11,13 @@ Focus:
 
 ## Next
 
-- 定下形态（CLI／GUI／网页）、运行位置（PC／设备）、技术栈与检测项范围。
-- 需要界面则跑 `$impeccable init` 落 `PRODUCT.md`。
-- 建最小骨架：扫描一个模块包 → 输出风险报告。
+- 确认交付形态（独立 ELF 还是 APK）与 NDK 下载。
+- 装 NDK，搭 CMake 骨架（宿主 MSVC 单测 + Android 交叉编译）。
+- 最小可用：扫一个模块包 → 出报告。
 
 ## Open questions
 
-- 扫描对象是模块 zip（安装前）、设备上已安装模块目录，还是两者？
-- 在 PC 上离线和在设备上运行，选哪个（还是都要）？
-- 技术栈选什么？
-- 是否允许联网（黑名单、哈希信誉）？
+- 独立 ELF 还是 APK？
+- 允许下载 NDK（约 1–2 GB）吗？
+- 只出 arm64-v8a 还是多 ABI？minSdk 定多少？
+- 扫已安装模块要不要 root 能力？是否允许联网查黑名单？
