@@ -29,6 +29,9 @@
 - APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。NDK
   `27.0.12077973` 与 AGP 8.6.1 / Gradle 8.9 的组合是首次尝试，CI 报错就按提示调版本。
 - 真机没连过（`adb devices` 为空），报告在设备上的实际显示效果没验证过。
+- **本机连不上 GitHub**：2026-09-20 试 `git fetch` 报 `Failed to connect to github.com
+  port 443 after 21072 ms`。远程 `lemon-tool`（github.com/zhongwen-4/lemon-tool.git）已配置，
+  远端停在 `af1133b`，本地领先 2 个提交。CI 要跑起来得先能推上去（多半需要开代理）。
 
 ## 下一步
 
