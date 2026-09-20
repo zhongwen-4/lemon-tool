@@ -3,7 +3,10 @@
 SUMMARY: MiuiX 坐标 `top.yukonga.miuix.kmp:miuix-android:0.8.8`，**硬要求 compileSdk 36**
 （AAR 里 `minCompileSdk=36`，低了直接构建失败）、minSdk 23；库本身用 Kotlin 2.3.20 编译，
 消费端要用同版本 Kotlin 与 compose 编译器插件；组件在 `basic` / `theme` 两个包。
-READ WHEN: when 要改本 App 的界面、升级 MiuiX，或构建时报 compileSdk / Kotlin 元数据版本不匹配时。
+**莫奈取色是库内置的**（`MiuixTheme(controller = ThemeController(...))`），
+**图标是另一个构件** `miuix-icons-android`，`basic.Card` 没有 `border` 参数。
+READ WHEN: when 要改本 App 的界面、升级 MiuiX、改用莫奈取色、加图标，或构建时报
+compileSdk / Kotlin 元数据版本不匹配时。
 RECHECK WHEN: MiuiX 升到 0.9+，或 Kotlin / AGP 换大版本之后。
 
 ---
@@ -23,21 +26,93 @@ RECHECK WHEN: MiuiX 升到 0.9+，或 Kotlin / AGP 换大版本之后。
 
 - `top.yukonga.miuix.kmp.basic`：`Text`、`Button`、`Card`、`Scaffold`、`TopAppBar`、
   `SmallTopAppBar`、`SmallTitle`、`Surface`、`CircularProgressIndicator`、`LinearProgressIndicator`、
-  `Divider`、`Switch`、`TextField`、`Snackbar`、`NavigationBar`…
-- `top.yukonga.miuix.kmp.theme`：`MiuixTheme { }`、`MiuixTheme.colorScheme`、`MiuixTheme.textStyles`
+  `Divider`、`Switch`、`TextField`、`Snackbar`、`NavigationBar`…，以及 `Icon`、`CardDefaults`、`CardColors`
+- `top.yukonga.miuix.kmp.theme`：`MiuixTheme { }`、`MiuixTheme.colorScheme`、`MiuixTheme.textStyles`、
+  `ThemeController`、`ColorSchemeMode`
 - 关键签名细节：
   - `Text(text, modifier, color, autoSize, fontSize, …, softWrap, maxLines, minLines, onTextLayout,
     style: TextStyle = LocalTextStyles.current.main)` —— **`style` 是最后一个参数**，必须命名传。
-  - `Card(modifier, cornerRadius, insideMargin, colors, content: @Composable ColumnScope.() -> Unit)`
+  - `Card(modifier, cornerRadius, insideMargin, colors, content: @Composable ColumnScope.() -> Unit)`，
+    **没有 border 参数**
+  - `Card(modifier, cornerRadius, insideMargin, colors, pressFeedbackType, showIndication,
+    onClick, onLongPress, content)` —— 可点击重载，`pressFeedbackType = PressFeedbackType.Sink`
+    给按压反馈，`PressFeedbackType` 在 `top.yukonga.miuix.kmp.utils`
   - `Button(onClick, modifier, enabled, cornerRadius, minWidth, minHeight, colors, insideMargin,
     interactionSource, indication, content: @Composable RowScope.() -> Unit)`
-  - `Scaffold(modifier, topBar, bottomBar, floatingActionButton, …, content: @Composable (PaddingValues) -> Unit)`
-  - `SmallTopAppBar(title: String, modifier, color, titleColor, navigationIcon, actions, scrollBehavior, …)`
-  - `MiuixTheme(colors, textStyles, smoothRounding, content)`
+  - `Scaffold(modifier, topBar, bottomBar, floatingActionButton, floatingToolbar, snackbarHost,
+    popupHost, containerColor = surface, contentWindowInsets, content: @Composable (PaddingValues) -> Unit)`
+  - `SmallTopAppBar(title: **String**, modifier, color, titleColor, navigationIcon, actions,
+    scrollBehavior, defaultWindowInsetsPadding, horizontalPadding)` —— **title 是 String 不是槽位**，
+    要在标题栏里放图标+两行文字，只能不用它、自己画一个 Row 塞进 `Scaffold(topBar = { })`
+  - `MiuixTheme(controller: ThemeController, textStyles, smoothRounding, content)` 与
+    `MiuixTheme(colors, textStyles, smoothRounding, content)` 两个重载
+  - `Icon(imageVector | painter | bitmap, contentDescription, modifier, tint)`；`tint = Color.Unspecified`
+    表示不染色（画多色图标时必须传）；内部 `.defaultSizeFor(painter)` 只在 modifier 没定尺寸时生效，
+    所以 `Modifier.size(40.dp)` 能覆盖默认 24.dp
   - `textStyles` 字段：main / paragraph / body1 / body2 / button / footnote1 / footnote2 /
     headline1 / headline2 / subtitle / title1 … title4
-  - 常用色：primary / onPrimary / error / primaryContainer / secondaryContainer / surface /
-    surfaceContainer / onSurface / onSurfaceVariantSummary / onBackgroundVariant / outline / dividerLine
+  - 常用色：primary / onPrimary / error / errorContainer / primaryContainer / secondaryContainer /
+    surface / surfaceContainer / surfaceContainerHigh / surfaceContainerHighest / onSurface /
+    onSurfaceContainer / onSurfaceContainerVariant / onSurfaceVariantSummary / onBackgroundVariant /
+    outline / dividerLine
+
+## 莫奈取色（库内置，别自己接 material-color-utilities）
+
+```
+val controller = remember { ThemeController(colorSchemeMode = ColorSchemeMode.MonetSystem) }
+MiuixTheme(controller = controller) { ... }
+```
+
+- `ColorSchemeMode` 六个值：`System / Light / Dark / MonetSystem / MonetLight / MonetDark`
+- `ThemeController` 还能传 `keyColor`（给了就**不再读系统壁纸色**，改成自己按种子色生成）、
+  `colorSpec`（Spec2021/Spec2025）、`paletteStyle`（TonalSpot 等 9 种）、`isDark`
+- `MonetSystem` 在 Android 上的实现（`DynamicColors.android.kt`）：
+  API ≥ 33 读 `Settings.Secure` 的 `theme_customization_overlay_packages`（系统壁纸取色，
+  含系统用的 paletteStyle）；API 31-32 走 `android.R.color.system_accent1_*` 角色；
+  **API < 31 回落到 `monetSystemColors()`——即 MiuiX 自己的紫色种子**。minSdk 24 的 App
+  在 Android 11 及以下看到的是紫，不是壁纸色，这是预期回落不是 bug
+- `com.materialkolor:material-color-utilities` 由 MiuiX 传递引入，**不需要**自己加依赖
+
+### 静态主题下 surfaceContainer 就是纯白（重要坑）
+
+`lightColorScheme()` 默认值：`background = Color.White`、`surface = #F7F7F7`、
+**`surfaceContainer = Color.White`**。而 `CardDefaults.defaultColors()` 的默认底色正是
+`surfaceContainer` —— 所以在**不用 Monet** 的默认主题下，卡片是白底压白底，**完全看不出边界**。
+用 Monet 后 `mapMd3RolesToMiuixColorsCommon()` 把 `surfaceContainer` 映射到 MD3 的
+surfaceContainer（浅色约 tone 94，明显比 `surface` 的 tone 98 深），卡片才浮出来。
+要更明确的“面板”感用 `surfaceContainerHigh`。
+
+## 图标是独立构件（不在 miuix-android 里）
+
+- 坐标：`top.yukonga.miuix.kmp:miuix-icons-android:0.8.8`（Maven Central，AAR 约 1.19 MB，
+  `minSdkVersion=23`，**AAR 内没有 proguard 规则文件**，所以 R8 能自由裁掉没引用的图标）
+- `miuix-android` 里只有空壳 `top.yukonga.miuix.kmp.icon.MiuixIcons`（四个嵌套 object：
+  `Basic / Light / Regular / Heavy`），图标本体在 icons 构件的
+  `top.yukonga.miuix.kmp.icon.extended` 包，做成**嵌套 object 的扩展属性**
+- 用法：`import top.yukonga.miuix.kmp.icon.extended.Layers` + `import top.yukonga.miuix.kmp.icon.MiuixIcons`，
+  然后写 `MiuixIcons.Layers`（等价于 `MiuixIcons.Regular.Layers`，还有 `.Light.` / `.Heavy.` 变体）。
+  扩展属性**必须按名字 import**，否则 `MiuixIcons.Layers` 解析不到
+- 0.8.8 共 155 个图标，命名是 MiuiX 自己的一套（`File`、`Folder`、`Layers`、`Scan`、`Search`、
+  `Report`、`Info`、`Settings`、`ChevronForward`、`ExpandMore`/`ExpandLess`、`Th1`~`Th31` 等），
+  **和 Material Icons 名字对不上**，别凭印象写，去
+  `https://compose-miuix-ui.github.io/miuix/zh_CN/guide/icons` 查
+- 体积实测：只引用 3 个图标时，**未引用的图标确实被 R8 裁掉了**（在 `classes.dex` 里搜
+  `ZoomOut`/`WorldClock`/`MapAlbum` 等字符串为 0 命中，搜用到的 3 个为 1 命中）。整包 dex 从
+  1488 KB 涨到 1751 KB 主要是新界面代码，不是图标
+
+## Card 没有 border —— 要框就自己画
+
+`Card` 只接受 `colors: CardColors`（只有 `color` / `contentColor` 两个字段），没有描边参数。
+要彩色边框用：
+
+```
+Modifier.border(宽度, 颜色, RoundedCornerShape(CardDefaults.CornerRadius))
+```
+
+- 形状**必须用 `RoundedCornerShape(CardDefaults.CornerRadius)`**，`BasicCard` 内部就是
+  `.clip(RoundedCornerShape(cornerRadius))`，形状不一致会出现缝或角被切
+- `Modifier.border` 画在后续 `background` 之上，且不被内部 `clip` 切掉，所以描边可见
+- 透明框就传 `Color.Transparent`（要的只是“不给这级加颜色”，不是不画）
 
 ## 怎么核实 API —— 别凭记忆写
 
@@ -46,10 +121,12 @@ RECHECK WHEN: MiuiX 升到 0.9+，或 Kotlin / AGP 换大版本之后。
 ```
 https://repo1.maven.org/maven2/top/yukonga/miuix/kmp/miuix-android/<版本>/miuix-android-<版本>-sources.jar
 https://repo1.maven.org/maven2/top/yukonga/miuix/kmp/miuix-android/<版本>/miuix-android-<版本>.aar
+https://repo1.maven.org/maven2/top/yukonga/miuix/kmp/miuix-icons-android/<版本>/miuix-icons-android-<版本>-sources.jar
 ```
 
-sources jar 里 `commonMain/…/*.kt` 是真实签名；AAR 里 `classes.jar` 可列包结构、
-`aar-metadata.properties` 给出 minCompileSdk。本机 `repo1.maven.org` 可达（GitHub 不可达）。
+sources jar 里 `commonMain/…/*.kt` 是真实签名，`androidMain/…` 是实际实现（Monet 的回落逻辑就在这里）；
+AAR 里 `classes.jar` 可列包结构、`aar-metadata.properties` 给出 minCompileSdk。
+**icons AAR 的 AndroidManifest.xml 是纯文本 XML（不是二进制）**，7z 解出来后直接读字节就能看 minSdk。
 
 ## 会顺带把 Compose 版本拉高（0.8.8 实查 .module 文件）
 

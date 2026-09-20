@@ -7,13 +7,14 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 
 ## In flight
 
-- `work/module-risk-scanner/` — CI 已能出 APK（1.07 MiB，run 35475236439），等真机测试反馈
+- `work/module-risk-scanner/` — 界面已按莫奈取色整体重写，CI 全绿（1.21 MiB，run 35477558871），等真机测试反馈
 
 ## Next
 
 - 真机验证「选 zip → 出报告」整条链路（等用户测试）。
 - 给 zip 条目数加上限（防内存被打爆）。
 - 用真实模块样本压误报（现在的夹具是自造的，覆盖面有限）。
+- 等真机截图判断新界面：顶部 40% 面板是否太空、中危黄框对比度是否够。
 
 ## Open questions
 

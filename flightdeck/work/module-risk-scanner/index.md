@@ -37,6 +37,31 @@
   `mrs-apk`：`app-release.apk` **1127142 字节 ≈ 1.07 MiB**，内含
   `lib/arm64-v8a/libmrs_jni.so`（252 KB），远低于 12 MiB 预算。
 
+- 2026-09-20 **界面整体重写（莫奈取色）**，`ScanUi.kt` 从 300 行长到 510 行：
+  - 取色：`MiuixTheme(controller = ThemeController(colorSchemeMode = ColorSchemeMode.MonetSystem))`。
+    坑：**不用 Monet 时默认卡片就是白底压白底**（静态主题里 `surfaceContainer = Color.White`），
+    所以「比纯白背景深一点」这个诉求本身就要求走 Monet，莫奈下卡片底色才和页面底色分得开。
+  - 顶部固定栏：**没用 `SmallTopAppBar`**（它的 `title` 是 `String`，塞不进图标+两行文字），
+    自己写 Row 丢进 `Scaffold(topBar = { })`：应用图标 40dp + 3dp 间距 + 软件名(title3) +
+    下方小字版本号(footnote2，从 PackageManager 读 versionName)。
+  - 上部 40%：`Modifier.weight(0.4f)` 的单个 Card 面板，里面放 72dp 模块图标
+    （`MiuixIcons.Layers`，扫描中换成转圈）、模块名/版本/作者/id，以及**唯一的操作按钮**
+    （选 zip / 重新选择）。下部 60% 放检测项，两侧按权重切分屏幕高度，互不挤压。
+  - 检测项：`LazyColumn` + 计数概览卡。**高危红框（`colorScheme.error`）、中危黄框
+    （自定琥珀色，暗色下换亮一档）、低危与信息透明框**；点击整卡展开，展开区显示
+    「说明」+ `文件(<文件名>)第 x 行` + 完整路径（等宽字体）。
+  - 展开状态用 `ScannerScreen` 里的 `Set<Int>` 提升保管，**没有放在 item 内部 `remember`**
+    ——LazyColumn 会回收 item，内部 remember 一滚就没。
+- 2026-09-20 补上应用图标（**之前 `AndroidManifest.xml` 根本没有 `android:icon`，桌面是默认机器人**）：
+  `drawable/ic_app_mark.xml`（矢量，头部直接用）+ 自适应图标
+  （`ic_launcher_foreground.xml` + `mipmap-anydpi-v26/ic_launcher.xml`）+
+  `mipmap-anydpi/ic_launcher.xml`（API 24-25 回退）。
+- 2026-09-20 依赖加 `top.yukonga.miuix.kmp:miuix-icons-android:0.8.8`（图标不在 miuix-android 里，
+  见 `knowledge/android/miuix-0.8.8.md`）。
+- 2026-09-20 **CI 全绿**：run `35477558871`（commit `f381080`）两个 job 都过，
+  `app-release.apk` **1273442 字节 ≈ 1.21 MiB**（上一版 1132958 ≈ 1.08 MiB，**+140 KB**）。
+  体积增量已核实去向：图标构件只留下用到的 3 个（dex 里搜未引用图标名为 0 命中），
+  涨的主要是新界面代码产生的 dex。
 ## 未验证 / 风险
 
 - APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。
@@ -50,6 +75,11 @@
   编译会发生在 CI。
 - AGP 8.11.1 + Gradle 8.13 + Kotlin 2.3.20 + MiuiX/Compose 这条链**已由 CI 实测通过**
   （2026-09-20），不再算风险项。
+
+- **界面渲染效果一次都没被看过**：本机编不了 Kotlin/Compose，CI 只保证「能编译、能出 APK」，
+  布局是否好看、黄框对比度够不够、顶部 40% 面板会不会太空，都要等真机截图才能判断。
+- 莫奈取色在 **Android 11 及以下会回落到 MiuiX 默认紫**（`platformDynamicColors` 在 API < 31
+  直接给 `monetSystemColors()`），不是壁纸色；minSdk 24，真机得是 Android 12+ 才看得到莫奈效果。
 
 ## 已知缺陷
 
