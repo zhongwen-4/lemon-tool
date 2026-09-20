@@ -84,6 +84,18 @@
   **1290986 字节 ≈ 1.23 MiB**（上一版 1273442 ≈ 1.21 MiB，**+17 KB**）。
 - 2026-09-20 **CI 全绿**：run `35480514245`（commit `7265af4`），`core tests (host)` 与 `apk (arm64-v8a)` 都过；
   artifact `mrs-apk` 的 zip 从上一版的量级掉到 **999 KB**（APK 实际字节这次没读 job 日志）。
+- 2026-09-21 **三件事一起做**（用户指令）：
+  1. 顶栏图标加回（原样）。
+  2. 版本号 0.1.0 → **0.2.0**（versionCode 1 → 2）。
+  3. 「关于」页新增**更新检查**：`releases/latest` 的 `tag_name` 跟已安装 versionName 逐段比数字，
+     只引 `HttpURLConnection` + `org.json`（不加依赖、不加体积）。同时给 CI 接上**tag 发版**：
+     推 `v*` 时 `gh release create` 把 APK 挂上去（无第三方 action）。详见
+     `knowledge/build/release-and-update-check.md`。
+  - 代价：**加了 `INTERNET` 权限**，「不联网」这个卖点必须改成「扫描全程离线、只有检查更新联网」，
+    「关于」页的措辞已同步改掉（原文是假陈述）。
+  - 首个 Release：`v0.2.0`（tag run `35539547477`），APK **1.24 MiB**，`releases/latest` 实测返回正常。
+  - 真机验证仍待用户：装 0.2.0 点「检查更新」应显示「已经是最新版本（v0.2.0）」。
+
 
 ## 未验证 / 风险
 
@@ -112,10 +124,10 @@
 
 - 「关于」页的内容与措辞是**我自己补的**（参考图有 主页/关于 两个 tab，但用户没说过要什么），
   未经确认。
-- ~~顶栏图标与 3dp 间距~~ **2026-09-20 已删**：用户要求「先把界面最上面那个黑色的东西去掉」。
-  那个 `ic_app_mark`（黄底 `#FFD75E` + 近黑 `#2E2A26` 盾牌）在 40dp 下就是个黑块，连同
-  `HEADER_ICON_GAP` 一起删掉，顶栏只剩软件名 + 版本号。**`ic_app_mark.xml` 没删**——启动器图标
-  （`mipmap-anydpi/` 与 `mipmap-anydpi-v26/ic_launcher.xml`）还在用同一份矢量。
+- 顶栏图标 2026-09-20 删过一次、**2026-09-21 按用户要求原样加回**（`ic_app_mark` 40dp +
+  `HEADER_ICON_GAP = 3.dp`，他自己定的数字）。回推：他说的「最上面黑色的东西」**不是**这个图标，
+  大概率是最上面那条系统状态栏——也就是当天一并修掉的那个 `android:theme` 缺失（见下一条）。
+  所以 `ic_app_mark` 在 40dp 下就是「黄底 + 近黑盾牌」这个观感问题仍然存在，他没提就当没意见。
 - 2026-09-20 一起挖出并修掉的根因：这个 app 的 manifest **从来没写过 `android:theme`**，平台按默认的
   **深色** `Theme.DeviceDefault` 走，状态栏、导航栏、启动底色全跟着它变黑（与 MiuixTheme 的莫奈取色无关）。
   补了 `values/themes.xml` + `values-night/themes.xml` + `@color/window_surface`，只 override 窗口底色与
@@ -163,6 +175,9 @@
 - 2026-09-20 复现第二个误报：良性模块的 `uninstall.sh` 自清理被判 `cmd.rm-rf-adb`（中危）；
   根因是升级表不看文件名。改法待用户确认（甲 / 丙）。
 - 2026-09-20 界面第一轮真机反馈：删掉顶栏深色图标、补平台主题清掉黑色系统栏与黑开屏（见「未验证/风险」）。
+- 2026-09-21 按用户要求把顶栏图标加回、版本号提到 0.2.0，并落地「更新检查」（GitHub Release 为数据源）
+  + CI tag 发版通道；首个 Release `v0.2.0` 已发布。
+
 - 2026-09-20 用户质疑「能不能做虚拟环境直接刷写模块看它执行了哪些命令」：本机搭了**假 PATH 沙箱**
   （每条命令一个只记录不执行的 stub + 真 shell 解释器）实测跑通，`evil/customize.sh` 出 14 条真实顺序
   的命令轨迹；结论是这套东西**进不了 APK**（非 root 跑不动关键命令、要 rooted AVD、恶意模块反沙箱、
@@ -175,6 +190,7 @@
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.8.8.md` — 动界面（MiuiX/Compose）前必读
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
+- `knowledge/build/release-and-update-check.md` — 动版本号、发版、或改「检查更新」前必读
 - `knowledge/detection/dry-run-sandbox.md` — 要评估动态/半动态分析（执行轨迹）时读，
   含「假 PATH 沙箱」的坑与「为什么进不了 APK」的结论
 
