@@ -1,0 +1,4 @@
+# 让 wrapper 在 Linux/CI 上可直接执行：shell 脚本保持 LF，bat 保持 CRLF
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+gradle/wrapper/gradle-wrapper.jar binary
