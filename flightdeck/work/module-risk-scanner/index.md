@@ -62,6 +62,27 @@
   `app-release.apk` **1273442 字节 ≈ 1.21 MiB**（上一版 1132958 ≈ 1.08 MiB，**+140 KB**）。
   体积增量已核实去向：图标构件只留下用到的 3 个（dex 里搜未引用图标名为 0 命中），
   涨的主要是新界面代码产生的 dex。
+- 2026-09-20 **按用户给的参考图（TrustAttestor 截图）重做版式**，第二次整体重写 `ScanUi.kt`：
+  - 结构从「顶部 40% 模块面板 + 下部列表」换成参考图的三段式：**顶部固定标题栏（底部带分割线）
+    → 状态卡 → 检测项卡列表 → 底部导航（主页/关于）**。按屏幕比例切分的 `HERO_WEIGHT` 已删除。
+  - 状态卡：居中状态圆环图标（异常红/琥珀、正常绿、待机用 `MiuixIcons.Layers`、扫描中换转圈）
+    → 结论标题（`title3`）→ 核心 `verdict` 原文 → 全宽圆角按钮（52dp 高、26dp 圆角，比
+    `ButtonDefaults` 默认的 40dp/16dp 更胖，贴合参考图）→ 底部 caption（模块名 + 上次检测时间 + 文件数）。
+    有结果时是双按钮：「重新检测」（重扫缓存里同一个 zip，不弹选择器）+「选择其他模块」。
+  - 检测项卡：左侧等级圆图标、中间标题(`body1`)与一句话副标题、右侧等级胶囊（`StatusPill`：
+    12% 透明底 + 45% 边框 + 同色字）与展开箭头；展开后是**两张白底内嵌卡**——用
+    `colorScheme.surface` 而非外层卡片的 `surfaceContainerHigh`（浅色下内层更白、深色下内层更深，
+    两层始终分得开），标题各配 `MiuixIcons.Lock`（说明）与 `MiuixIcons.Info`（详情）。
+  - 高危/中危保留彩色描边（`Modifier.border`，20dp 圆角），低危与信息仍是透明框。
+  - 底部导航用 MiuiX 的 `NavigationBar(mode = NavigationBarDisplayMode.TextOnly)`。
+    坑：`NavigationBarItem` 的 `icon: ImageVector` 是**必填**参数，TextOnly 模式下不渲染但躲不掉，
+    只能随便给一个矢量。
+  - 新增 `ic_state_alert.xml` / `ic_state_ok.xml`：24dp 视口、统一用 `#FF000000` 描一个圆环 + 感叹号/对勾，
+    靠 `Icon(tint = ...)` 的 ColorFilter 整体染色，所以同一个矢量能出红、琥珀、绿三种颜色。
+  - 四档配色定了：高红、中黄、低绿（描边仍透明）、信息灰。
+- 2026-09-20 **CI 全绿**：run `35478921424`（commit `70b70ba`），`app-release.apk`
+  **1290986 字节 ≈ 1.23 MiB**（上一版 1273442 ≈ 1.21 MiB，**+17 KB**）。
+
 ## 未验证 / 风险
 
 - APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。
@@ -69,6 +90,12 @@
 - ~~本机连不上 GitHub~~ 已解决：本机 FlClash 代理 `http://127.0.0.1:7890` 可用，
   `git -c http.proxy=http://127.0.0.1:7890 push lemon-tool main` 稳定成功。
   读 CI 日志的办法见 `knowledge/tooling/github-actions-logs-via-api.md`。
+  2026-09-20 补充：**别把代理当默认前提**。当天 FlClash 还在跑，但 `127.0.0.1:7890` 已经没人监听
+  （`Test-NetConnection`/`TcpClient.Connect` 直接拒连、系统代理 `ProxyEnable=0`），带代理推送报
+  `Failed to connect to github.com port 443 via 127.0.0.1`；而同一时刻**直连是通的**
+  （`curl https://github.com` 与 `https://api.github.com/rate_limit` 都 200），
+  改用 `git -c http.proxy= -c https.proxy= push lemon-tool main` 一次成功。
+  所以推送/查 API 失败时先花两秒测直连，别只剩「重试代理」一条路。
 - **Kotlin/Compose 这条构建链本机一次都没编过**：本机没有 Kotlin 编译器也没有 gradle，
   MiuiX 的 API 用法是靠拉 sources jar 逐个核对签名得来的（已核对：Text/Button/Card/Scaffold/
   SmallTopAppBar/SmallTitle/CircularProgressIndicator/MiuixTheme 及所用样式与色名）。第一次真
@@ -80,6 +107,11 @@
   布局是否好看、黄框对比度够不够、顶部 40% 面板会不会太空，都要等真机截图才能判断。
 - 莫奈取色在 **Android 11 及以下会回落到 MiuiX 默认紫**（`platformDynamicColors` 在 API < 31
   直接给 `monetSystemColors()`），不是壁纸色；minSdk 24，真机得是 Android 12+ 才看得到莫奈效果。
+
+- 「关于」页的内容与措辞是**我自己补的**（参考图有 主页/关于 两个 tab，但用户没说过要什么），
+  未经确认。
+- 顶栏图标与软件名的间距仍是用户早先明确指定的 `HEADER_ICON_GAP = 3.dp`；参考图里这个间距明显更宽
+  （目测约 12dp）。我**故意保留了他的原话没动**，并在交付时向他说明了差异——他没点头之前别自作主张改。
 
 ## 已知缺陷
 
