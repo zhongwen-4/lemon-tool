@@ -137,6 +137,10 @@
 3. 用真实模块样本压误报（现在是自造夹具，覆盖面有限）。
 4. ~~推到 GitHub 跑 workflow~~ 已完成（见上）。
 5. 装到真机，验证「选 zip → 出报告」整条链路 —— **等用户测试反馈**。
+6. 候选（2026-09-20 用户提「做个虚拟环境刷写模块看执行了哪些命令」后评估）：APK 内做**静态
+   「执行轨迹预览」**——按钩子分组、按顺序列出会执行的命令，零执行、体积几乎不涨。
+7. 候选（不进 APK）：桌面/CI 侧 dry-run 沙箱，方法与本机实测见
+   `knowledge/detection/dry-run-sandbox.md`。
 
 ## 进度
 
@@ -148,6 +152,10 @@
   恶意样本 6 高危；报告与界面都加了定性结论。
 - 2026-09-20 复现第二个误报：良性模块的 `uninstall.sh` 自清理被判 `cmd.rm-rf-adb`（中危）；
   根因是升级表不看文件名。改法待用户确认（甲 / 丙）。
+- 2026-09-20 用户质疑「能不能做虚拟环境直接刷写模块看它执行了哪些命令」：本机搭了**假 PATH 沙箱**
+  （每条命令一个只记录不执行的 stub + 真 shell 解释器）实测跑通，`evil/customize.sh` 出 14 条真实顺序
+  的命令轨迹；结论是这套东西**进不了 APK**（非 root 跑不动关键命令、要 rooted AVD、恶意模块反沙箱、
+  且「刷写」本身就是它们等的触发条件）。方法、陷阱与结论记在 `knowledge/detection/dry-run-sandbox.md`。
 
 ## Read now
 
@@ -156,6 +164,8 @@
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.8.8.md` — 动界面（MiuiX/Compose）前必读
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
+- `knowledge/detection/dry-run-sandbox.md` — 要评估动态/半动态分析（执行轨迹）时读，
+  含「假 PATH 沙箱」的坑与「为什么进不了 APK」的结论
 
 ## Read if
 
