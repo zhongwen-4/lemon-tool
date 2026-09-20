@@ -84,8 +84,6 @@ private const val NORMAL_KEY = -1
 private val CARD_SHAPE = RoundedCornerShape(20.dp)
 private val PILL_SHAPE = RoundedCornerShape(percent = 50)
 private val CARD_BORDER = 1.dp
-private val HEADER_ICON_SIZE = 40.dp
-private val HEADER_ICON_GAP = 3.dp
 private val GLYPH_LARGE = 52.dp
 private val GLYPH_SMALL = 30.dp
 private val BUTTON_RADIUS = 26.dp
@@ -209,25 +207,13 @@ private fun AppHeader() {
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                painter = painterResource(R.drawable.ic_app_mark),
-                contentDescription = null,
-                modifier = Modifier.size(HEADER_ICON_SIZE),
-                tint = Color.Unspecified,
+        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
+            Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
+            Text(
+                text = "v$version",
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
             )
-            Spacer(Modifier.width(HEADER_ICON_GAP))
-            Column {
-                Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
-                Text(
-                    text = "v$version",
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
         }
         HorizontalDivider(color = MiuixTheme.colorScheme.dividerLine)
     }

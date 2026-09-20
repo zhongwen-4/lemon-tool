@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 平台主题只管窗口底色与系统栏；界面内的配色一律来自 MiuixTheme 的莫奈取色。
+         之前 manifest 里一个主题都没写，平台就按默认的深色 Theme.DeviceDefault 走，
+         于是状态栏、导航栏和启动窗口在浅色界面上全是黑的。 -->
+    <style name="Theme.Mrs" parent="@android:style/Theme.DeviceDefault.Light.NoActionBar">
+        <item name="android:windowBackground">@color/window_surface</item>
+        <item name="android:statusBarColor">@color/window_surface</item>
+        <item name="android:navigationBarColor">@color/window_surface</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
+</resources>
