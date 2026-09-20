@@ -38,3 +38,4 @@ $text = [System.IO.File]::ReadAllText($p, [System.Text.Encoding]::UTF8)
   本机全红** —— 看到这种分裂先怀疑编码，别怀疑逻辑。
 - `apply_patch` 改过的文件会丢掉 BOM：补完 BOM 之后如果还要再 patch 该文件，记得复查首三字节
   是不是 `ef bb bf`。
+- 同样的坑适用于**任何重写动作**：`[IO.File]::WriteAllText($p, $text, (New-Object Text.UTF8Encoding($false)))`   也会把 BOM 抹掉（2026-09-21 改 `run_tests.ps1` 时因此本机断言满天红、CI 却全绿）。重写完带中文的   `.ps1` 之后，养成 `[IO.File]::ReadAllBytes($p)[0..2]` 看一眼是不是 `239 187 191` 的习惯。

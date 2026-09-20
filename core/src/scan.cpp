@@ -71,6 +71,11 @@ bool is_script(const std::string& name) {
     return has_suffix(to_lower(name), ".sh") || is_hook(name);
 }
 
+// 卸载脚本只在模块被卸载时执行：它照扫、照进清单，但升级层不对它生效
+bool is_uninstall_script(const std::string& name) {
+    return basename(name) == "uninstall.sh";
+}
+
 void parse_prop(const std::string& text, ModuleInfo& info) {
     info.loaded = true;
     size_t start = 0;
@@ -102,6 +107,7 @@ struct Scanner {
     int setuid_files = 0;
     std::vector<std::string> elf_archs;
     std::vector<std::string> hooks;
+    std::vector<std::string> uninstall_scripts;
     std::vector<std::string> urls;
     std::vector<std::string> ips;
 
@@ -123,6 +129,7 @@ struct Scanner {
         size_t escalation_count = 0;
         const Escalation* escalations = escalation_table(escalation_count);
         bool script = is_script(name);
+        bool uninstall = is_uninstall_script(name);
         bool saw_eval = false;
         bool saw_payload = false;
         int eval_line = 0;
@@ -137,10 +144,11 @@ struct Scanner {
             for (size_t i = 0; i < rule_count; i++)
                 if (line.find(rules[i].needle) != std::string::npos)
                     add(rules[i].sev, rules[i].id, name, line_no, rules[i].detail);
-            for (size_t i = 0; i < escalation_count; i++)
-                if (escalations[i].match(line))
-                    add(escalations[i].sev, escalations[i].id, name, line_no, escalations[i].detail);
-            if (script && is_base64_run(line))
+            if (!uninstall)
+                for (size_t i = 0; i < escalation_count; i++)
+                    if (escalations[i].match(line))
+                        add(escalations[i].sev, escalations[i].id, name, line_no, escalations[i].detail);
+            if (script && !uninstall && is_base64_run(line))
                 add(Severity::Medium, "obf.blob", name, line_no,
                     "脚本里出现超长 base64 串，疑似混淆载荷");
             if (!saw_eval && line.find("eval ") != std::string::npos) {
@@ -154,7 +162,7 @@ struct Scanner {
             if (end == text.size()) break;
             start = end + 1;
         }
-        if (saw_eval && saw_payload)
+        if (saw_eval && saw_payload && !uninstall)
             add(Severity::High, "obf.eval-dynamic", name, eval_line,
                 "同一文件里既有动态执行又有下载/解码，疑似远程载荷");
         extract_iocs(text, urls, ips);
@@ -167,6 +175,7 @@ struct Scanner {
         if (name.compare(0, 7, "system/") == 0) system_files++;
         if (has_suffix(to_lower(name), ".apk")) apk_files++;
         if (is_hook(name)) hooks.push_back(name);
+        if (is_uninstall_script(name)) uninstall_scripts.push_back(name);
         if (has_mode && (mode & 04000u)) {
             setuid_files++;
             add(Severity::High, "fs.setuid", name, 0, "条目带 setuid 位，安装后可能以特权身份执行");
@@ -203,6 +212,13 @@ struct Scanner {
             for (size_t i = 0; i < hooks.size(); i++)
                 joined += (i ? ", " : "") + hooks[i];
             report.notes.push_back("开机/安装钩子：" + joined);
+        }
+        if (!uninstall_scripts.empty()) {
+            std::string joined;
+            for (size_t i = 0; i < uninstall_scripts.size(); i++)
+                joined += (i ? ", " : "") + uninstall_scripts[i];
+            report.notes.push_back("卸载脚本 " + joined +
+                                   " 只在模块被卸载时执行，其中的行为只作记录、不计入风险统计");
         }
         if (system_files)
             report.notes.push_back("system/ 下 " + std::to_string(system_files) +

@@ -81,6 +81,10 @@ Assert-Contains -Label 'no /data/adb rm inferred' -Text $goodText -Needle 'cmd.r
 Assert-Contains -Label 'mount -o bind is not a remount' -Text $goodText -Needle 'cmd.remount-rw' -Expected $false
 Assert-Contains -Label 'chmod 755 recorded as info' -Text $goodText -Needle '[信息] cmd.chmod755' -Expected $true
 Assert-Contains -Label 'rm -rf still recorded as low' -Text $goodText -Needle '[低危] cmd.rm-rf' -Expected $true
+# uninstall.sh 属于模块的一部分，但它只在卸载时执行：照扫、照列，升级层不生效
+Assert-Contains -Label 'uninstall script still scanned' -Text $goodText -Needle 'uninstall.sh:' -Expected $true
+Assert-Contains -Label 'uninstall self-cleanup not escalated' -Text $goodText -Needle 'cmd.rm-rf-adb' -Expected $false
+Assert-Contains -Label 'uninstall script explained in notes' -Text $goodText -Needle '不计入风险统计' -Expected $true
 
 Write-Host 'good_stored.zip (stored entries)'
 $storedText = & $Exe $goodStoredZip
@@ -100,6 +104,12 @@ foreach ($rule in @('cmd.rm-rf-device', 'cmd.rm-rf-adb', 'net.exec-download', 'o
                     'cmd.remount-rw')) {
     Assert-Contains -Label "escalation $rule" -Text $evilText -Needle $rule -Expected $true
 }
+# 恶意夹具的 uninstall.sh 里有 setenforce 0 / chmod 777 / curl|sh：升级项必须被压掉，
+# 但它的低危记录还在（'uninstall.sh:' 会出现在发现列表里）
+
+Assert-Contains -Label 'uninstall escalation suppressed' -Text $evilText -Needle 'cmd.setenforce-off' -Expected $false
+Assert-Contains -Label 'uninstall still scanned in evil' -Text $evilText -Needle 'uninstall.sh:' -Expected $true
+
 Assert-Contains -Label 'hook listed' -Text $evilText -Needle 'customize.sh' -Expected $true
 Assert-Contains -Label 'system overwrite noted' -Text $evilText -Needle 'system/' -Expected $true
 
@@ -117,6 +127,7 @@ $goodReport = ((& $Exe $goodZip --json) -join '') | ConvertFrom-Json
 Assert-Equal -Label 'good counts.high' -Actual $goodReport.counts.high -Expected 0
 Assert-Equal -Label 'good counts.medium' -Actual $goodReport.counts.medium -Expected 0
 Assert-Contains -Label 'good verdict benign' -Text $goodReport.verdict -Needle '未发现高危或中危行为' -Expected $true
+Assert-Contains -Label 'good notes mention uninstall script' -Text ($goodReport.notes -join ' | ') -Needle '卸载脚本' -Expected $true
 $evilReport = ((& $Exe $evilZip --json) -join '') | ConvertFrom-Json
 Assert-Equal -Label 'evil has high' -Actual ($evilReport.counts.high -gt 0) -Expected $true
 Assert-Contains -Label 'evil verdict warns' -Text $evilReport.verdict -Needle '建议不要安装' -Expected $true
