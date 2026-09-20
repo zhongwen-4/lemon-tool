@@ -183,6 +183,8 @@
   的命令轨迹；结论是这套东西**进不了 APK**（非 root 跑不动关键命令、要 rooted AVD、恶意模块反沙箱、
   且「刷写」本身就是它们等的触发条件）。方法、陷阱与结论记在 `knowledge/detection/dry-run-sandbox.md`。
 
+- 2026-09-21 用户报 IDE 里 `app/build.gradle:1` 的 `JvmTarget` 未解析：根因是仓库一直没有 Gradle wrapper，IDE 只能借用未知 Gradle；
+  已补 wrapper（锁 8.13，对齐 CI）+ `.gitattributes`（`gradlew` 强制 LF），本机用缓存 9.2.0 跑 `gradle projects --offline` 验证脚本编译与 AGP 加载全过。
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状

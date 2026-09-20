@@ -53,3 +53,26 @@ cmd /c $cmd
 看中文报告前先 `[Console]::OutputEncoding = [System.Text.Encoding]::UTF8`，否则终端里是乱码。
 
 Android 侧的 APK 构建**不在本机做**：GitHub Actions 负责（`.github/workflows/android.yml`）。
+
+---
+
+## Gradle wrapper 与 IDE 脚本 classpath（2026-09-21）
+
+- 仓库原来**没有 wrapper**（`gradlew` / `gradle/wrapper/` 全无），IDE 只能借用它自己找到的 Gradle。
+  一旦那个 Gradle 不是 8.13 档，`app/build.gradle` 第 1 行 `import org.jetbrains.kotlin.gradle.dsl.JvmTarget`
+  就报 `unable to resolve class ... @ line 1, column 8.` —— 这是**脚本编译期 classpath 里没有 KGP**，
+  不是代码错（CI 一直绿）。
+- 已补 wrapper 锁 **8.13**，与 `.github/workflows/android.yml` 的 `gradle-version: '8.13'` 对齐；
+  同时加 `.gitattributes`：`gradlew` 强制 LF（否则 Linux/CI 上 `bad interpreter`）、`gradlew.bat` CRLF、
+  `gradle-wrapper.jar` 标 binary。
+- 生成方式（离线，不下载）：临时目录先 `touch settings.gradle`（Gradle 9 在空目录直接报
+  `does not contain a Gradle build`），再用本机缓存 dist 的 Gradle 跑
+  `gradle wrapper --gradle-distribution-url .../gradle-8.13-bin.zip --no-validate-url`。
+  **`--no-validate-url` 必须加**：默认的 URL 校验是一次联网 HEAD，超时会让整个 wrapper 任务失败。
+- 本机实测（缓存 dist 只有 9.2.0 / 9.5.0 / 9.5.1）：`gradle projects --offline --no-daemon`
+  → BUILD SUCCESSFUL，脚本编译与 AGP 加载全过；说明那行 import 在正常 classpath 下没问题。
+- 本机到 Gradle 官方分发站**不稳定**：`services.gradle.org` 实测 000 / 21s 超时（偶发 307），
+  `downloads.gradle.org` 307 跳 github；国产镜像没一条通（腾讯 000、阿里 404）。
+  因此 wrapper 里写了 `networkTimeout=60000` + `validateDistributionUrl=false`。
+  首次跑 wrapper 拉不动 8.13 时，把 `distributionUrl` 换成能通的镜像或本地包即可。
+- CI **不受影响**：workflow 走的是 `gradle assembleRelease`（setup-gradle 装的那个），不经过 `./gradlew`。
