@@ -1,11 +1,13 @@
 package com.lemon.mrs
 
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -84,6 +86,8 @@ private const val NORMAL_KEY = -1
 private val CARD_SHAPE = RoundedCornerShape(20.dp)
 private val PILL_SHAPE = RoundedCornerShape(percent = 50)
 private val CARD_BORDER = 1.dp
+private val HEADER_ICON_SIZE = 40.dp
+private val HEADER_ICON_GAP = 3.dp
 private val GLYPH_LARGE = 52.dp
 private val GLYPH_SMALL = 30.dp
 private val BUTTON_RADIUS = 26.dp
@@ -207,13 +211,25 @@ private fun AppHeader() {
             .fillMaxWidth()
             .windowInsetsPadding(WindowInsets.systemBars.only(WindowInsetsSides.Top)),
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp)) {
-            Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
-            Text(
-                text = "v$version",
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                painter = painterResource(R.drawable.ic_app_mark),
+                contentDescription = null,
+                modifier = Modifier.size(HEADER_ICON_SIZE),
+                tint = Color.Unspecified,
             )
+            Spacer(Modifier.width(HEADER_ICON_GAP))
+            Column {
+                Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
+                Text(
+                    text = "v$version",
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
         }
         HorizontalDivider(color = MiuixTheme.colorScheme.dividerLine)
     }
@@ -563,13 +579,14 @@ private fun AboutScreen() {
                 }
             }
         }
+        item { UpdateCard(version) }
         item {
             Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
                 Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                     Text(text = "这个工具做什么", style = MiuixTheme.textStyles.body1)
                     Spacer(Modifier.height(6.dp))
                     Text(
-                        text = "选一个模块 zip，在设备本地解析它的脚本、配置与二进制，按「特征表 + 升级表」判定风险。不联网、不需要 root、不安装任何东西。",
+                        text = "选一个模块 zip，在设备本地解析它的脚本、配置与二进制，按「特征表 + 升级表」判定风险。扫描全程离线、不需要 root、不安装任何东西；只有「检查更新」会联网。",
                         style = MiuixTheme.textStyles.footnote1,
                         color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     )
@@ -585,6 +602,79 @@ private fun AboutScreen() {
             }
         }
     }
+}
+
+
+@Composable
+private fun UpdateCard(installed: String) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var checking by remember { mutableStateOf(false) }
+    var result by remember { mutableStateOf<UpdateResult?>(null) }
+
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+        Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
+            Text(text = "更新检查", style = MiuixTheme.textStyles.body1)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "从 GitHub Releases 取最新版本号比对，这是本工具唯一需要联网的地方。",
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+            val caption = updateCaption(checking, result, installed)
+            if (caption.isNotEmpty()) {
+                Spacer(Modifier.height(10.dp))
+                Text(
+                    text = caption,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = updateCaptionColor(result),
+                    modifier = if (result is UpdateResult.Newer) {
+                        Modifier.clickable { openUrl(context, (result as UpdateResult.Newer).url) }
+                    } else {
+                        Modifier
+                    },
+                )
+            }
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    if (!checking) {
+                        checking = true
+                        result = null
+                        scope.launch {
+                            result = checkUpdate(installed)
+                            checking = false
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                cornerRadius = BUTTON_RADIUS,
+                minHeight = BUTTON_HEIGHT,
+            ) {
+                Text(text = if (checking) "正在检查…" else "检查更新", style = MiuixTheme.textStyles.button)
+            }
+        }
+    }
+}
+
+private fun updateCaption(checking: Boolean, result: UpdateResult?, installed: String): String = when {
+    checking -> "正在检查…"
+    result is UpdateResult.Current -> "已经是最新版本（v$installed）"
+    result is UpdateResult.Newer -> "有新版本 v${result.version}，点这里打开发布页"
+    result is UpdateResult.Failed -> "检查失败：${result.message}。一直失败多半是当前网络连不上 GitHub。"
+    else -> ""
+}
+
+@Composable
+private fun updateCaptionColor(result: UpdateResult?): Color = when (result) {
+    is UpdateResult.Newer -> MiuixTheme.colorScheme.primary
+    is UpdateResult.Failed -> MiuixTheme.colorScheme.error
+    else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
+}
+
+private fun openUrl(context: Context, url: String) {
+    if (url.isBlank()) return
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
 }
 
 @Composable

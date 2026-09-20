@@ -3,6 +3,7 @@ name: android
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
   workflow_dispatch:
 
@@ -26,6 +27,8 @@ jobs:
   apk:
     name: apk (arm64-v8a)
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # 推 v* tag 时用 gh 建 Release
     steps:
       - uses: actions/checkout@v4
 
@@ -80,3 +83,15 @@ jobs:
         with:
           name: mrs-apk
           path: app/build/outputs/apk/release/*.apk
+
+      # git tag v0.2.0 && git push --tags 时把 APK 挂到 Release 上。
+      # app 的「检查更新」就是读 releases/latest 的 tag 跟已安装版本比对。
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
+          gh release create "$GITHUB_REF_NAME" "$apk" \
+            --title "$GITHUB_REF_NAME" \
+            --notes "CI 自动构建的 $GITHUB_REF_NAME，签名与 CI 一致，仅供测试。"
