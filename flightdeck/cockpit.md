@@ -7,7 +7,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 
 ## In flight
 
-- `work/module-risk-scanner/` — 界面按 SukiSU 的观感改造：**悬浮底栏**（MiuiX `FloatingNavigationBar`，无毛玻璃）+ 横向 pager 滑动 + `material-icons-extended` 图标；版本 0.2.1/code3，**本机 Kotlin 编译已通过**，等 CI 出包与真机看观感
+- `work/module-risk-scanner/` — 界面按 SukiSU 的结构重做：**悬浮底栏三个 tab**（主页 / 检查历史 / 设置）+ 横向 pager + `material-icons-extended` 图标 + **检查历史**（本地存档，最多 50 条）；版本 0.3.0/code4，**本机 debug/release 编译已通过**，等 CI 出包与真机看观感
 
 ## Next
 
@@ -44,6 +44,10 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   `material-icons-extended`）。底栏 → MiuiX `FloatingNavigationBar`（IconAndText），内容 → `HorizontalPager`，
   主页图标 `Icons.Rounded.Cottage`、关于 `Icons.Rounded.Info`，版本 **0.2.1 / code3**。
   **本机现在能编 Kotlin**（配好 JVM 代理后 `compileDebug/ReleaseKotlin` 全过），打 APK 仍靠 CI。
+- 2026-09-25：按用户要求把界面改成 SukiSU 那套结构（**自己写实现，没贴它的源码**）：三个 tab +
+  检查历史（本地存档、可清空、点开回看）+ 模块信息一行一项 + 设置页分区卡片。
+  **等用户定**：要不要升 MiuiX 0.9.4 换取他们那套 `preference` 行组件（实测要连带升 AGP 9 / Gradle 9 /
+  Compose 1.12，CI 也得改）——不升就用现在手写的行组件。
 ## Open questions
 
 

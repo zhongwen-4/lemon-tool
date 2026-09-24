@@ -207,3 +207,21 @@ MiuiX 是 Compose Multiplatform 构件，android 变体暴露的是 `org.jetbrai
   IconOnlySize 28.dp 等）。
 - 与普通 `NavigationBar` 的差别：普通版自带分割线、占满整宽、默认 `IconAndText`；
   浮岛版不占满宽、默认 `IconOnly`、无分割线。
+## 升到 0.9.x 的代价（2026-09-25 实测，当天决定不升）
+
+- **0.9.x 换了坐标**：0.8.x 的单体 `top.yukonga.miuix.kmp:miuix-android` 在 Maven Central **停在 0.8.8**；
+  0.9.x 拆成 `miuix-ui-android` / `miuix-nav-android` / `miuix-preference-android` / `miuix-blur-android` /
+  `miuix-icons-android`（另有 `miuix-core` / `miuix-shader` / `miuix-squircle` 等内部件），当前最新 0.9.4。
+  包名没变（还是 `top.yukonga.miuix.kmp.basic.*` / `.theme.*`），所以迁移主要是改依赖坐标。
+- **0.9.4 要求 AGP ≥ 9.1.0**：把它装进本项目（AGP 8.11.1）后 `:app:checkDebugAarMetadata` 直接失败——
+  `androidx.compose.animation:animation-core-android:1.12.0 requires Android Gradle plugin 9.1.0 or higher`
+  （0.9.4 拉的是 **Compose 1.12.0**）。要升就得连带升 AGP 9 + Gradle 9 + Compose 1.12，CI 也得从
+  `gradle-version: '8.13'` + JDK 17 换掉。SukiSU 自己是 AGP 9.4.1 / Kotlin 2.4.20，就是这么来的。
+- **想要的东西 0.9.x 才有**：整个 `top.yukonga.miuix.kmp.preference` 包（`ArrowPreference`、
+  `SwitchPreference`、`OverlayDropdownPreference`……「一行一项的设置列表」全靠它），以及
+  `MiuixScrollBehavior`、`overScrollVertical`、`isDynamicColor`、`top.yukonga.miuix.kmp.blur.*`。
+  0.8.8 里这些**一个都没有**（对 sources jar 检索 `preference/` 与
+  `blur|Backdrop|Liquid|Glass` 均零命中；0.8.8 有的近亲是 `TabRow` / `SuperSwitch` / `NumberPicker` /
+  `Slider` / `TextField` / `SearchBar` / `TopAppBar`）。
+- 结论：要「照抄 SukiSU 的设置页 / 列表 UI」就得走这条升级；不升就只能自己手写等价的行组件
+  （本项目已落地 `SettingRow`：图标 + 标题/副标题 + 尾部文字 + 可选点击）。

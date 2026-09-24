@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
     private external fun nativeScanJson(path: String): String
 
     companion object {
-        private const val CACHE_NAME = "picked_module.zip"
+        internal const val CACHE_NAME = "picked_module.zip"
 
         fun copyToCache(context: Context, uri: Uri): String {
             val target = File(context.cacheDir, CACHE_NAME)
@@ -31,6 +31,14 @@ class MainActivity : ComponentActivity() {
                 FileOutputStream(target).use { sink -> input.copyTo(sink, 65536) }
             }
             return target.absolutePath
+        }
+
+        /** 缓存里那个临时 zip 的大小；设置页用它显示「可清理」多少。 */
+        fun cachedModuleBytes(context: Context): Long =
+            File(context.cacheDir, CACHE_NAME).takeIf { it.exists() }?.length() ?: 0L
+
+        fun clearCachedModule(context: Context) {
+            File(context.cacheDir, CACHE_NAME).takeIf { it.exists() }?.delete()
         }
     }
 }

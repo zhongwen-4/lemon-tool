@@ -174,6 +174,12 @@
     还**没做**、也不打算做的：它家另外两个 tab（我们没对应功能）、毛玻璃（用户说不要）、
     升 0.9.x 工具链（不升）。**待用户确认**：要不要继续抄它别的布局特征（`IconWithSelectedLabel`
     模式、分区标题、tonal 卡片配色等）。
+11. **等用户定：要不要升 MiuiX 0.9.4**。起因是「照抄 SukiSU 的设置页/列表 UI」——他们的行组件
+    （`ArrowPreference`/`SwitchPreference`/`OverlayDropdownPreference`）在 0.9.x 的 `preference` 包里，
+    0.8.8 完全没有。实测代价：0.9.4 拉 Compose 1.12.0 → `checkDebugAarMetadata` 报
+    **AGP 必须 ≥ 9.1.0**（我们是 8.11.1），要升就连带升 AGP 9 / Gradle 9 / Compose 1.12，并改 CI 的
+    `gradle-version` 与 JDK。不升则用手写的 `SettingRow`（已落地）。详见
+    `knowledge/android/miuix-0.8.8.md` 的「升到 0.9.x 的代价」。
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -252,6 +258,21 @@
   （打 APK 仍需 CI，本机没 NDK）。所以这一轮改动是**本机验证过**的，不再是「只能等 CI」。
   过程中被 here-string 末尾换行的坑咬了一次（两个 import 粘成一行），见
   `knowledge/tooling/file-edit-anchors-and-newlines.md`。
+- 2026-09-25 用户要「照抄 SukiSU 的主页与设置页 + 底栏加检查历史 + 列表 UI 照抄，直接复制代码改文字」。
+  照字面做不到（GPL-3.0 且本仓库无 LICENSE；它的行组件在 MiuiX 0.9.x，0.8.8 没有；主页/设置的数据源
+  ——root 状态、内核版本、SuSFS/KPM/WebUI 那些——我们这边根本不存在），于是**按它的结构自己写等价实现**，
+  本机 debug + release 编译全过：
+  ① 底栏从两个 tab 加到三个：主页 `Icons.Rounded.Cottage` / 检查历史 `History` / 设置 `Settings`；
+  ② 新增 `History.kt`：`HistoryEntry` + `HistoryStore`（存 `filesDir/history.json`，最新在前、最多 50 条，
+  读不出来就当空、不崩）+ `HistoryScreen`（概览卡 + 一张分组卡片里一行一条：图标 + 模块名 +
+  时间/版本 + 风险尾值 + 箭头，可清空；点一条把那次报告装回主页）；
+  ③ 主页新增 `ModuleInfoCard`（模块名/版本/作者/模块 ID/文件数，一行一项）；
+  ④ 「关于」页改成「设置」页：分区标题 + 分组卡片 + 行项（更新 / 存储：清理扫描缓存、清空检查历史 /
+  关于：版本、包名）+ 原有的说明与免责；缓存清理接 `MainActivity.clearCachedModule`；
+  ⑤ 扫码成功后自动往历史里追加一条。
+  版本 0.2.1/code3 → **0.3.0/code4**。又踩了一次 here-string 吃掉末尾换行的坑（import 粘行、`}` 粘行），
+  见 `knowledge/tooling/file-edit-anchors-and-newlines.md`。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状

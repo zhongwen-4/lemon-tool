@@ -11,6 +11,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,8 +32,13 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.Article
 import androidx.compose.material.icons.rounded.Cottage
+import androidx.compose.material.icons.rounded.FolderZip
+import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -84,8 +90,9 @@ import java.util.Date
 import java.util.Locale
 
 private const val TAB_HOME = 0
-private const val TAB_ABOUT = 1
-private const val TAB_COUNT = 2
+private const val TAB_HISTORY = 1
+private const val TAB_SETTINGS = 2
+private const val TAB_COUNT = 3
 private const val NORMAL_KEY = -1
 
 private val CARD_SHAPE = RoundedCornerShape(20.dp)
@@ -142,6 +149,7 @@ fun ScannerScreen(scan: (String) -> String) {
     val pagerState = rememberPagerState(pageCount = { TAB_COUNT })
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    var history by remember { mutableStateOf(HistoryStore.load(context)) }
 
     fun runScan(path: String) {
         lastPath = path
@@ -149,10 +157,17 @@ fun ScannerScreen(scan: (String) -> String) {
         expanded = emptySet()
         scope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                runCatching { parseReport(scan(path)) }
+                runCatching {
+                    val json = scan(path)
+                    parseReport(json) to json
+                }
             }
             state = outcome.fold(
-                onSuccess = { ScanState.Done(it, System.currentTimeMillis()) },
+                onSuccess = { (report, json) ->
+                    val finishedAt = System.currentTimeMillis()
+                    history = HistoryStore.append(context, historyEntryOf(report, json, finishedAt))
+                    ScanState.Done(report, finishedAt)
+                },
                 onFailure = { ScanState.Failed(it.message ?: "扫描失败") },
             )
         }
@@ -184,10 +199,16 @@ fun ScannerScreen(scan: (String) -> String) {
                         label = "主页",
                     )
                     FloatingNavigationBarItem(
-                        selected = pagerState.currentPage == TAB_ABOUT,
-                        onClick = { goTo(TAB_ABOUT) },
-                        icon = Icons.Rounded.Info,
-                        label = "关于",
+                        selected = pagerState.currentPage == TAB_HISTORY,
+                        onClick = { goTo(TAB_HISTORY) },
+                        icon = Icons.Rounded.History,
+                        label = "检查历史",
+                    )
+                    FloatingNavigationBarItem(
+                        selected = pagerState.currentPage == TAB_SETTINGS,
+                        onClick = { goTo(TAB_SETTINGS) },
+                        icon = Icons.Rounded.Settings,
+                        label = "设置",
                     )
                 }
             },
@@ -196,8 +217,8 @@ fun ScannerScreen(scan: (String) -> String) {
                 state = pagerState,
                 modifier = Modifier.fillMaxSize().padding(innerPadding),
             ) { page ->
-                if (page == TAB_HOME) {
-                    HomeScreen(
+                when (page) {
+                    TAB_HOME -> HomeScreen(
                         state = state,
                         expanded = expanded,
                         onToggle = { key ->
@@ -206,8 +227,23 @@ fun ScannerScreen(scan: (String) -> String) {
                         onPick = { picker.launch(arrayOf("*/*")) },
                         onRescan = { lastPath?.let { runScan(it) } },
                     )
-                } else {
-                    AboutScreen()
+
+                    TAB_HISTORY -> HistoryScreen(
+                        entries = history,
+                        onOpen = { entry ->
+                            runCatching { parseReport(entry.reportJson) }.getOrNull()?.let { report ->
+                                state = ScanState.Done(report, entry.finishedAt)
+                                expanded = emptySet()
+                                goTo(TAB_HOME)
+                            }
+                        },
+                        onClear = { history = HistoryStore.clear(context) },
+                    )
+
+                    else -> SettingsScreen(
+                        history = history,
+                        onClearHistory = { history = HistoryStore.clear(context) },
+                    )
                 }
             }
         }
@@ -263,6 +299,7 @@ private fun HomeScreen(
         item { StatusCard(state = state, onPick = onPick, onRescan = onRescan) }
 
         val report = (state as? ScanState.Done)?.report ?: return@LazyColumn
+        item { ModuleInfoCard(report) }
         if (report.findings.isEmpty()) {
             item {
                 NormalCard(
@@ -565,33 +602,67 @@ private fun NotesCard(notes: List<String>) {
 }
 
 @Composable
-private fun AboutScreen() {
+private fun SettingsScreen(history: List<HistoryEntry>, onClearHistory: () -> Unit) {
     val context = LocalContext.current
     val version = remember(context) { appVersion(context) }
+    var cachedBytes by remember(context) { mutableStateOf(MainActivity.cachedModuleBytes(context)) }
+    val clearCache: (() -> Unit)? = if (cachedBytes > 0) {
+        {
+            MainActivity.clearCachedModule(context)
+            cachedBytes = 0L
+        }
+    } else {
+        null
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { SectionTitle("更新") }
+        item { UpdateCard(version) }
+
+        item { SectionTitle("存储") }
         item {
-            Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
-                Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-                    Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        text = "版本 $version",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                    Text(
-                        text = "包名 ${context.packageName}",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
+            GroupCard {
+                SettingRow(
+                    icon = Icons.Rounded.FolderZip,
+                    title = "清理扫描缓存",
+                    subtitle = if (cachedBytes > 0) {
+                        "选中的 zip 会临时拷一份到缓存：${formatBytes(cachedBytes)}"
+                    } else {
+                        "没有缓存的模块包"
+                    },
+                    tail = if (cachedBytes > 0) "清理" else null,
+                    onClick = clearCache,
+                )
+                RowDivider()
+                SettingRow(
+                    icon = Icons.Rounded.History,
+                    title = "检查历史",
+                    subtitle = "已存 ${history.size} 条，最多保留 $MAX_ENTRIES 条",
+                    tail = if (history.isEmpty()) null else "清空",
+                    onClick = if (history.isEmpty()) null else onClearHistory,
+                )
             }
         }
-        item { UpdateCard(version) }
+
+        item { SectionTitle("关于") }
+        item {
+            GroupCard {
+                SettingRow(
+                    icon = Icons.Rounded.Info,
+                    title = stringResource(R.string.app_name),
+                    subtitle = "模块风险检测：只看不装，扫描全程离线",
+                )
+                RowDivider()
+                SettingRow(icon = Icons.Rounded.SystemUpdate, title = "版本", tail = version)
+                RowDivider()
+                SettingRow(icon = Icons.AutoMirrored.Rounded.Article, title = "包名", tail = context.packageName)
+            }
+        }
+
         item {
             Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
                 Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
@@ -616,6 +687,99 @@ private fun AboutScreen() {
     }
 }
 
+@Composable
+private fun SectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MiuixTheme.textStyles.footnote1,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+    )
+}
+
+/** 分组卡片：里面一行一项，卡片自己不留内边距，让每行各留各的。 */
+@Composable
+private fun GroupCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = panelColors(),
+        cornerRadius = 20.dp,
+        insideMargin = PaddingValues(0.dp),
+        content = { Column(modifier = Modifier.fillMaxWidth(), content = content) },
+    )
+}
+
+@Composable
+private fun RowDivider() {
+    HorizontalDivider(color = MiuixTheme.colorScheme.dividerLine)
+}
+
+/** 一行一项：图标 + 标题/副标题 + 尾部文字（+ 可选点击）。设置页与模块信息都用它。 */
+@Composable
+private fun SettingRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String? = null,
+    tail: String? = null,
+    onClick: (() -> Unit)? = null,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .padding(horizontal = 16.dp, vertical = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(22.dp),
+            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        )
+        Spacer(Modifier.width(14.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = title, style = MiuixTheme.textStyles.body1)
+            if (subtitle != null) {
+                Spacer(Modifier.height(3.dp))
+                Text(
+                    text = subtitle,
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
+        }
+        if (tail != null) {
+            Spacer(Modifier.width(10.dp))
+            Text(
+                text = tail,
+                style = MiuixTheme.textStyles.footnote1,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+    }
+}
+
+/** 扫描出来的模块信息，跟设置页同一套行样式。 */
+@Composable
+private fun ModuleInfoCard(report: ScanReport) {
+    GroupCard {
+        SettingRow(icon = Icons.Rounded.Info, title = "模块名", tail = report.moduleName)
+        RowDivider()
+        SettingRow(icon = Icons.Rounded.Info, title = "版本", tail = report.version)
+        RowDivider()
+        SettingRow(icon = Icons.Rounded.Info, title = "作者", tail = report.author)
+        RowDivider()
+        SettingRow(icon = Icons.Rounded.Info, title = "模块 ID", tail = report.moduleId)
+        RowDivider()
+        SettingRow(icon = Icons.Rounded.Info, title = "文件数", tail = report.fileCount.toString())
+    }
+}
+
+private fun formatBytes(bytes: Long): String = when {
+    bytes >= 1024 * 1024 -> "%.1f MiB".format(bytes / 1024.0 / 1024.0)
+    bytes >= 1024 -> "%.0f KiB".format(bytes / 1024.0)
+    else -> "$bytes B"
+}
 
 @Composable
 private fun UpdateCard(installed: String) {
@@ -690,7 +854,7 @@ private fun openUrl(context: Context, url: String) {
 }
 
 @Composable
-private fun panelColors(): CardColors =
+internal fun panelColors(): CardColors =
     CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh)
 
 @Composable
