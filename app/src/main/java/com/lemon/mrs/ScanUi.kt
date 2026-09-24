@@ -27,7 +27,12 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cottage
+import androidx.compose.material.icons.rounded.Info
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -57,11 +62,11 @@ import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.CardColors
 import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
+import top.yukonga.miuix.kmp.basic.FloatingNavigationBar
+import top.yukonga.miuix.kmp.basic.FloatingNavigationBarDisplayMode
+import top.yukonga.miuix.kmp.basic.FloatingNavigationBarItem
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.NavigationBar
-import top.yukonga.miuix.kmp.basic.NavigationBarDisplayMode
-import top.yukonga.miuix.kmp.basic.NavigationBarItem
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
@@ -70,7 +75,6 @@ import top.yukonga.miuix.kmp.icon.extended.ExpandMore
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Layers
 import top.yukonga.miuix.kmp.icon.extended.Lock
-import top.yukonga.miuix.kmp.icon.extended.Scan
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -81,6 +85,7 @@ import java.util.Locale
 
 private const val TAB_HOME = 0
 private const val TAB_ABOUT = 1
+private const val TAB_COUNT = 2
 private const val NORMAL_KEY = -1
 
 private val CARD_SHAPE = RoundedCornerShape(20.dp)
@@ -134,7 +139,7 @@ fun ScannerScreen(scan: (String) -> String) {
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
     var expanded by remember { mutableStateOf(emptySet<Int>()) }
     var lastPath by remember { mutableStateOf<String?>(null) }
-    var tab by remember { mutableStateOf(TAB_HOME) }
+    val pagerState = rememberPagerState(pageCount = { TAB_COUNT })
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
@@ -153,6 +158,10 @@ fun ScannerScreen(scan: (String) -> String) {
         }
     }
 
+    fun goTo(page: Int) {
+        scope.launch { pagerState.animateScrollToPage(page) }
+    }
+
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
         if (uri == null) return@rememberLauncherForActivityResult
         val path = runCatching { MainActivity.copyToCache(context, uri) }.getOrNull()
@@ -167,24 +176,27 @@ fun ScannerScreen(scan: (String) -> String) {
         Scaffold(
             topBar = { AppHeader() },
             bottomBar = {
-                NavigationBar(mode = NavigationBarDisplayMode.IconAndText) {
-                    NavigationBarItem(
-                        selected = tab == TAB_HOME,
-                        onClick = { tab = TAB_HOME },
-                        icon = MiuixIcons.Scan,
+                FloatingNavigationBar(mode = FloatingNavigationBarDisplayMode.IconAndText) {
+                    FloatingNavigationBarItem(
+                        selected = pagerState.currentPage == TAB_HOME,
+                        onClick = { goTo(TAB_HOME) },
+                        icon = Icons.Rounded.Cottage,
                         label = "主页",
                     )
-                    NavigationBarItem(
-                        selected = tab == TAB_ABOUT,
-                        onClick = { tab = TAB_ABOUT },
-                        icon = MiuixIcons.Info,
+                    FloatingNavigationBarItem(
+                        selected = pagerState.currentPage == TAB_ABOUT,
+                        onClick = { goTo(TAB_ABOUT) },
+                        icon = Icons.Rounded.Info,
                         label = "关于",
                     )
                 }
             },
         ) { innerPadding ->
-            Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
-                if (tab == TAB_HOME) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize().padding(innerPadding),
+            ) { page ->
+                if (page == TAB_HOME) {
                     HomeScreen(
                         state = state,
                         expanded = expanded,

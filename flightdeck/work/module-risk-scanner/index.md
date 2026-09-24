@@ -169,15 +169,11 @@
 9. 固定 CI 的签名密钥（keystore 存成 repo secret，或本地固定一份）——否则版本号提了也覆盖安装不了，
    用户每次都得卸载重装。见 `knowledge/build/release-and-update-check.md` 的「坑」。
 
-10. ~~等用户挑「主页」图标~~ **方向已变**（2026-09-25）：用户改成「整个 UI 抄 SukiSU Ultra 的代码，
-    图标用 Tabler Icons」。核实后有三条硬事实（`knowledge/android/sukisu-ultra-as-ui-reference.md`）：
-    它的代码是 **GPL-3.0**、启动图标另有一份**禁止他用**的许可，而本仓库**没有 LICENSE** →
-    照搬代码不可行；它的 `ui/` 就有 281 个 .kt / 2.0 MB，与本 App 两个页面完全不对等；
-    它底栏实际用的是 `material-icons-extended` 的 `Icons.Rounded.Cottage/Security/Extension/Settings`
-    （用户想要的「房子」就是 `Cottage`）。**已把问题清单交回用户，等他答复，答复前不动代码**：
-    抄代码还是抄观感 / 底栏要不要扩成四个 tab / 用 `material-icons-extended` 还是坚持 Tabler /
-    要不要浮动模糊底栏（MiuiX 0.8.8 无 blur） / 要不要连带升工具链。
-
+10. ~~等用户挑「主页」图标~~ → ~~照 SukiSU 的布局重做 UI~~ **第一轮已完成**（2026-09-25）：用户定稿
+    「布局抄它的观感、悬浮底栏、不要毛玻璃、图标用 material-icons-extended」。落地内容见「进度」。
+    还**没做**、也不打算做的：它家另外两个 tab（我们没对应功能）、毛玻璃（用户说不要）、
+    升 0.9.x 工具链（不升）。**待用户确认**：要不要继续抄它别的布局特征（`IconWithSelectedLabel`
+    模式、分区标题、tonal 卡片配色等）。
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -244,6 +240,18 @@
   要那种效果得升 0.9.x，会牵动整条工具链。另确认 **Tabler 的 SVG 能取到**（走 `api.github.com`
   的 `contents` 端点；raw.githubusercontent 与 curl.exe 在本机都不通）。已把五个问题交回用户，等他答复。
 
+- 2026-09-25 用户定稿后做 UI 改造（悬浮底栏 + pager + material 图标），**本机编译验证通过**：
+  底栏从撑满整宽的 `NavigationBar` 换成 MiuiX 自带的 **`FloatingNavigationBar`**（圆角浮岛、居中、
+  无毛玻璃——0.8.8 本来也没有 blur API），`selected` 改绑 `pagerState.currentPage`、点击走
+  `animateScrollToPage`；内容区换成 **`HorizontalPager`**，「主页 / 关于」两个 tab 可以左右滑。
+  新增依赖 `androidx.compose.material:material-icons-extended:1.7.8`，图标用
+  `Icons.Rounded.Cottage`（主页）与 `Icons.Rounded.Info`（关于）；版本 0.2.0/code2 → **0.2.1/code3**。
+  顺带把**本机的 Kotlin 编译打通了**：JVM 不读 WinINET 代理 → Gradle 下不到依赖、报
+  `repo.maven.apache.org ... Connection timed out`；在用户级 `~/.gradle/gradle.properties` 里配
+  `systemProp.*` 代理后，`compileDebugKotlin` 与 `compileReleaseKotlin` 都 BUILD SUCCESSFUL
+  （打 APK 仍需 CI，本机没 NDK）。所以这一轮改动是**本机验证过**的，不再是「只能等 CI」。
+  过程中被 here-string 末尾换行的坑咬了一次（两个 import 粘成一行），见
+  `knowledge/tooling/file-edit-anchors-and-newlines.md`。
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
@@ -253,6 +261,7 @@
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
 - `knowledge/android/sukisu-ultra-as-ui-reference.md` — 要照搬/参考别的 App 的界面（尤其底栏、图标混用）前必读
 - `knowledge/tooling/which-hosts-are-reachable.md` — 要拉外网内容（图标 SVG / 源码 / Maven jar）时读
+- `knowledge/tooling/file-edit-anchors-and-newlines.md` — 用脚本改文件（尤其批量替换）之前扫一眼
 - `knowledge/build/release-and-update-check.md` — 动版本号、发版、或改「检查更新」前必读
 - `knowledge/detection/dry-run-sandbox.md` — 要评估动态/半动态分析（执行轨迹）时读，
   含「假 PATH 沙箱」的坑与「为什么进不了 APK」的结论

@@ -23,8 +23,27 @@ RECHECK WHEN: 换网络环境、换机器、或给 curl 配了代理之后。
 | `curl.exe` 直连任意 https | ❌ `Failed to connect to api.github.com port 443 after 21051 ms` —— curl 不用系统代理 |
 | `repo1.maven.org` 的具体 jar | ✅ 可下（`miuix-android-0.8.8-sources.jar` 199 KB 秒下） |
 | `repo1.maven.org` 目录索引 | ⚠ 常超时 |
+| `repo.maven.apache.org`（Maven Central 另一个域名，Gradle 默认走它） | ❌ 本机被解析成 `198.18.0.66`（假地址）→ 连接超时；**给 JVM 配上代理即可**（见下） |
 | `tabler.io` / `fonts.google.com` / `heroicons.com` / `remixicon.com` / `iconify.design` | ❌ 超时，别试 |
 
+## 代理：为什么 PowerShell 能上、Gradle / curl 不能
+
+- 本机系统代理 = **`127.0.0.1:7890`**（注册表 `HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings`：
+  `ProxyEnable=1`、`ProxyServer=127.0.0.1:7890`；`netsh winhttp show proxy` 反而显示 direct，别被它骗了）。
+- **只有 PowerShell 的 `Invoke-RestMethod` / `Invoke-WebRequest` 走它**；`curl.exe` 与 JVM（Gradle）
+  都不读 WinINET 设置，直连还会拿到 `198.18.0.66` 这种假 DNS 结果。
+- 给 Gradle 配代理：写**用户级** `C:\Users\admin\.gradle\gradle.properties`（仓库外，别写进仓库那份）：
+
+  ```
+  systemProp.http.proxyHost=127.0.0.1
+  systemProp.http.proxyPort=7890
+  systemProp.https.proxyHost=127.0.0.1
+  systemProp.https.proxyPort=7890
+  systemProp.http.nonProxyHosts=localhost|127.*|[::1]
+  ```
+
+  配完 `.\gradlew.bat :app:compileDebugKotlin` 就能真正跑通（细节见 `knowledge/build/android-toolchain.md`）。
+- 给 curl 配代理：`--proxy http://127.0.0.1:7890`（或设 `HTTPS_PROXY` 环境变量）。
 ## 取仓库文件的标准姿势
 
 ```powershell

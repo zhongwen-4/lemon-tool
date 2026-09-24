@@ -7,7 +7,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 
 ## In flight
 
-- `work/module-risk-scanner/` — 界面已按参考图二次重做（状态卡/检测项卡/底部导航），CI 全绿（1.23 MiB，run 35478921424），等真机测试反馈
+- `work/module-risk-scanner/` — 界面按 SukiSU 的观感改造：**悬浮底栏**（MiuiX `FloatingNavigationBar`，无毛玻璃）+ 横向 pager 滑动 + `material-icons-extended` 图标；版本 0.2.1/code3，**本机 Kotlin 编译已通过**，等 CI 出包与真机看观感
 
 ## Next
 
@@ -40,6 +40,10 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   `Icons.Rounded.*`（想要的房子＝`Cottage`）；**MiuiX 0.8.8 没有 blur/Backdrop**，要浮动模糊底栏得升 0.9.x。
   **已交回五个问题，等答复；答复前不动代码**（详见 `work/module-risk-scanner/index.md` 第 10 条）。
 
+- 2026-09-25：UI 改造落地（用户定稿：抄 SukiSU 的布局观感、悬浮底栏、不要毛玻璃、图标用
+  `material-icons-extended`）。底栏 → MiuiX `FloatingNavigationBar`（IconAndText），内容 → `HorizontalPager`，
+  主页图标 `Icons.Rounded.Cottage`、关于 `Icons.Rounded.Info`，版本 **0.2.1 / code3**。
+  **本机现在能编 Kotlin**（配好 JVM 代理后 `compileDebug/ReleaseKotlin` 全过），打 APK 仍靠 CI。
 ## Open questions
 
 

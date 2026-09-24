@@ -174,3 +174,36 @@ MiuiX 是 Compose Multiplatform 构件，android 变体暴露的是 `org.jetbrai
   `IconTopPadding 8dp`、`BottomPadding 8dp`、未选中 `UnselectedAlpha 0.4f`
 - 另有浮岛样式 `FloatingNavigationBar` + `FloatingNavigationBarDefaults`，数据类
   `NavigationItem(label, icon)`
+### 浮岛底栏 `FloatingNavigationBar`（0.8.8 就有，2026-09-25 核实）
+
+```kotlin
+@Composable fun FloatingNavigationBar(
+    modifier: Modifier = Modifier,
+    color: Color = MiuixTheme.colorScheme.surfaceContainer,
+    cornerRadius: Dp = FloatingToolbarDefaults.CornerRadius,
+    horizontalAlignment: Alignment.Horizontal = CenterHorizontally,
+    horizontalOutSidePadding: Dp = FloatingNavigationBarDefaults.HorizontalOutSidePadding, // 36.dp
+    shadowElevation: Dp = FloatingNavigationBarDefaults.ShadowElevation,                  // 1.dp
+    showDivider: Boolean = false,
+    defaultWindowInsetsPadding: Boolean = true,
+    mode: FloatingNavigationBarDisplayMode = FloatingNavigationBarDisplayMode.IconOnly,
+    content: @Composable () -> Unit,
+)
+@Composable fun FloatingNavigationBarItem(
+    selected: Boolean, onClick: () -> Unit, icon: ImageVector, label: String,
+    modifier: Modifier = Modifier, enabled: Boolean = true,
+)
+```
+
+- **不用毛玻璃**：它就是「圆角 + 阴影 + 居中」的一颗浮岛，`miuix.kmp.blur` 那套（Backdrop /
+  LayerBackdrop）**0.8.8 里根本没有**，0.9.x 才有。想要悬浮底栏不必升版本。
+- `FloatingNavigationBarDisplayMode` 只有三个值：`IconAndText` / `IconOnly` / `TextOnly`
+  （**默认是 `IconOnly`**，要图标加文字必须显式传 `IconAndText`）。
+- 内部：`Column { Row(padding(bottom = …), spacedBy(ItemSpacing=12.dp), 居中) { content() } }`；
+  自己处理 `navigationBars` 内边距与底部间距（无手势条时留 36.dp），所以直接丢进
+  `Scaffold(bottomBar = {})` 即可，不必自己垫 insets。
+- 视觉：**不画选中指示器**，选中＝`onSurfaceContainer` 实色 + 加粗，未选中＝同色 alpha 0.4；
+  两种模式各自的默认值在 `FloatingNavigationBarDefaults`（IconSize 24.dp / LabelFontSize 12.sp /
+  IconOnlySize 28.dp 等）。
+- 与普通 `NavigationBar` 的差别：普通版自带分割线、占满整宽、默认 `IconAndText`；
+  浮岛版不占满宽、默认 `IconOnly`、无分割线。
