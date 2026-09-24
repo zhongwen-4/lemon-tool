@@ -139,3 +139,18 @@ MiuiX 是 Compose Multiplatform 构件，android 变体暴露的是 `org.jetbrai
 所以 app 里显式写的 `androidx.compose.ui:ui:1.9.5` 之类**会被依赖解析升到 1.10.x**，实际生效版本
 以解析结果为准，不要以为声明写了 1.9.5 就真是 1.9.5。`androidx.compose.ui:ui:1.10.5` 的 AAR 元数据
 是 `minCompileSdk=35`、`minAndroidGradlePluginVersion=8.6.0`，compileSdk 36 + AGP 8.11.1 都满足。
+
+## NavigationBar / NavigationBarItem 签名（0.8.8，从 sources jar 核实）
+
+- `NavigationBar(modifier, color = colorScheme.surface, showDivider = true,
+  defaultWindowInsetsPadding = true, mode: NavigationBarDisplayMode = IconAndText,
+  content: @Composable RowScope.() -> Unit)` —— 支持 2~5 个 item；自带分割线，以及
+  navigationBars / captionBar 的内边距（不用自己垫）
+- `NavigationBarItem` 的 `icon: ImageVector` 与 `label: String` **都是必填**；`icon` 即使
+  `mode = TextOnly` 也躲不掉——它不渲染，但必须给一个矢量
+- `NavigationBarDisplayMode` 四个值：`IconAndText` / `IconOnly` / `TextOnly` /
+  **`IconWithSelectedLabel`**（图标常显，文字只在选中时出现）
+- `NavigationBarDefaults`：`ItemHeight 64dp`、`IconSize 26dp`、`LabelFontSize 12sp`、
+  `IconTopPadding 8dp`、`BottomPadding 8dp`、未选中 `UnselectedAlpha 0.4f`
+- 另有浮岛样式 `FloatingNavigationBar` + `FloatingNavigationBarDefaults`，数据类
+  `NavigationItem(label, icon)`

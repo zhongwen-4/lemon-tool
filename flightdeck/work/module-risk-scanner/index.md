@@ -162,6 +162,11 @@
 7. 候选（不进 APK）：桌面/CI 侧 dry-run 沙箱，方法与本机实测见
    `knowledge/detection/dry-run-sandbox.md`。
 
+8. 2026-09-24 用户要求「把 UI 底部导航栏改成 morphicons 图标」——**该库只有 web 端**（npm 的 JS
+   形变库，无 Compose 产物，且自身不带图标，见 `knowledge/android/morphicons-web-only.md`），
+   照字面做不了；已给出四个方案（静态 Lucide 图标 / 加选中态弹簧动画 / 自己复刻路径形变 /
+   沿用 MiuixIcons），**等他选**。
+
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -185,6 +190,14 @@
 
 - 2026-09-21 用户报 IDE 里 `app/build.gradle:1` 的 `JvmTarget` 未解析：根因是仓库一直没有 Gradle wrapper，IDE 只能借用未知 Gradle；
   已补 wrapper（锁 8.13，对齐 CI）+ `.gitattributes`（`gradlew` 强制 LF），本机用缓存 9.2.0 跑 `gradle projects --offline` 验证脚本编译与 AGP 加载全过。
+- 2026-09-24 收到「底栏换 morphicons 图标」的需求，调研后驳回照字面实现：morphicons 是 web 端的
+  JS 形变库、自身不带图标（底层是 Lucide / Tabler / Heroicons 的描边集），而本 App 的
+  `NavigationBarItem.icon` 只吃 Compose `ImageVector`。已列四个替代方案待他选。顺带把 MiuiX
+  `NavigationBar` 的真实签名（`icon` 必填、四种 display mode、两套 Defaults）补进
+  `knowledge/android/miuix-0.8.8.md`。过程里被本机 PowerShell 的别名优先规则咬掉两个文件
+  （`rd` 就是 `Remove-Item`，已 `git restore` 还原，见
+  `knowledge/tooling/powershell-aliases-and-cmdlets.md`）。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
