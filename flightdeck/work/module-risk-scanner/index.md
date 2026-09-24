@@ -169,11 +169,10 @@
 9. 固定 CI 的签名密钥（keystore 存成 repo secret，或本地固定一份）——否则版本号提了也覆盖安装不了，
    用户每次都得卸载重装。见 `knowledge/build/release-and-update-check.md` 的「坑」。
 
-10. ~~等用户挑「主页」图标~~ → ~~照 SukiSU 的布局重做 UI~~ **第一轮已完成**（2026-09-25）：用户定稿
-    「布局抄它的观感、悬浮底栏、不要毛玻璃、图标用 material-icons-extended」。落地内容见「进度」。
-    还**没做**、也不打算做的：它家另外两个 tab（我们没对应功能）、毛玻璃（用户说不要）、
-    升 0.9.x 工具链（不升）。**待用户确认**：要不要继续抄它别的布局特征（`IconWithSelectedLabel`
-    模式、分区标题、tonal 卡片配色等）。
+10. ~~等用户挑「主页」图标~~ → ~~照 SukiSU 的布局重做 UI~~ **已完成**（2026-09-25）：保留现有图标，
+    按用户要求复刻 SukiSU 的页面结构与文字层级，不复制其 GPL-3.0 源码。主页、历史、设置三页
+    使用分区标题、分组卡片、偏好行和横向 pager；本轮进一步收敛卡片圆角与边距，并让顶栏标题随页面切换。
+    本机 `:app:compileDebugKotlin --offline` 已通过，等待 CI 出包和真机确认观感。
 11. **等用户定：要不要升 MiuiX 0.9.4**。起因是「照抄 SukiSU 的设置页/列表 UI」——他们的行组件
     （`ArrowPreference`/`SwitchPreference`/`OverlayDropdownPreference`）在 0.9.x 的 `preference` 包里，
     0.8.8 完全没有。实测代价：0.9.4 拉 Compose 1.12.0 → `checkDebugAarMetadata` 报
@@ -272,6 +271,12 @@
   ⑤ 扫码成功后自动往历史里追加一条。
   版本 0.2.1/code3 → **0.3.0/code4**。又踩了一次 here-string 吃掉末尾换行的坑（import 粘行、`}` 粘行），
   见 `knowledge/tooling/file-edit-anchors-and-newlines.md`。
+
+- 2026-09-25 用户明确要求保留现有图标、按 SukiSU 观感调整 UI，且本轮不调用 impeccable。已修改
+  `ScanUi.kt` 与 `History.kt`：顶栏标题随 pager 页面显示上下文；主页增加「模块检查 / 模块信息 /
+  检测结果 / 扫描备注」分区，历史页增加「扫描概览 / 历史记录」分区；卡片圆角从 20dp 收到 16dp，
+  按钮从 52dp/26dp 收到 48dp/24dp，内容边距从 16dp 收到 12dp。图标资源、引用和版本号未改。
+  `:app:compileDebugKotlin --offline` 编译通过。
 
 ## Read now
 

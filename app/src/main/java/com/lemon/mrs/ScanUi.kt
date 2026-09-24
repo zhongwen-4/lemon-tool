@@ -95,15 +95,15 @@ private const val TAB_SETTINGS = 2
 private const val TAB_COUNT = 3
 private const val NORMAL_KEY = -1
 
-private val CARD_SHAPE = RoundedCornerShape(20.dp)
+private val CARD_SHAPE = RoundedCornerShape(16.dp)
 private val PILL_SHAPE = RoundedCornerShape(percent = 50)
 private val CARD_BORDER = 1.dp
 private val HEADER_ICON_SIZE = 40.dp
 private val HEADER_ICON_GAP = 3.dp
 private val GLYPH_LARGE = 52.dp
 private val GLYPH_SMALL = 30.dp
-private val BUTTON_RADIUS = 26.dp
-private val BUTTON_HEIGHT = 52.dp
+private val BUTTON_RADIUS = 24.dp
+private val BUTTON_HEIGHT = 48.dp
 
 private val WARNING_ON_LIGHT = Color(0xFFBF6A00)
 private val WARNING_ON_DARK = Color(0xFFFFC24B)
@@ -189,7 +189,7 @@ fun ScannerScreen(scan: (String) -> String) {
 
     MiuixTheme(controller = remember { ThemeController(colorSchemeMode = ColorSchemeMode.MonetSystem) }) {
         Scaffold(
-            topBar = { AppHeader() },
+            topBar = { AppHeader(page = pagerState.currentPage) },
             bottomBar = {
                 FloatingNavigationBar(mode = FloatingNavigationBarDisplayMode.IconAndText) {
                     FloatingNavigationBarItem(
@@ -251,9 +251,19 @@ fun ScannerScreen(scan: (String) -> String) {
 }
 
 @Composable
-private fun AppHeader() {
+private fun AppHeader(page: Int) {
     val context = LocalContext.current
     val version = remember(context) { appVersion(context) }
+    val title = when (page) {
+        TAB_HISTORY -> "检查历史"
+        TAB_SETTINGS -> "设置"
+        else -> stringResource(R.string.app_name)
+    }
+    val subtitle = when (page) {
+        TAB_HISTORY -> "查看最近的模块风险报告"
+        TAB_SETTINGS -> "应用与扫描偏好"
+        else -> "v$version"
+    }
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -271,9 +281,9 @@ private fun AppHeader() {
             )
             Spacer(Modifier.width(HEADER_ICON_GAP))
             Column {
-                Text(text = stringResource(R.string.app_name), style = MiuixTheme.textStyles.title3)
+                Text(text = title, style = MiuixTheme.textStyles.title3)
                 Text(
-                    text = "v$version",
+                    text = subtitle,
                     style = MiuixTheme.textStyles.footnote1,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                 )
@@ -293,13 +303,16 @@ private fun HomeScreen(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        item { SectionTitle("模块检查") }
         item { StatusCard(state = state, onPick = onPick, onRescan = onRescan) }
 
         val report = (state as? ScanState.Done)?.report ?: return@LazyColumn
+        item { SectionTitle("模块信息") }
         item { ModuleInfoCard(report) }
+        item { SectionTitle("检测结果") }
         if (report.findings.isEmpty()) {
             item {
                 NormalCard(
@@ -318,6 +331,7 @@ private fun HomeScreen(
             }
         }
         if (report.notes.isNotEmpty()) {
+            item { SectionTitle("扫描备注") }
             item { NotesCard(report.notes) }
         }
     }
@@ -325,7 +339,7 @@ private fun HomeScreen(
 
 @Composable
 private fun StatusCard(state: ScanState, onPick: () -> Unit, onRescan: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -429,7 +443,7 @@ private fun FindingCard(finding: Finding, expanded: Boolean, onToggle: () -> Uni
             .fillMaxWidth()
             .border(CARD_BORDER, severityBorder(finding.severity), CARD_SHAPE),
         colors = panelColors(),
-        cornerRadius = 20.dp,
+        cornerRadius = 16.dp,
         pressFeedbackType = PressFeedbackType.Sink,
         onClick = onToggle,
     ) {
@@ -471,7 +485,7 @@ private fun NormalCard(report: ScanReport, expanded: Boolean, onToggle: () -> Un
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = panelColors(),
-        cornerRadius = 20.dp,
+        cornerRadius = 16.dp,
         pressFeedbackType = PressFeedbackType.Sink,
         onClick = onToggle,
     ) {
@@ -588,7 +602,7 @@ private fun DetailCard(icon: ImageVector, title: String, body: String, tail: Str
 
 @Composable
 private fun NotesCard(notes: List<String>) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
         Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             notes.forEach { note ->
                 Text(
@@ -617,7 +631,7 @@ private fun SettingsScreen(history: List<HistoryEntry>, onClearHistory: () -> Un
 
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item { SectionTitle("更新") }
@@ -664,7 +678,7 @@ private fun SettingsScreen(history: List<HistoryEntry>, onClearHistory: () -> Un
         }
 
         item {
-            Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
                 Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
                     Text(text = "这个工具做什么", style = MiuixTheme.textStyles.body1)
                     Spacer(Modifier.height(6.dp))
@@ -703,7 +717,7 @@ private fun GroupCard(content: @Composable ColumnScope.() -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = panelColors(),
-        cornerRadius = 20.dp,
+        cornerRadius = 16.dp,
         insideMargin = PaddingValues(0.dp),
         content = { Column(modifier = Modifier.fillMaxWidth(), content = content) },
     )
@@ -788,7 +802,7 @@ private fun UpdateCard(installed: String) {
     var checking by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<UpdateResult?>(null) }
 
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
         Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
             Text(text = "更新检查", style = MiuixTheme.textStyles.body1)
             Spacer(Modifier.height(6.dp))

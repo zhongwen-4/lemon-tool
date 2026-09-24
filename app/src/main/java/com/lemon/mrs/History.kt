@@ -139,24 +139,37 @@ fun HistoryScreen(
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 16.dp),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         if (entries.isEmpty()) {
+            item { HistorySectionTitle("检查历史") }
             item { EmptyHistoryCard() }
         } else {
+            item { HistorySectionTitle("扫描概览") }
             item { SummaryCard(entries, onClear) }
+            item { HistorySectionTitle("历史记录") }
             item { HistoryListCard(entries, onOpen) }
         }
     }
 }
 
 @Composable
+private fun HistorySectionTitle(text: String) {
+    Text(
+        text = text,
+        style = MiuixTheme.textStyles.footnote1,
+        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
+    )
+}
+
+@Composable
 private fun SummaryCard(entries: List<HistoryEntry>, onClear: () -> Unit) {
     val risk = entries.count { it.high > 0 }
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
         Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-            Text(text = "检查历史", style = MiuixTheme.textStyles.title3)
+            Text(text = "扫描概览", style = MiuixTheme.textStyles.title3)
             Spacer(Modifier.height(6.dp))
             Text(
                 text = "共 ${entries.size} 次，其中 $risk 次出现高危",
@@ -187,7 +200,7 @@ private fun HistoryListCard(entries: List<HistoryEntry>, onOpen: (HistoryEntry) 
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = panelColors(),
-        cornerRadius = 20.dp,
+        cornerRadius = 16.dp,
         insideMargin = PaddingValues(0.dp),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -249,7 +262,7 @@ private fun HistoryRow(entry: HistoryEntry, onOpen: () -> Unit) {
 
 @Composable
 private fun EmptyHistoryCard() {
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 20.dp) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
