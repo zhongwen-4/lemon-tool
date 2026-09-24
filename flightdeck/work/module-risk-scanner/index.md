@@ -169,7 +169,10 @@
 9. 固定 CI 的签名密钥（keystore 存成 repo secret，或本地固定一份）——否则版本号提了也覆盖安装不了，
    用户每次都得卸载重装。见 `knowledge/build/release-and-update-check.md` 的「坑」。
 
-10. 等用户在图标预览里指定「主页」tab 的图标，然后改 `ScanUi.kt`（现在用的是 `Scan`）。
+10. 等用户挑「主页」图标：MiuiX 自带 155 个里没有 Home/House，已给他 10 套候选图标库（官网/许可/
+    接入方式见 `knowledge/android/icon-libraries.md`）与自制的 155 个图标预览
+    （`build/miuix-icons-preview.*`）。他定下来后改 `ScanUi.kt`（现在用 `Scan`）；若选自 MiuiX 之外，
+    就把那个 SVG 转成 `ImageVector`。
 
 ## 进度
 
@@ -221,6 +224,11 @@
   全部 155 个 `Regular` 图标的真实路径，生成了可搜索的 HTML 预览 + PNG 联络表（`build/miuix-icons-preview.*`，
   `build/` 不进仓库）。核对过 155 个都是 `NonZero` 填充、且必须套 `group` 的翻转变换才不上下颠倒。
   **等他指定图标**。
+
+- 2026-09-24 用户改主意：不从 MiuiX 里挑，要「几套图标库 + 官网」。查证了 10 套的官网与许可证
+  （按 GitHub `homepage` / `license` 字段，不靠印象），纠正两点：**Remix Icon 已不是 Apache-2.0**
+  （改成自定义 "Remix Icon License v1.0"）；**只有 Google Material icons 有官方 Android 构件**
+  （`material-icons-extended` 到 1.7.8 冻结）。结论记 `knowledge/android/icon-libraries.md`。
 
 ## Read now
 

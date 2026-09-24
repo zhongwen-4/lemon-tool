@@ -29,8 +29,9 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - 2026-09-24 新约定：更新只提版本号、不动包名（记入 `briefing.md`）。但排查发现 **CI 每 run 现生成
   签名密钥**，不同 run 的 APK 装不上去——「升级」目前只能卸载重装。要真能更新得先固定密钥。
 
-- 2026-09-24：已把 155 个 MiuiX 图标做成可搜索预览（`build/miuix-icons-preview.html`，不进仓库），
-  **等他亲自指定「主页」tab 的图标**（现在是 `Scan`）。
+- 2026-09-24：已给 10 套候选图标库（官网 + 许可 + 接入方式，见 `knowledge/android/icon-libraries.md`）
+  与 MiuiX 155 个图标的可搜索预览（`build/miuix-icons-preview.html`，不进仓库）；**等他挑一套 + 一个图标**，
+  之后把那个 SVG 转成 `ImageVector` 换掉 `Scan`。
 
 ## Open questions
 
