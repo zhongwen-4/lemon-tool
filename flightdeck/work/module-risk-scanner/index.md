@@ -169,6 +169,8 @@
 9. 固定 CI 的签名密钥（keystore 存成 repo secret，或本地固定一份）——否则版本号提了也覆盖安装不了，
    用户每次都得卸载重装。见 `knowledge/build/release-and-update-check.md` 的「坑」。
 
+10. 等用户在图标预览里指定「主页」tab 的图标，然后改 `ScanUi.kt`（现在用的是 `Scan`）。
+
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -214,6 +216,11 @@
 - 2026-09-24 用户立约定「更新只提版本号、不动包名」，已记入 `flightdeck/briefing.md` 第 8 条。
   顺着这条排查，发现它目前**还做不到**：CI 每 run 用 `keytool -genkeypair` 现生成一把签名密钥，
   不同 run 的 APK 签名不同，覆盖安装必失败（只能卸载重装）。已列为下一步第 9 条。
+
+- 2026-09-24 用户要亲自挑「主页」图标，于是从 `miuix-icons-android:0.8.8` 的 sources jar 里解析出
+  全部 155 个 `Regular` 图标的真实路径，生成了可搜索的 HTML 预览 + PNG 联络表（`build/miuix-icons-preview.*`，
+  `build/` 不进仓库）。核对过 155 个都是 `NonZero` 填充、且必须套 `group` 的翻转变换才不上下颠倒。
+  **等他指定图标**。
 
 ## Read now
 

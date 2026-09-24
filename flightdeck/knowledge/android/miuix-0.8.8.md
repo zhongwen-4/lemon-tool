@@ -106,6 +106,19 @@ surfaceContainer（浅色约 tone 94，明显比 `surface` 的 tone 98 深），
 - 要拿全量图标名别去翻文档页：拉 `miuix-icons-android-<版本>-sources.jar`，
   `commonMain/top/yukonga/miuix/kmp/icon/extended/*.kt` 的**文件名就是图标名**（0.8.8 = 155 个，
   一个文件一个图标）
+- **图标源码结构**（想自己生成预览、或解析图标数据时用）：每个文件里有 **Light / Regular / Heavy 三档变体**，
+  各是一段 `val MiuixIcons.<变体>.<名字>: ImageVector get() { ImageVector.Builder(...) }`；
+  `MiuixIcons.<名字>` 只是 `MiuixIcons.Regular.<名字>` 的别名（**要预览就取 Regular**）。每段自带
+  `viewportWidth/Height`（1000~1450 不等，**不是 24**）+ 一个
+  `group(scaleX, scaleY, translationX, translationY)`（实测全是 `1 / -1 / tx / ty`，即
+  `x' = x + tx, y' = -y + ty`——**不套这个变换就会画得上下颠倒**）+ 一个
+  `addPath(pathData = listOf(PathNode…))`
+- 用到的 `PathNode` 只有 `MoveTo / LineTo / HorizontalTo / VerticalTo / QuadTo / Close`（**没有弧线和三次
+  贝塞尔**，全是绝对坐标，没有 `Relative*` 变体），且 155 个的 `pathFillType` **全是 `NonZero`**——
+  所以转 SVG（`M/L/H/V/Q/Z` + `matrix(...)`）或 GDI+（`FillMode.Winding`）都很省事，不会踩填充规则的坑
+- 2026-09-24 照这套做过一次全量预览：155 个图标的 HTML（可搜索、标了候选）与 PNG 联络表在
+  `build/miuix-icons-preview.html` / `build/miuix-icons-preview.png`。`build/` 被 `.gitignore` 锚定忽略，
+  属于本机可再生产物，不进仓库
 
 ## Card 没有 border —— 要框就自己画
 
