@@ -110,7 +110,7 @@
   （`curl https://github.com` 与 `https://api.github.com/rate_limit` 都 200），
   改用 `git -c http.proxy= -c https.proxy= push lemon-tool main` 一次成功。
   所以推送/查 API 失败时先花两秒测直连，别只剩「重试代理」一条路。
-- **Kotlin/Compose 这条构建链本机一次都没编过**：本机没有 Kotlin 编译器也没有 gradle，
+- **Kotlin/Compose 这条构建链本机一次都没编过**：本机没有 Kotlin 编译器（2026-09-24 起 wrapper 9.2.0 能在本机跑到配置阶段，编 APK 仍缺 NDK），
   MiuiX 的 API 用法是靠拉 sources jar 逐个核对签名得来的（已核对：Text/Button/Card/Scaffold/
   SmallTopAppBar/SmallTitle/CircularProgressIndicator/MiuixTheme 及所用样式与色名）。第一次真
   编译会发生在 CI。
@@ -200,6 +200,13 @@
 - 2026-09-24 底栏按用户选的「丁」加图标：`NavigationBar` 的 mode 从 `TextOnly` 改成 `IconAndText`
   （图标 + 文字），主页图标从占位的 `Tasks` 换成 `Scan`——155 个 MiuiX 图标里没有 Home/House，
   `Scan` 是其中最贴题的一个。本机编不了 Kotlin，这次改动同样只能由 CI 验证。
+
+- 2026-09-24 修掉 IDE 报的 `JvmTarget` 未解析（与 2026-09-21 报的是同一条）：根因是**本机只有 JDK 25**，
+  而 wrapper 锁的 Gradle 8.13 自带 Groovy 3.0.22 **读不了 Java 25 的 class 文件（major 69）**，构建脚本
+  在语义分析阶段就崩，IDE 于是把 KGP 的类型报成未解析。wrapper 改指 **9.2.0**（本机已有该 dist，不联网），
+  本机实测 `projects` 与 `:app:assembleRelease --dry-run` 全过（AGP 8.11.1 在 Gradle 9.2.0 上配得起来）。
+  CI 保持 8.13 + JDK 17 不动 —— wrapper 与 CI 由此**有意分叉**。详见
+  `knowledge/build/android-toolchain.md`。
 
 ## Read now
 

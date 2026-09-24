@@ -22,6 +22,10 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - 2026-09-24：底栏已按他选的「丁」加图标（`TextOnly` → `IconAndText`，主页图标用 `Scan`，关于用
   `Info`）。改动只能由 CI 验证，**等真机看观感**——图标 26dp、未选中态 alpha 0.4 会不会太淡。
 
+- 2026-09-24：IDE 的 `JvmTarget` 未解析已修 —— 根因是本机只有 JDK 25，wrapper 锁的 Gradle 8.13 读不了
+  Java 25 的 class 文件（Groovy 3.0.22 / major 69）；wrapper 改指 **9.2.0**，本机跑通配置与任务图。
+  CI 仍走 `gradle-version: '8.13'` + JDK 17，两处**有意分叉**（要合得先在 CI 验 Gradle 9）。
+
 ## Open questions
 
 
