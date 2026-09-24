@@ -76,7 +76,7 @@
   - 高危/中危保留彩色描边（`Modifier.border`，20dp 圆角），低危与信息仍是透明框。
   - 底部导航用 MiuiX 的 `NavigationBar(mode = NavigationBarDisplayMode.TextOnly)`。
     坑：`NavigationBarItem` 的 `icon: ImageVector` 是**必填**参数，TextOnly 模式下不渲染但躲不掉，
-    只能随便给一个矢量。
+    只能随便给一个矢量（**2026-09-24 已改成 `IconAndText`，主页图标同时换成 `Scan`**）。
   - 新增 `ic_state_alert.xml` / `ic_state_ok.xml`：24dp 视口、统一用 `#FF000000` 描一个圆环 + 感叹号/对勾，
     靠 `Icon(tint = ...)` 的 ColorFilter 整体染色，所以同一个矢量能出红、琥珀、绿三种颜色。
   - 四档配色定了：高红、中黄、低绿（描边仍透明）、信息灰。
@@ -162,10 +162,9 @@
 7. 候选（不进 APK）：桌面/CI 侧 dry-run 沙箱，方法与本机实测见
    `knowledge/detection/dry-run-sandbox.md`。
 
-8. 2026-09-24 用户要求「把 UI 底部导航栏改成 morphicons 图标」——**该库只有 web 端**（npm 的 JS
-   形变库，无 Compose 产物，且自身不带图标，见 `knowledge/android/morphicons-web-only.md`），
-   照字面做不了；已给出四个方案（静态 Lucide 图标 / 加选中态弹簧动画 / 自己复刻路径形变 /
-   沿用 MiuixIcons），**等他选**。
+8. ~~底栏换成 morphicons 图标~~ 已完成（2026-09-24，用户选「丁」）：morphicons 只有 web 端（见
+   `knowledge/android/morphicons-web-only.md`），照字面做不了，也没必要——实际做的是
+   `TextOnly` → `IconAndText`，主页图标从占位的 `Tasks` 换成 `Scan`。
 
 ## 进度
 
@@ -197,6 +196,10 @@
   `knowledge/android/miuix-0.8.8.md`。过程里被本机 PowerShell 的别名优先规则咬掉两个文件
   （`rd` 就是 `Remove-Item`，已 `git restore` 还原，见
   `knowledge/tooling/powershell-aliases-and-cmdlets.md`）。
+
+- 2026-09-24 底栏按用户选的「丁」加图标：`NavigationBar` 的 mode 从 `TextOnly` 改成 `IconAndText`
+  （图标 + 文字），主页图标从占位的 `Tasks` 换成 `Scan`——155 个 MiuiX 图标里没有 Home/House，
+  `Scan` 是其中最贴题的一个。本机编不了 Kotlin，这次改动同样只能由 CI 验证。
 
 ## Read now
 

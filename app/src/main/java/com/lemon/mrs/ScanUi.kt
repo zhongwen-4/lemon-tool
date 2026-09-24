@@ -70,7 +70,7 @@ import top.yukonga.miuix.kmp.icon.extended.ExpandMore
 import top.yukonga.miuix.kmp.icon.extended.Info
 import top.yukonga.miuix.kmp.icon.extended.Layers
 import top.yukonga.miuix.kmp.icon.extended.Lock
-import top.yukonga.miuix.kmp.icon.extended.Tasks
+import top.yukonga.miuix.kmp.icon.extended.Scan
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
@@ -167,11 +167,11 @@ fun ScannerScreen(scan: (String) -> String) {
         Scaffold(
             topBar = { AppHeader() },
             bottomBar = {
-                NavigationBar(mode = NavigationBarDisplayMode.TextOnly) {
+                NavigationBar(mode = NavigationBarDisplayMode.IconAndText) {
                     NavigationBarItem(
                         selected = tab == TAB_HOME,
                         onClick = { tab = TAB_HOME },
-                        icon = MiuixIcons.Tasks,
+                        icon = MiuixIcons.Scan,
                         label = "主页",
                     )
                     NavigationBarItem(

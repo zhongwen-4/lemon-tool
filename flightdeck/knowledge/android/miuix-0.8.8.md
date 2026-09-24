@@ -100,6 +100,13 @@ surfaceContainer（浅色约 tone 94，明显比 `surface` 的 tone 98 深），
   `ZoomOut`/`WorldClock`/`MapAlbum` 等字符串为 0 命中，搜用到的 3 个为 1 命中）。整包 dex 从
   1488 KB 涨到 1751 KB 主要是新界面代码，不是图标
 
+- **0.8.8 里没有 Home / House（房子）图标**：155 个里有 `Tasks`、`ListView`、`Scan`、`SearchDevice`、
+  `Report`、`Info`、`Settings`、`Help`、`GridView`…，但**没有房子**——想做「主页」tab 只能从这些里挑，
+  本 App 底栏用的是 `Scan`（应用本身就是扫描器，比原先占位的 `Tasks` 贴题）
+- 要拿全量图标名别去翻文档页：拉 `miuix-icons-android-<版本>-sources.jar`，
+  `commonMain/top/yukonga/miuix/kmp/icon/extended/*.kt` 的**文件名就是图标名**（0.8.8 = 155 个，
+  一个文件一个图标）
+
 ## Card 没有 border —— 要框就自己画
 
 `Card` 只接受 `colors: CardColors`（只有 `color` / `contentColor` 两个字段），没有描边参数。

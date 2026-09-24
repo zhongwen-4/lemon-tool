@@ -19,9 +19,8 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   （Release `v0.2.0` 已发布，APK 1.24 MiB）。代价是加了 INTERNET 权限，「不联网」的措辞已改准。
 - 2026-09-21：`uninstall.sh` 误报按他选的「甲」修掉（升级层不对卸载脚本生效 + 报告加提示），本机断言全过。
 
-- 2026-09-24：用户要求把底栏换成 morphicons 图标——该库只有 web/JS 版（无 Compose 产物，自身也不带
-  图标，底层是 Lucide 那套描边集），照字面做不了；已列四个替代方案（静态 Lucide / 加选中动画 /
-  自写形变 / 沿用 MiuixIcons），**等他选**。
+- 2026-09-24：底栏已按他选的「丁」加图标（`TextOnly` → `IconAndText`，主页图标用 `Scan`，关于用
+  `Info`）。改动只能由 CI 验证，**等真机看观感**——图标 26dp、未选中态 alpha 0.4 会不会太淡。
 
 ## Open questions
 
