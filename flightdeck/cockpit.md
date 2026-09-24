@@ -33,6 +33,13 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   与 MiuiX 155 个图标的可搜索预览（`build/miuix-icons-preview.html`，不进仓库）；**等他挑一套 + 一个图标**，
   之后把那个 SVG 转成 `ImageVector` 换掉 `Scan`。
 
+- 2026-09-25：用户要「整个 UI 抄 SukiSU Ultra 的代码、图标用 Tabler Icons」。核实后：它的代码是
+  **GPL-3.0**，启动图标另有一份禁止提取/禁止其他 app 使用/衍生项目必须替换的单独许可，而本仓库
+  **没有 LICENSE** → 照搬代码不可行；它的 `ui/` 有 **281 个 .kt / 2.0 MB**（每个界面写两遍 Material +
+  Miuix），与本 App 的「扫描 + 关于」两页完全不对等；它底栏实际用的是 `material-icons-extended` 的
+  `Icons.Rounded.*`（想要的房子＝`Cottage`）；**MiuiX 0.8.8 没有 blur/Backdrop**，要浮动模糊底栏得升 0.9.x。
+  **已交回五个问题，等答复；答复前不动代码**（详见 `work/module-risk-scanner/index.md` 第 10 条）。
+
 ## Open questions
 
 

@@ -169,10 +169,14 @@
 9. 固定 CI 的签名密钥（keystore 存成 repo secret，或本地固定一份）——否则版本号提了也覆盖安装不了，
    用户每次都得卸载重装。见 `knowledge/build/release-and-update-check.md` 的「坑」。
 
-10. 等用户挑「主页」图标：MiuiX 自带 155 个里没有 Home/House，已给他 10 套候选图标库（官网/许可/
-    接入方式见 `knowledge/android/icon-libraries.md`）与自制的 155 个图标预览
-    （`build/miuix-icons-preview.*`）。他定下来后改 `ScanUi.kt`（现在用 `Scan`）；若选自 MiuiX 之外，
-    就把那个 SVG 转成 `ImageVector`。
+10. ~~等用户挑「主页」图标~~ **方向已变**（2026-09-25）：用户改成「整个 UI 抄 SukiSU Ultra 的代码，
+    图标用 Tabler Icons」。核实后有三条硬事实（`knowledge/android/sukisu-ultra-as-ui-reference.md`）：
+    它的代码是 **GPL-3.0**、启动图标另有一份**禁止他用**的许可，而本仓库**没有 LICENSE** →
+    照搬代码不可行；它的 `ui/` 就有 281 个 .kt / 2.0 MB，与本 App 两个页面完全不对等；
+    它底栏实际用的是 `material-icons-extended` 的 `Icons.Rounded.Cottage/Security/Extension/Settings`
+    （用户想要的「房子」就是 `Cottage`）。**已把问题清单交回用户，等他答复，答复前不动代码**：
+    抄代码还是抄观感 / 底栏要不要扩成四个 tab / 用 `material-icons-extended` 还是坚持 Tabler /
+    要不要浮动模糊底栏（MiuiX 0.8.8 无 blur） / 要不要连带升工具链。
 
 ## 进度
 
@@ -230,6 +234,16 @@
   （改成自定义 "Remix Icon License v1.0"）；**只有 Google Material icons 有官方 Android 构件**
   （`material-icons-extended` 到 1.7.8 冻结）。结论记 `knowledge/android/icon-libraries.md`。
 
+- 2026-09-25 preflight 后收到「整个 UI 抄 SukiSU Ultra 的代码、图标用 Tabler Icons」。**先核实再答，没动代码**：
+  ① 许可：SukiSU / KernelSU / KernelSU-Next 三者代码都是 GPL-3.0，SukiSU 的启动图标另有
+  《SukiSU Ultra 图标有限使用许可证》（严格非商业、禁止提取、禁止用作别的 app 的图标或素材、衍生项目必须
+  删除或替换），而本仓库**没有 LICENSE** → 照搬代码不可行；② 规模：它 `manager/.../ui/` 281 个 .kt、
+  约 2.0 MB，每个界面写两遍（`XxxMaterial.kt` + `XxxMiuix.kt`），另加自研 Expressive 组件、liquid 玻璃、
+  markdown 渲染、WebUI；③ 它底栏用的是 `material-icons-extended` 的 `Icons.Rounded.*`，切页是横向 pager，
+  可选浮动毛玻璃底栏——而 **MiuiX 0.8.8 没有 blur / Backdrop**（拉 sources jar 检索零命中），
+  要那种效果得升 0.9.x，会牵动整条工具链。另确认 **Tabler 的 SVG 能取到**（走 `api.github.com`
+  的 `contents` 端点；raw.githubusercontent 与 curl.exe 在本机都不通）。已把五个问题交回用户，等他答复。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
@@ -237,6 +251,8 @@
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.8.8.md` — 动界面（MiuiX/Compose）前必读
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
+- `knowledge/android/sukisu-ultra-as-ui-reference.md` — 要照搬/参考别的 App 的界面（尤其底栏、图标混用）前必读
+- `knowledge/tooling/which-hosts-are-reachable.md` — 要拉外网内容（图标 SVG / 源码 / Maven jar）时读
 - `knowledge/build/release-and-update-check.md` — 动版本号、发版、或改「检查更新」前必读
 - `knowledge/detection/dry-run-sandbox.md` — 要评估动态/半动态分析（执行轨迹）时读，
   含「假 PATH 沙箱」的坑与「为什么进不了 APK」的结论
