@@ -26,6 +26,9 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   Java 25 的 class 文件（Groovy 3.0.22 / major 69）；wrapper 改指 **9.2.0**，本机跑通配置与任务图。
   CI 仍走 `gradle-version: '8.13'` + JDK 17，两处**有意分叉**（要合得先在 CI 验 Gradle 9）。
 
+- 2026-09-24 新约定：更新只提版本号、不动包名（记入 `briefing.md`）。但排查发现 **CI 每 run 现生成
+  签名密钥**，不同 run 的 APK 装不上去——「升级」目前只能卸载重装。要真能更新得先固定密钥。
+
 ## Open questions
 
 

@@ -34,6 +34,13 @@ READ WHEN: when 要动版本号/发版、要改「检查更新」、或要查「
   否则是对用户的假陈述。
 - 国内网络访问 `api.github.com` 常常不通，界面只能报「检查失败」。要真给国内用户用，得考虑镜像回退
   （比如 jsDelivr 读仓库里的 `version.json`），目前**没做**。
+- **CI 每次跑都新生成签名密钥**：workflow 里 `keytool -genkeypair -keystore "$RUNNER_TEMP/release.jks"`，
+  而 runner 的临时目录每个 run 都是新的（没有任何缓存）→ **同一个 app，不同 run 产出的 APK 签名不同，
+  覆盖安装会 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`**，只能卸掉再装。也就是说「更新」这件事上，
+  **光提版本号不够，密钥必须先固定**（把 keystore 存成 repo secret，base64 解到 runner 再用；
+  本地则固定一份 `.jks`）。顺带：Release note 里那句「签名与 CI 一致」是**假陈述**，要一起改掉。
+- 与上一条配套的约定（用户 2026-09-24 立的，已记入 `flightdeck/briefing.md`）：更新时**只提版本号，
+  不动包名**。包名（`namespace` / `applicationId`）一改就是另一个 app。
 
 ## 首次落地（2026-09-21）
 

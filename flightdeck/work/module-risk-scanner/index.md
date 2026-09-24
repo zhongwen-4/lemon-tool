@@ -166,6 +166,9 @@
    `knowledge/android/morphicons-web-only.md`），照字面做不了，也没必要——实际做的是
    `TextOnly` → `IconAndText`，主页图标从占位的 `Tasks` 换成 `Scan`。
 
+9. 固定 CI 的签名密钥（keystore 存成 repo secret，或本地固定一份）——否则版本号提了也覆盖安装不了，
+   用户每次都得卸载重装。见 `knowledge/build/release-and-update-check.md` 的「坑」。
+
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -207,6 +210,10 @@
   本机实测 `projects` 与 `:app:assembleRelease --dry-run` 全过（AGP 8.11.1 在 Gradle 9.2.0 上配得起来）。
   CI 保持 8.13 + JDK 17 不动 —— wrapper 与 CI 由此**有意分叉**。详见
   `knowledge/build/android-toolchain.md`。
+
+- 2026-09-24 用户立约定「更新只提版本号、不动包名」，已记入 `flightdeck/briefing.md` 第 8 条。
+  顺着这条排查，发现它目前**还做不到**：CI 每 run 用 `keytool -genkeypair` 现生成一把签名密钥，
+  不同 run 的 APK 签名不同，覆盖安装必失败（只能卸载重装）。已列为下一步第 9 条。
 
 ## Read now
 
