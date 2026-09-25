@@ -53,6 +53,8 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - 2026-09-25：检查并修复 Android 编译工作流：APK job 等待 core 测试；tag 发布校验 `versionName`；
   tag 必须使用固定 keystore secrets；已有 Release 重跑时覆盖上传 APK。固定密钥仅在 tag 步骤注入，
   非 tag 构建始终使用临时测试签名；构建与 tag-only 发布 job 的仓库写权限已分离。
+- 2026-09-25：用户选择将本项目声明为 GPL-3.0，根目录新增完整 `LICENSE`。SukiSU 源码许可现与本项目相容，
+  但复制时仍须保留上游声明并履行对应源码义务；其启动图标有单独限制许可，不随 GPL 授权。
 ## Open questions
 
 

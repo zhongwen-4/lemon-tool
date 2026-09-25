@@ -283,6 +283,9 @@
   拒绝发布，非 tag 始终用临时签名；已有 Release 改为 `gh release upload --clobber`，支持重跑 tag；
   构建 job 与 tag-only 发布 job 的仓库写权限分离。详见 `knowledge/build/release-and-update-check.md`。
 
+- 2026-09-25 用户决定将本项目声明为 GPL-3.0，根目录新增完整 `LICENSE`。更新 SukiSU 参考知识：源码许可相容，
+  但引入其代码仍需保留上游版权/许可证声明并履行对应源码义务；启动图标继续受单独许可限制。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
