@@ -21,9 +21,17 @@ READ WHEN: when 要动版本号/发版、要改「检查更新」、或要查「
 1. 改 `app/build.gradle` 的 `versionCode`/`versionName`（两个都动，Android 只认 versionCode）。
 2. 推 main，等 CI 绿。
 3. `git tag -a v0.2.0 -m "..."` + `git push lemon-tool v0.2.0`。
-4. tag 触发同一个 workflow：`apk` job 里 `permissions: contents: write` + 最后一步
-   `if: startsWith(github.ref, 'refs/tags/v')` 时 `gh release create "$GITHUB_REF_NAME" <apk> --title ... --notes ...`。
-   runner 自带 `gh`，`GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` 就够。
+4. tag 触发同一个 workflow：`apk` job 先等待 `core` 测试通过，再检查 tag 去掉 `v` 后必须等于
+   `app/build.gradle` 的 `versionName`，并上传 APK artifact；tag-only 的 `publish` job 再用 runner 自带的
+   `gh` 建 Release 或覆盖上传同名 APK。只有 `publish` job 使用 `permissions: contents: write`。
+   `GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}` 就够。
+
+## CI 固定签名密钥
+
+在仓库 Actions secrets 配置 `MRS_KEYSTORE_BASE64`、`MRS_STORE_PASSWORD`、`MRS_KEY_ALIAS`、
+`MRS_KEY_PASSWORD`。其中 keystore 先用 base64 编码成单行文本。只有 `v*` tag 构建会读取这些 secret，
+缺少任意一项就直接失败，避免发布无法覆盖安装的 APK；main、PR 和手动非 tag 构建始终使用临时测试签名，
+不接触发布密钥。
 
 ## 坑
 
@@ -34,11 +42,14 @@ READ WHEN: when 要动版本号/发版、要改「检查更新」、或要查「
   否则是对用户的假陈述。
 - 国内网络访问 `api.github.com` 常常不通，界面只能报「检查失败」。要真给国内用户用，得考虑镜像回退
   （比如 jsDelivr 读仓库里的 `version.json`），目前**没做**。
-- **CI 每次跑都新生成签名密钥**：workflow 里 `keytool -genkeypair -keystore "$RUNNER_TEMP/release.jks"`，
-  而 runner 的临时目录每个 run 都是新的（没有任何缓存）→ **同一个 app，不同 run 产出的 APK 签名不同，
-  覆盖安装会 `INSTALL_FAILED_UPDATE_INCOMPATIBLE`**，只能卸掉再装。也就是说「更新」这件事上，
-  **光提版本号不够，密钥必须先固定**（把 keystore 存成 repo secret，base64 解到 runner 再用；
-  本地则固定一份 `.jks`）。顺带：Release note 里那句「签名与 CI 一致」是**假陈述**，要一起改掉。
+- **签名必须固定**：tag 构建从 `MRS_KEYSTORE_BASE64` 解码同一份 keystore；不同版本使用相同证书才能覆盖安装。
+  非 tag 构建的临时签名只适合测试，不能作为升级包。
+- **tag 发布必须幂等**：workflow 的 `publish` job 会先检查 Release 是否存在，不存在时先创建；随后用
+  `gh release upload --clobber` 上传或替换 APK，因此重跑同一个 tag 不会因「Release 已存在」而失败。
+- **构建与发布权限分离**：APK job 只有 `contents: read`，tag-only 的 publish job 才有 `contents: write`，
+  避免 PR 编译步骤携带发布权限。
+- **tag 与应用版本必须一致**：workflow 在构建前比较 `vX.Y.Z` 与 `versionName`，避免 Release 标题和应用内
+  更新检查指向错误版本。
 - 与上一条配套的约定（用户 2026-09-24 立的，已记入 `flightdeck/briefing.md`）：更新时**只提版本号，
   不动包名**。包名（`namespace` / `applicationId`）一改就是另一个 app。
 

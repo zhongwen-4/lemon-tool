@@ -27,8 +27,9 @@ jobs:
   apk:
     name: apk (arm64-v8a)
     runs-on: ubuntu-latest
+    needs: core
     permissions:
-      contents: write # 推 v* tag 时用 gh 建 Release
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -53,19 +54,58 @@ jobs:
         with:
           gradle-version: '8.13'
 
-      - name: Generate signing key
+      - name: Validate release version
+        if: startsWith(github.ref, 'refs/tags/v')
         run: |
-          keytool -genkeypair -keystore "$RUNNER_TEMP/release.jks" \
+          tag_version="${GITHUB_REF_NAME#v}"
+          app_version="$(sed -nE "s/^[[:space:]]*versionName[[:space:]]+['\"]([^'\"]+)['\"].*/\1/p" app/build.gradle | head -n1)"
+          if [ -z "$app_version" ]; then
+            echo "无法从 app/build.gradle 读取 versionName" >&2
+            exit 1
+          fi
+          if [ "$tag_version" != "$app_version" ]; then
+            echo "tag $GITHUB_REF_NAME 与 app versionName $app_version 不一致" >&2
+            exit 1
+          fi
+
+      - name: Prepare signing key
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          MRS_KEYSTORE_BASE64: ${{ secrets.MRS_KEYSTORE_BASE64 }}
+          MRS_STORE_PASSWORD_SECRET: ${{ secrets.MRS_STORE_PASSWORD }}
+          MRS_KEY_ALIAS_SECRET: ${{ secrets.MRS_KEY_ALIAS }}
+          MRS_KEY_PASSWORD_SECRET: ${{ secrets.MRS_KEY_PASSWORD }}
+        run: |
+          umask 077
+          key_store="$RUNNER_TEMP/release.jks"
+          : "${MRS_KEYSTORE_BASE64:?tag 发布必须配置 MRS_KEYSTORE_BASE64 secret}"
+          : "${MRS_STORE_PASSWORD_SECRET:?tag 发布必须配置 MRS_STORE_PASSWORD secret}"
+          : "${MRS_KEY_ALIAS_SECRET:?tag 发布必须配置 MRS_KEY_ALIAS secret}"
+          : "${MRS_KEY_PASSWORD_SECRET:?tag 发布必须配置 MRS_KEY_PASSWORD secret}"
+          printf '%s' "$MRS_KEYSTORE_BASE64" | base64 --decode > "$key_store"
+          test -s "$key_store"
+          keytool -list -keystore "$key_store" -storepass "$MRS_STORE_PASSWORD_SECRET" \
+            -alias "$MRS_KEY_ALIAS_SECRET" >/dev/null
+          echo "MRS_KEYSTORE=$key_store" >> "$GITHUB_ENV"
+          printf 'MRS_STORE_PASSWORD=%s\n' "$MRS_STORE_PASSWORD_SECRET" >> "$GITHUB_ENV"
+          printf 'MRS_KEY_ALIAS=%s\n' "$MRS_KEY_ALIAS_SECRET" >> "$GITHUB_ENV"
+          printf 'MRS_KEY_PASSWORD=%s\n' "$MRS_KEY_PASSWORD_SECRET" >> "$GITHUB_ENV"
+
+      - name: Generate temporary test signing key
+        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
+        run: |
+          umask 077
+          key_store="$RUNNER_TEMP/release.jks"
+          keytool -genkeypair -keystore "$key_store" \
             -storepass android -keypass android -alias mrs \
             -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=mrs,OU=dev,O=lemon_tool,C=CN"
+          echo "MRS_KEYSTORE=$key_store" >> "$GITHUB_ENV"
+          echo 'MRS_STORE_PASSWORD=android' >> "$GITHUB_ENV"
+          echo 'MRS_KEY_ALIAS=mrs' >> "$GITHUB_ENV"
+          echo 'MRS_KEY_PASSWORD=android' >> "$GITHUB_ENV"
 
       - name: Build release APK
-        env:
-          MRS_KEYSTORE: ${{ runner.temp }}/release.jks
-          MRS_STORE_PASSWORD: android
-          MRS_KEY_ALIAS: mrs
-          MRS_KEY_PASSWORD: android
         run: gradle assembleRelease --no-daemon
 
       - name: Check APK size
@@ -84,14 +124,31 @@ jobs:
           name: mrs-apk
           path: app/build/outputs/apk/release/*.apk
 
+  publish:
+    name: publish release
+    runs-on: ubuntu-latest
+    needs: apk
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: mrs-apk
+          path: artifact
+
       # git tag v0.2.0 && git push --tags 时把 APK 挂到 Release 上。
       # app 的「检查更新」就是读 releases/latest 的 tag 跟已安装版本比对。
       - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
-          gh release create "$GITHUB_REF_NAME" "$apk" \
-            --title "$GITHUB_REF_NAME" \
-            --notes "CI 自动构建的 $GITHUB_REF_NAME，签名与 CI 一致，仅供测试。"
+          apk="$(find artifact -type f -name '*.apk' -print -quit)"
+          test -n "$apk"
+          if ! gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "$GITHUB_REF_NAME" \
+              --notes "CI 自动构建的 $GITHUB_REF_NAME，使用仓库固定发布密钥签名。"
+          fi
+          gh release upload "$GITHUB_REF_NAME" "$apk" --clobber

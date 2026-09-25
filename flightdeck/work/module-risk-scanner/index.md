@@ -278,6 +278,11 @@
   按钮从 52dp/26dp 收到 48dp/24dp，内容边距从 16dp 收到 12dp。图标资源、引用和版本号未改。
   `:app:compileDebugKotlin --offline` 编译通过。
 
+- 2026-09-25 检查 Android 编译工作流发现三个发布问题并已修复：APK job 增加 `needs: core`；tag 构建
+  校验 `vX.Y.Z` 与 `versionName` 一致；固定签名从 Actions secrets 解码且仅 tag 步骤读取，tag 未配置时
+  拒绝发布，非 tag 始终用临时签名；已有 Release 改为 `gh release upload --clobber`，支持重跑 tag；
+  构建 job 与 tag-only 发布 job 的仓库写权限分离。详见 `knowledge/build/release-and-update-check.md`。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
