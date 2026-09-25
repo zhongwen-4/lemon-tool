@@ -36,7 +36,7 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: '21'
 
       # ubuntu runner 自带 Android SDK；android-actions/setup-android 默认安装的
       # "tools" 包已从 SDK 仓库下架，会让整个 job 直接失败，因此直接调用自带 sdkmanager
@@ -52,7 +52,7 @@ jobs:
 
       - uses: gradle/actions/setup-gradle@v4
         with:
-          gradle-version: '8.13'
+          gradle-version: '9.7.1'
 
       - name: Validate release version
         if: startsWith(github.ref, 'refs/tags/v')
