@@ -11,6 +11,8 @@ RECHECK WHEN: MiuiX 升到 0.9+，或 Kotlin / AGP 换大版本之后。
 
 ---
 
+> 2026-09-27：本项目已升到 **MiuiX 0.9.4**（坐标拆分、多了 preference 包与 blur），
+> 日常要查的签名去看 **`miuix-0.9.4.md`**；本文件只作 0.8.8 时期的历史记录。
 ## 坐标与硬约束（实拉 AAR 核实）
 
 - `top.yukonga.miuix.kmp:miuix-android:0.8.8`（Maven Central，AAR 约 1.6 MB）

@@ -97,6 +97,11 @@
   - 真机验证仍待用户：装 0.2.0 点「检查更新」应显示「已经是最新版本（v0.2.0）」。
 
 
+- **新版式一次都没被看过**（2026-09-27）：本机只能编 Kotlin，渲染要么等 CI 出的 APK、要么等真机。
+  两个我照上游抄但没验证过的地方：英雄卡靠 `Row(height(IntrinsicSize.Min))` 撑高度、
+  右上角 110dp 大图标靠 `offset` 溢出被卡片裁掉——上游是这么写的，但与我们的文案长度不同，
+  实际高度/裁切效果要真机看。底栏胶囊也是同样情况（拖动切页、按压缩放都没上手试过）。
+
 ## 未验证 / 风险
 
 - APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。
@@ -286,12 +291,42 @@
 - 2026-09-25 用户决定将本项目声明为 GPL-3.0，根目录新增完整 `LICENSE`。更新 SukiSU 参考知识：源码许可相容，
   但引入其代码仍需保留上游版权/许可证声明并履行对应源码义务；启动图标继续受单独许可限制。
 
+- 2026-09-27 **移植 SukiSU Ultra 的界面代码**（用户指令：移植它的 UI，图标用我们自己的；后又追加「三个页面的版式也照它重画」）。
+  三个前置确认（用户答复）：① 范围＝**只搬组件与骨架**，不搬它 `screen/` 里 134 个页面、`webui/`、`kernelFlash/`、
+  模板编辑器与双套 Material 实现；② 图标**继续用 `material-icons-extended`**（也正是它底栏用的那套）；
+  ③ **只做 Miuix 一套**，不要 UiMode 双实现。许可这条已不再是障碍：本项目 GPL-3.0 与它相容，
+  搬进来的文件都写了「上游路径 + 改了什么 + 改动日期 2026-09-27」（GPL-3.0 §5a）；**它的启动图标单独许可，一个字没搬**。
+  落地（commit `a05fdbb`）：
+  ① 新增 `ui/component/FloatingBottomBar.kt`——它的悬浮底栏，**砍掉毛玻璃那一路**（`isBlurEnabled`/`backdrop` 参数、
+      Backdrop/liquid/设备倾斜高光全部去掉），只留纯色路径；深色判断改用 surface 亮度。
+      **副产品**：上游那个 `InteractiveHighlight` 只在毛玻璃一路里用，所以整条链一起不用了，
+      顺带避开 `android.graphics.RuntimeShader`（要 API 33）与本项目 minSdk 24 的冲突。
+  ② 新增 `ui/component/miuix/animation/DampedDragAnimation.kt` 与 `ui/component/miuix/modifier/DragGestureInspector.kt`
+     ——**逐字搬**，只改包名（与 `inspectDragGestures` 的 import）。
+  ③ 新增 `ui/component/bottombar/MainPagerState.kt`——取它 `BottomBar.kt` 里的 `MainPagerState`/`rememberMainPagerState`
+     + `LocalMainPagerState`；翻页动画从 miuix 的 `springAnimateToPage` 换成 `animateScrollToPage`。
+     底栏现在支持**左右拖动**切页，手指滑 pager 也会同步高亮（`syncPage`）。
+  ④ 新增 `ui/component/Rows.kt`——`InfoRow`（只读行）与 `ActionRow`（可点、尾部带箭头），
+     底座是 MiuiX 自带的 `BasicComponent` / `ArrowPreference`（它设置页就是这么写的），
+     替掉了我们自己手写的 `SettingRow`/`GroupCard`/`RowDivider`。
+  ⑤ **三个页面按它的版式重画**：新增 `PageScaffold`（一页一个 `Scaffold(topBar = TopAppBar(…))` +
+     一条 `LazyColumn`：左右 12dp、`overScrollVertical()`、`scrollEndHaptic()`、`nestedScroll(scrollBehavior…)`、
+     `contentPadding = innerPadding`，底部给悬浮底栏留位）；主页与历史页的「英雄卡」照它的 `StatusCard` 写法
+     （整卡换底色 + 右下角 110dp 图标 `offset(27.dp,31.dp)` 溢出 + 左上角 22.sp 大字 + 左下角操作）。
+     `ScannerScreen` 的顶栏从共享的 `AppHeader` 换成每页自己的 `TopAppBar`（它就是这么做的）。
+     图标全部沿用原样（Cottage / History / Settings / Info / SystemUpdate / Article / FolderZip）。
+  版本 0.3.0/code4 → **0.4.0/code5**。踩到的坑记进 `knowledge/tooling/file-edit-anchors-and-newlines.md`
+  （按行号切片重拼时边界算错，把 `HistoryEntry`/`HistoryStore` 整段切掉了，靠 `git show HEAD:` 取回）。
+  **本机 `:app:compileDebugKotlin --offline` 与 `:app:compileReleaseKotlin` 都过**；打 APK 与观感仍只靠 CI + 真机。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
 - `knowledge/build/msvc-utf8-source.md`、`knowledge/build/posix-vs-win32-portability.md`
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
-- `knowledge/android/miuix-0.8.8.md` — 动界面（MiuiX/Compose）前必读
+- `knowledge/android/miuix-0.9.4.md` — **动界面（MiuiX 0.9.4）前必读**：组件签名是实拉 sources jar 核对过的
+- `knowledge/android/sukisu-ui-port.md` — 要**继续移植 SukiSU 的界面**、或给本项目加新界面时必读
+- `knowledge/android/miuix-0.8.8.md` — 0.8.8 时期的历史记录（日常改界面看 0.9.4 那份）
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
 - `knowledge/android/sukisu-ultra-as-ui-reference.md` — 要照搬/参考别的 App 的界面（尤其底栏、图标混用）前必读
 - `knowledge/tooling/which-hosts-are-reachable.md` — 要拉外网内容（图标 SVG / 源码 / Maven jar）时读
@@ -308,4 +343,4 @@
 - 需要 Android 模块规范细节（module.prop、脚本钩子、system 覆盖方式）→
   先建 `knowledge/android/` 下的条目再读
 - 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`
-  （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.8.8.md`（组件签名与硬约束）
+  （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.9.4.md`（组件签名与硬约束）

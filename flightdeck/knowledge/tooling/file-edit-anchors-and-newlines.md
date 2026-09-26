@@ -30,3 +30,24 @@ RECHECK WHEN: 仓库改了换行策略、或本机换掉 apply_patch 的包装�
 - 写完**立刻回读几行**确认（本次就是回读才发现两行被粘住）。
 - 别用 `$script:t` 之类的跨作用域写法玩花活（函数里读到的可能是空串，导致全部 MISS）；
   老老实实在同一作用域里顺序执行、或用数组收集「锚点/替换/标签」再统一跑。
+
+## 第三个改法：按行号切片重拼（2026-09-27 补）
+
+改大段版式时，比 apply_patch 与 Replace 更好用的是「读成数组 → 按行号切片 → 拼回」。
+但它有自己的一种失手方式：**切片边界算错会静默删掉整段代码**，而且删的往往是
+「看起来不在改动范围里」的那段。本机就栽过一次：重写 `History.kt` 的界面区时把
+`A = 行 1..37` 写成 `A = 行 1..133`，于是 `HistoryEntry`、`historyEntryOf`、`HistoryStore`
+整段（行 38..133）被抹掉——文件照样写成功，脚本照样打印 OK。
+
+规矩：
+- 切之前**先把边界那两行打印出来确认**（`"$($l[132])"` 之类），别只看行数。
+- 拼完立刻搜关键符号计数（`data class` / `object` / 关键函数名 各出现几次），**期望值写死**，
+  像下面这样，比「能编译」更早发现问题：
+  ```powershell
+  foreach ($k in 'data class HistoryEntry','object HistoryStore','fun HistoryScreen') {
+    "$k = " + (Select-String -LiteralPath $p -Pattern ([regex]::Escape($k)) | Measure-Object).Count
+  }
+  ```
+- 万一真切掉了，`git show HEAD:<仓库内路径>` 能把原文按行取回来（本机实测中文不乱码，
+  但先设 `[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)`），
+  再把缺的行号区间插回去，比自己重写一遍安全。
