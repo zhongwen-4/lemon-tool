@@ -1,7 +1,6 @@
 package com.lemon.mrs
 
 import android.content.Context
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -15,9 +14,16 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.sp
+import com.lemon.mrs.ui.component.ActionRow
+import top.yukonga.miuix.kmp.basic.TextButton
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -27,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import org.json.JSONArray
 import org.json.JSONObject
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -134,129 +139,109 @@ object HistoryStore {
 @Composable
 fun HistoryScreen(
     entries: List<HistoryEntry>,
+    bottomInnerPadding: Dp,
     onOpen: (HistoryEntry) -> Unit,
     onClear: () -> Unit,
 ) {
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 12.dp, bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        if (entries.isEmpty()) {
-            item { HistorySectionTitle("检查历史") }
-            item { EmptyHistoryCard() }
-        } else {
-            item { HistorySectionTitle("扫描概览") }
-            item { SummaryCard(entries, onClear) }
-            item { HistorySectionTitle("历史记录") }
-            item { HistoryListCard(entries, onOpen) }
-        }
-    }
-}
-
-@Composable
-private fun HistorySectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MiuixTheme.textStyles.footnote1,
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        modifier = Modifier.padding(start = 4.dp, top = 4.dp),
-    )
-}
-
-@Composable
-private fun SummaryCard(entries: List<HistoryEntry>, onClear: () -> Unit) {
-    val risk = entries.count { it.high > 0 }
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-        Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-            Text(text = "扫描概览", style = MiuixTheme.textStyles.title3)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "共 ${entries.size} 次，其中 $risk 次出现高危",
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-            Spacer(Modifier.height(14.dp))
-            ClearRow(onClear = onClear)
-        }
-    }
-}
-
-@Composable
-private fun ClearRow(onClear: () -> Unit) {
-    Text(
-        text = "清空历史",
-        style = MiuixTheme.textStyles.button,
-        color = MiuixTheme.colorScheme.error,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClear)
-            .padding(vertical = 4.dp),
-    )
-}
-
-@Composable
-private fun HistoryListCard(entries: List<HistoryEntry>, onOpen: (HistoryEntry) -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = panelColors(),
-        cornerRadius = 16.dp,
-        insideMargin = PaddingValues(0.dp),
-    ) {
-        Column(modifier = Modifier.fillMaxWidth()) {
-            entries.forEachIndexed { index, entry ->
-                if (index > 0) HorizontalDivider(color = MiuixTheme.colorScheme.dividerLine)
-                HistoryRow(entry = entry, onOpen = { onOpen(entry) })
+    PageScaffold(title = "检查历史", bottomInnerPadding = bottomInnerPadding) {
+        item {
+            Column(
+                modifier = Modifier.padding(top = 12.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                if (entries.isEmpty()) {
+                    SectionTitle("检查历史")
+                    EmptyHistoryCard()
+                } else {
+                    SectionTitle("扫描概览")
+                    SummaryCard(entries, onClear)
+                    SectionTitle("历史记录")
+                    HistoryListCard(entries, onOpen)
+                }
             }
         }
     }
 }
 
+/** 概览卡：版式照 SukiSU 的主页状态卡——右下角一枚溢出的大图标，左上角是大字与说明，左下角放操作。 */
 @Composable
-private fun HistoryRow(entry: HistoryEntry, onOpen: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onOpen)
-            .padding(horizontal = 16.dp, vertical = 14.dp),
-        verticalAlignment = Alignment.CenterVertically,
+private fun SummaryCard(entries: List<HistoryEntry>, onClear: () -> Unit) {
+    val risk = entries.count { it.high > 0 }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = panelColors(),
+        cornerRadius = 16.dp,
     ) {
-        Icon(
-            imageVector = Icons.Rounded.History,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
-        Spacer(Modifier.width(14.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = entry.moduleName.ifBlank { "未命名模块" },
-                style = MiuixTheme.textStyles.body1,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Spacer(Modifier.height(3.dp))
-            Text(
-                text = historySubtitle(entry),
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Box(modifier = Modifier.fillMaxWidth()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset(27.dp, 31.dp),
+                    contentAlignment = Alignment.BottomEnd,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(110.dp),
+                        tint = MiuixTheme.colorScheme.primary.copy(alpha = 0.8f),
+                    )
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp, 14.dp),
+                    contentAlignment = Alignment.TopStart,
+                ) {
+                    Column {
+                        Text(
+                            text = "共 ${entries.size} 次检查",
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(1.dp))
+                        Text(
+                            text = "其中 $risk 次出现高危",
+                            fontSize = MiuixTheme.textStyles.body2.fontSize,
+                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                        )
+                    }
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp, 10.dp),
+                    contentAlignment = Alignment.BottomStart,
+                ) {
+                    TextButton(text = "清空历史", onClick = onClear)
+                }
+            }
+        }
+    }
+}
+
+/** 一行一条：图标 + 模块名 +（时间 · 版本）+ 风险尾值 + 箭头，都是 MiuiX 的行组件。 */
+@Composable
+private fun HistoryListCard(entries: List<HistoryEntry>, onOpen: (HistoryEntry) -> Unit) {
+    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
+        entries.forEach { entry ->
+            ActionRow(
+                icon = Icons.Rounded.History,
+                title = entry.moduleName.ifBlank { "未命名模块" },
+                summary = historySubtitle(entry),
+                tail = riskTail(entry),
+                tailColor = riskColor(entry),
+                onClick = { onOpen(entry) },
             )
         }
-        Spacer(Modifier.width(10.dp))
-        Text(
-            text = riskTail(entry),
-            style = MiuixTheme.textStyles.footnote1,
-            color = riskColor(entry),
-        )
-        Spacer(Modifier.width(6.dp))
-        Icon(
-            imageVector = Icons.Rounded.ChevronRight,
-            contentDescription = null,
-            modifier = Modifier.size(18.dp),
-            tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        )
     }
 }
 
