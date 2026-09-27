@@ -9,8 +9,10 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 
 - `work/module-risk-scanner/` — 界面照 SukiSU Ultra 重画：**移植了它的悬浮底栏**（含 DampedDragAnimation，
   按用户定论去掉毛玻璃那一路）与 MiuiX 行组件，三个页面（主页 / 检查历史 / 设置）改成它的版式
-  （整卡英雄状态卡 + 一页一个 Scaffold/TopAppBar + 12dp 卡片流）；版本 **0.4.0/code5**；
-  **本机 debug/release 编译通过**，等 CI 出包与真机看观感。
+  （整卡英雄状态卡 + 一页一个 Scaffold/TopAppBar + 12dp 卡片流）；版本 **0.4.0/code5**。
+  CI 第一次出包失败（`checkReleaseAarMetadata`：MiuiX 0.9.4 要求 compileSdk ≥ 37）**已修**：
+  compileSdk 升 37（配 `compileSdkMinor 2`）、删掉硬要求 minSdk 33 的 `miuix-blur`；本机已把 CI
+  出包链路里除 native 编译以外的环节全跑绿，**等 CI 复跑出包 + 真机看观感**。
 
 ## Next
 
@@ -18,11 +20,15 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   底栏胶囊拖动切页的手感、MiuiX 行组件在卡片里的间距、分区标题要不要保留（SukiSU 版式里没有）。
 - 给 zip 条目数加上限（防内存被打爆）。
 - 用真实模块样本压误报（现在的夹具是自造的，覆盖面有限）。
-- 若要毛玻璃：`miuix-blur` 已在依赖里，但要补 liquid / `InteractiveHighlight` 那一层
-  （约 25 KB，且要处理 API 33 的 `RuntimeShader` 与本项目 minSdk 24 的冲突）。
+- 若要毛玻璃：**这条路现在被 minSdk 卡死** —— `miuix-blur-android:0.9.4` 的 manifest 硬要求
+  minSdk 33，而本项目是 24（2026-09-27 已把该依赖删掉）。要做只能整体抬 minSdk，或自己实现模糊。
 
 ## 已落地（倒序；细节都在 work 包里）
 
+- 2026-09-27：**修掉 CI 出包失败**（run `36281282791`）—— 升 MiuiX 0.9.4 时 compileSdk 留在 36，
+  `apk` job 卡死在 `checkReleaseAarMetadata`；改成 `compileSdk 37` + `compileSdkMinor 2`
+  （SDK 平台从 37 起按小版本发布，用 `android-37.2`；targetSdk 不动），并删掉硬要求 minSdk 33 的
+  `miuix-blur` 依赖。commit `6af075b`；详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
 - 2026-09-27：移植 SukiSU 的界面代码 —— 只搬组件与骨架、只做 Miuix 一套、图标继续用
   `material-icons-extended`；三页按它的版式重画；GPL-3.0 义务已履行（每个搬进来的文件写出处与改动日期，
   它的启动图标一个字没搬）。commit `a05fdbb`。

@@ -23,7 +23,7 @@ RECHECK WHEN: 装完 NDK、本机补装 JDK 17/21、或 VS / SDK 升级之后。
 
 ## Android 侧
 
-- SDK：`D:\Android\Sdk`，已装 cmdline-tools(latest)、build-tools 35/36、platforms android-36、licenses 已接受。
+- SDK：`D:\Android\Sdk`，已装 cmdline-tools(latest)、build-tools 35/36/37、platforms android-36 与 android-37.2（2026-09-27 补装）、licenses 已接受。
 - **NDK 未安装**：`sdkmanager --list` 有 `ndk;<版本>` 与 `cmake;<版本>` 可装。
 - sdkmanager：`D:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat`（java 25 已在 PATH）。
 - adb：`D:\platform-tools\adb.exe` 和 `D:\Android\Sdk\platform-tools\adb.exe` 各一份；探测时无设备连接。
@@ -117,3 +117,28 @@ Android 侧的 APK 构建**不在本机做**：GitHub Actions 负责（`.github/
   （首次拉依赖约 26 s，之后几秒）。**本机从此能验证 Kotlin 改动的语法与类型**，不必推 CI 等结果。
 - 仍然做不到的：`assembleRelease` 需要 NDK `27.0.12077973`（本机没装），**打 APK 依旧是 CI 的活**。
 - 代理端口变了就改这个文件；删掉它即恢复原状。
+
+## 本机验证能走到哪一步（2026-09-27 修订）
+
+- **只跑 `compileDebugKotlin` + `compileReleaseKotlin` 过，不算验证过出包。** 这两条任务不在
+  AAR 元数据检查（`check*AarMetadata`）与清单合并（`process*MainManifest`）的依赖链上，于是会
+  「本机绿、CI 红」。2026-09-27 的 CI 就是这么红的，细节见
+  `knowledge/build/compile-sdk-and-aar-metadata.md`。
+- 本机没有 NDK，`assembleRelease` 跑不了，但**除 native 编译与打包签名以外的环节都能在本机先跑**：
+
+  ```powershell
+  .\gradlew.bat :app:checkDebugAarMetadata :app:checkReleaseAarMetadata `
+      :app:processDebugMainManifest :app:processReleaseMainManifest `
+      :app:processDebugResources :app:processReleaseResources `
+      :app:compileDebugKotlin :app:compileReleaseKotlin `
+      :app:checkReleaseDuplicateClasses :app:minifyReleaseWithR8 :app:optimizeReleaseResources `
+      --offline --console=plain
+  ```
+
+  对应 CI `assembleRelease` 里除 `externalNativeBuildRelease`、`mergeReleaseNativeLibs`、
+  `packageRelease`、签名之外的全部环节（**R8 混淆与资源裁剪也包含**）。正常几秒到几十秒。
+- 任务名坑：AGP 9 里资源裁剪叫 **`optimizeReleaseResources`**，老文档里的 `shrinkReleaseRes` 已经不存在，
+  写错只会得到一句 `Selection failed`，看不出是任务名的问题。
+- 加/换依赖后第一次要**联网**跑（`--offline` 拉不到新 jar）；装新 platform 用
+  `& 'D:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat' --install ...`
+  （先设 `$env:JAVA_HOME` 到 Temurin 25）。

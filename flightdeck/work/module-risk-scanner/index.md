@@ -7,7 +7,10 @@
 - 2026-09-20 运行位置：在 Android 设备上跑。
 - 2026-09-20 技术栈：C++ 核心（CMake）+ Kotlin/Compose 外层，UI 用 MiuiX 组件库。
 - 2026-09-20 界面：`top.yukonga.miuix.kmp:miuix-android:0.8.8`（见
-  `knowledge/android/miuix-0.8.8.md`）。**它硬要求 compileSdk 36**，compileSdk/targetSdk 已跟到 36。
+  `knowledge/android/miuix-0.8.8.md`）。**它硬要求 compileSdk 36**（当时 compileSdk/targetSdk 都跟到 36）。
+  2026-09-27 升 MiuiX 0.9.4 之后被
+  `checkReleaseAarMetadata` 逼到 **compileSdk 37（配 `compileSdkMinor 2`）**，**targetSdk 仍保持 36**
+  （targetSdk 才决定运行时行为）；详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
 - 2026-09-20 交付形态：APK，由 GitHub Actions 编译（`.github/workflows/android.yml`）。
 - 2026-09-20 扫描范围：只检查**未安装**的模块包（用户选一个 zip）。不碰 `/data/adb/modules`，
   不需要 root，不联网。
@@ -97,6 +100,13 @@
   - 真机验证仍待用户：装 0.2.0 点「检查更新」应显示「已经是最新版本（v0.2.0）」。
 
 
+- 2026-09-27 **CI 出包失败（run `36281282791`）已修**：升 MiuiX 0.9.4 时把 compileSdk 留在 36，
+  `apk` job 在 `:app:checkReleaseAarMetadata` 直接失败（20 条 issue 全是「要求 compileSdk ≥ 37」）。
+  改成 `compileSdk 37` + `compileSdkMinor 2`（SDK 平台从 37 起按小版本发布，只有 `android-37.2`），
+  `targetSdk` 不动；本机接着又撞出第二道门 —— `miuix-blur-android:0.9.4` 硬要求 minSdk 33，与本项目
+  minSdk 24 冲突，代码里没人用它，直接删依赖。CI 里平台换 `platforms;android-37.2` +
+  `build-tools;37.0.0`。commit `6af075b`。知识：
+  `knowledge/build/compile-sdk-and-aar-metadata.md`。
 - **新版式一次都没被看过**（2026-09-27）：本机只能编 Kotlin，渲染要么等 CI 出的 APK、要么等真机。
   两个我照上游抄但没验证过的地方：英雄卡靠 `Row(height(IntrinsicSize.Min))` 撑高度、
   右上角 110dp 大图标靠 `offset` 溢出被卡片裁掉——上游是这么写的，但与我们的文案长度不同，
@@ -104,7 +114,10 @@
 
 ## 未验证 / 风险
 
-- APK 构建路径本机跑不了（没有 NDK、也没有 gradle），只能靠 CI 验证。
+- APK 构建路径本机跑不了（没有 NDK；Gradle 能跑但打不了包），只能靠 CI 验证。
+  **2026-09-27 补正**：本机除 native 编译与打包签名以外的环节都能预先跑出来（AAR 元数据、清单合并、
+  R8、资源裁剪），只要跑对任务 —— `compile*Kotlin` 过**覆盖不到**前两道门。见
+  `knowledge/build/android-toolchain.md` 的「本机验证能走到哪一步」。
 - 真机没连过（`adb devices` 为空），报告在设备上的实际显示效果没验证过。
 - ~~本机连不上 GitHub~~ 已解决：本机 FlClash 代理 `http://127.0.0.1:7890` 可用，
   `git -c http.proxy=http://127.0.0.1:7890 push lemon-tool main` 稳定成功。
@@ -178,7 +191,7 @@
     按用户要求复刻 SukiSU 的页面结构与文字层级，不复制其 GPL-3.0 源码。主页、历史、设置三页
     使用分区标题、分组卡片、偏好行和横向 pager；本轮进一步收敛卡片圆角与边距，并让顶栏标题随页面切换。
     本机 `:app:compileDebugKotlin --offline` 已通过，等待 CI 出包和真机确认观感。
-11. **等用户定：要不要升 MiuiX 0.9.4**。起因是「照抄 SukiSU 的设置页/列表 UI」——他们的行组件
+11. ~~等用户定：要不要升 MiuiX 0.9.4~~ **已完成**（2026-09-27 升到 0.9.4，连带 AGP 9.4.1 / Gradle 9.7.1 / JDK 21，见「已定决策」）。起因是「照抄 SukiSU 的设置页/列表 UI」——他们的行组件
     （`ArrowPreference`/`SwitchPreference`/`OverlayDropdownPreference`）在 0.9.x 的 `preference` 包里，
     0.8.8 完全没有。实测代价：0.9.4 拉 Compose 1.12.0 → `checkDebugAarMetadata` 报
     **AGP 必须 ≥ 9.1.0**（我们是 8.11.1），要升就连带升 AGP 9 / Gradle 9 / Compose 1.12，并改 CI 的
@@ -322,6 +335,7 @@
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
+- `knowledge/build/compile-sdk-and-aar-metadata.md` — 升 Compose/MiuiX 依赖、或 CI 报 AAR 元数据 / minSdk 门槛时读
 - `knowledge/build/msvc-utf8-source.md`、`knowledge/build/posix-vs-win32-portability.md`
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.9.4.md` — **动界面（MiuiX 0.9.4）前必读**：组件签名是实拉 sources jar 核对过的

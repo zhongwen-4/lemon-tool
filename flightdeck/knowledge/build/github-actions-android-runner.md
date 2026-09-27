@@ -19,7 +19,7 @@ RECHECK WHEN: runner 镜像换代（ubuntu-latest 迁移）或 setup-android 出
         run: |
           sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
           yes | "$sdkmanager" --licenses > /dev/null || true
-          "$sdkmanager" --install "platforms;android-36" "build-tools;36.0.0" \
+          "$sdkmanager" --install "platforms;android-37.2" "build-tools;37.0.0" \
             "cmake;3.22.1" "ndk;27.0.12077973"
 ```
 
@@ -34,3 +34,9 @@ RECHECK WHEN: runner 镜像换代（ubuntu-latest 迁移）或 setup-android 出
 - actions 报 `Node.js 20 is deprecated`／`被强制跑在 Node.js 24` 只是告警，不影响结果。
 - CI 里 `compileSdk` 不够会直接失败：AAR 的 `META-INF/com/android/build/gradle/aar-metadata.properties`
   里 `minCompileSdk` 是硬门槛，本地用 `7z e -so <aar> <该路径>` 就能先查，省一轮 CI。
+
+- **2026-09-27 更新**：`compileSdk` 从 36 起到 **37（配 `compileSdkMinor 2`）**，平台换成
+  **`platforms;android-37.2`**（37 起平台按小版本发布，没有裸的 `android-37`），`build-tools` 跟着换
+  `37.0.0`。原因与时序见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
+- `apk` job 的失败分两段看最省时间：**先 AAR 元数据（`checkReleaseAarMetadata`），再清单合并**
+  （库的 minSdk 门槛）。两道门本地都能预先跑出来（没 NDK 也行），别等 CI。

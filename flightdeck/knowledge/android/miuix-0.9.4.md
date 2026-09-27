@@ -4,6 +4,10 @@ SUMMARY: 0.9.x **拆了坐标**：`miuix-ui-android` / `miuix-nav-android` / `mi
 `miuix-blur-android` / `miuix-icons-android`（包名仍是 `top.yukonga.miuix.kmp.*`，所以迁移主要是改依赖行）。
 本项目 2026-09-27 已升到 **0.9.4**，工具链是 AGP 9.4.1 / Kotlin 2.4.20 / Gradle 9.7.1 / JDK 21 /
 compose-bom 2026.09.00 —— **与 SukiSU Ultra 完全同一套**，所以它的界面代码可以直接搬。
+**硬门槛（2026-09-27 实测）**：0.9.4 全家桶要求 **`compileSdk ≥ 37`**（差一档就在
+`checkReleaseAarMetadata` 直接失败，20 条 issue）；`miuix-blur-android:0.9.4` 的 manifest 硬要求
+**`minSdk 33`**，与本项目 `minSdk 24` 冲突，所以**那个坐标已经删掉**（代码里也没人用它）。
+详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
 0.9.x 才有的东西：整个 `preference` 包（一行一项的设置列表全靠它）、`blur.*`（Backdrop 毛玻璃）、
 `MiuixScrollBehavior`、`overScrollVertical`、`isDynamicColor`。**0.8.8 里这些一个都没有**。
 坑：`WindowInsets.only` / `WindowInsets.add` 是**顶层扩展函数**，必须显式 import
@@ -16,10 +20,13 @@ RECHECK WHEN: MiuiX 再升版本，或 compose-bom / AGP 换大版本之后。
 ## 现状（2026-09-27 核实）
 
 - `app/build.gradle` 依赖：`miuix-ui-android` / `miuix-icons-android` / `miuix-nav-android` /
-  `miuix-preference-android` / `miuix-blur-android`，全是 **0.9.4**；compose-bom 2026.09.00；
+  `miuix-preference-android`，全是 **0.9.4**；compose-bom 2026.09.00；
   `material-icons-extended`（图标仍用它，Apache-2.0）。
+  ~~`miuix-blur-android`~~ **2026-09-27 已删除**：它的 manifest 硬要求 `minSdk 33`，与本项目 `minSdk 24` 冲突
+  （毛玻璃那一路移植时本来就没要，见 `sukisu-ui-port.md`）。
 - 本机 `./gradlew.bat :app:compileDebugKotlin --offline` 与 `compileReleaseKotlin` 都能过
-  （0.9.4 的依赖已在 Gradle 缓存里）。**打 APK 仍只靠 CI**（本机没 NDK）。
+  （0.9.4 的依赖已在 Gradle 缓存里）。**但这两条过不算验证过出包**：AAR 元数据与清单合并要另外跑，
+  见 `knowledge/build/android-toolchain.md` 的「本机验证能走到哪一步」。打 APK 仍只靠 CI（本机没 NDK）。
 - 0.8.8 时期的记录留在 `miuix-0.8.8.md`，只作历史参考。
 
 ## preference 包（0.9.4 新增，设置页/列表页就靠它）
