@@ -47,7 +47,9 @@ jobs:
         run: |
           sdkmanager="$(command -v sdkmanager || echo "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager")"
           yes | "$sdkmanager" --licenses > /dev/null || true
-          "$sdkmanager" --install "platforms;android-36" "build-tools;36.0.0" \
+          # MiuiX 0.9.4 要求 compileSdk >= 37；SDK 平台从 37 起按小版本发布，
+          # 没有裸的 android-37，只有 android-37.2（app/build.gradle 里配 compileSdkMinor 2）。
+          "$sdkmanager" --install "platforms;android-37.2" "build-tools;37.0.0" \
             "cmake;3.22.1" "ndk;27.0.12077973"
 
       - uses: gradle/actions/setup-gradle@v4
