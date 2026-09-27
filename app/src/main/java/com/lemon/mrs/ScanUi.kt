@@ -56,8 +56,6 @@ import com.lemon.mrs.ui.screen.home.HomeActions
 import com.lemon.mrs.ui.screen.home.HomePagerMiuix
 import com.lemon.mrs.ui.screen.home.HomeUiState
 import com.lemon.mrs.ui.screen.settings.SettingPagerMiuix
-import com.lemon.mrs.ui.screen.settings.SettingsScreenActions
-import com.lemon.mrs.ui.screen.settings.SettingsUiState
 import com.lemon.mrs.ui.screen.sulog.SulogActions
 import com.lemon.mrs.ui.screen.sulog.SulogScreenMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogScreenState
@@ -73,7 +71,9 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.ThemeColorSpec
 import top.yukonga.miuix.kmp.theme.ThemeController
+import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
@@ -142,7 +142,6 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
     // 三页的骨架状态：全是空数据，往后接真实数据就换这里。
     val homeState = remember { HomeUiState() }
     val sulogState = remember { SulogScreenState() }
-    val settingsState = remember { SettingsUiState() }
 
     fun runScan(path: String) {
         lastPath = path
@@ -175,14 +174,23 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
         )
     }
     val sulogActions = remember { SulogActions() }
-    val settingsActions = remember(onOpenAbout) { SettingsScreenActions(onOpenAbout = onOpenAbout) }
 
     // 手指滑 pager 时把底栏高亮同步过去（版式照 SukiSU 的 MainScreen）。
     LaunchedEffect(pagerState.currentPage) {
         mainPagerState.syncPage()
     }
 
-    MiuixTheme(controller = remember { ThemeController(colorSchemeMode = ColorSchemeMode.MonetSystem) }) {
+    // 不取莫奈色，跟 SukiSU 默认那套一致：跟随系统明暗 + 它的默认调色板（TonalSpot）与色规（Spec2025）、
+    // 不指定主色。这样主卡与各处取色走的是 SukiSU 非莫奈那一支（硬编码的绿卡 + primary 蓝）。
+    MiuixTheme(
+        controller = remember {
+            ThemeController(
+                colorSchemeMode = ColorSchemeMode.System,
+                colorSpec = ThemeColorSpec.Spec2025,
+                paletteStyle = ThemePaletteStyle.TonalSpot,
+            )
+        }
+    ) {
         CompositionLocalProvider(LocalMainPagerState provides mainPagerState) {
             Scaffold(
                 bottomBar = {
@@ -242,11 +250,8 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
                         )
 
                         else -> SettingPagerMiuix(
-                            uiState = settingsState,
-                            actions = settingsActions,
+                            onOpenAbout = onOpenAbout,
                             bottomInnerPadding = bottomInnerPadding,
-                            isKpmAvailable = false,
-                            isSusfsSupported = false,
                         )
                     }
                 }

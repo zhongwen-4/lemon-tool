@@ -1,12 +1,17 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/home/HomeMiuix.kt
 // 改动（改动日期：2026-09-28）：
-//   ① 只改包名与 import；Scaffold / TopAppBar / LazyColumn / StatusCard / InfoCard / SupportLinks /
-//      UpdateCard 的结构、尺寸、配色、图标与上游一字不差。
-//   ② 数据先空着：HomeUiState 全默认（无内核信息、无更新信息），这几张卡渲染出来是空的。
+//   ① 只改包名与 import；Scaffold / TopAppBar / LazyColumn / UpdateCard 的结构、尺寸、配色与上游一字不差。
+//   ② 数据先空着：HomeUiState 全默认（无内核信息、无更新信息），相应的卡片渲染出来是空的。
 //   ③ 去内核依赖：Natives.isFullFeatured() 的底边距判断改成直接用 bottomInnerPadding；
 //      Natives / KernelVersion 的取数、Preview 相关的 import 与预览块删除。
 //   ④ 去毛玻璃：LayerBackdrop / layerBackdrop 不搬（miuix-blur 要求 minSdk 33），
 //      backdrop 恒为 null，BlurredBar 退化成纯色（见 ui/util/BlurExt.kt）。
+//   ⑤ 按用户口径精简主页，组件骨架保留、只改内容：
+//      - StatusCard（上游的「工作中 / 内核支持 / 不支持」三分支）改名 CheckEntryCard 且只留一支：
+//        标题「不支持」换成「点此开始检测」，动作仍是选模块 zip；另两支是 KernelSU 内核取数，本项目没有数据源。
+//      - InfoCard 只留一行「应用版本」（版本号从本机 PackageManager 取），上游那一堆内核/设备信息
+//        与 SELinux + Seccomp 两张信息卡全删。
+//      - SupportLinks（支持开发 / 了解 KernelSU）换成一行「提交 BUG」，指向本项目 issues。
 package com.lemon.mrs.ui.screen.home
 
 import androidx.compose.animation.AnimatedVisibility
@@ -17,82 +22,56 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.DeveloperBoard
-import androidx.compose.material.icons.filled.Build
-import androidx.compose.material.icons.filled.Extension
-import androidx.compose.material.icons.filled.FilterList
-import androidx.compose.material.icons.filled.Fingerprint
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.Security
-import androidx.compose.material.icons.filled.Smartphone
-import androidx.compose.material.icons.filled.Tag
-import androidx.compose.material.icons.filled.VolunteerActivism
-import androidx.compose.material.icons.rounded.CheckCircleOutline
-import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.BugReport
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalUriHandler
-import androidx.compose.ui.platform.UriHandler
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.lemon.mrs.KernelVersion
 import com.lemon.mrs.R
 import com.lemon.mrs.ui.component.WarningLevel
 import com.lemon.mrs.ui.component.dialog.rememberConfirmDialog
 import com.lemon.mrs.ui.component.miuix.WarningCard
 import com.lemon.mrs.ui.component.rebootlistpopup.RebootListPopupMiuix
-import com.lemon.mrs.ui.component.statustag.StatusTag
 import com.lemon.mrs.ui.theme.LocalEnableBlur
-import com.lemon.mrs.ui.theme.isInDarkTheme
 import com.lemon.mrs.ui.util.BlurredBar
 import com.lemon.mrs.ui.util.LayerBackdrop
-import com.lemon.mrs.ui.util.module.LatestVersionInfo
 import com.lemon.mrs.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.BasicComponent
-import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardDefaults
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.ScrollBehavior
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
-import top.yukonga.miuix.kmp.theme.MiuixTheme.isDynamicColor
 import top.yukonga.miuix.kmp.utils.PressFeedbackType
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -169,15 +148,8 @@ fun HomePagerMiuix(
                         if (state.showRootWarning) {
                             WarningCard(stringResource(id = R.string.grant_root_failed))
                         }
-                        StatusCard(
-                            state = state,
-                            actions = actions,
-                        )
-                        InfoCard(
-                            systemInfo = state.systemInfo,
-                            showFullStatus = state.showFullStatus,
-                            modifier = Modifier.fillMaxWidth(),
-                        )
+                        CheckEntryCard(actions = actions)
+                        InfoCard(modifier = Modifier.fillMaxWidth())
                         SupportLinks(
                             onOpenUrl = actions.onOpenUrl,
                             modifier = Modifier.fillMaxWidth(),
@@ -245,197 +217,28 @@ private fun TopBar(
         )
     }
 }
-
 @Composable
-private fun StatusCard(
-    state: HomeUiState,
+private fun CheckEntryCard(
     actions: HomeActions,
 ) {
-    Column {
-        when {
-            state.ksuVersion != null -> {
-                val workingState = buildString {
-                    if (state.isSafeMode) {
-                        append(" [${stringResource(id = R.string.safe_mode)}]")
-                    }
-                    if (state.isLateLoadMode) {
-                        append(" [${stringResource(id = R.string.jailbreak_mode)}]")
-                    }
-                }
-                val workingMode = when (state.lkmMode) {
-                    null -> null
-                    true -> "LKM"
-                    else -> "Built-in"
-                }
-                val workingText = "${stringResource(id = R.string.home_working)}$workingState"
-
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(IntrinsicSize.Min),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.defaultColors(
-                            color = when {
-                                isDynamicColor -> colorScheme.secondaryContainer
-                                isInDarkTheme() -> Color(0xFF1A3825)
-                                else -> Color(0xFFDFFAE4)
-                            }
-                        ),
-                        onClick = {
-                            if (!state.isLateLoadMode) {
-                                actions.onInstallClick()
-                            }
-                        },
-                        showIndication = !state.isLateLoadMode,
-                        pressFeedbackType = PressFeedbackType.Tilt
-                    ) {
-                        Box {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .offset(27.dp, 31.dp),
-                                contentAlignment = Alignment.BottomEnd
-                            ) {
-                                Icon(
-                                    modifier = Modifier.size(110.dp),
-                                    imageVector = Icons.Rounded.CheckCircleOutline,
-                                    tint = if (isDynamicColor) {
-                                        colorScheme.primary.copy(alpha = 0.8f)
-                                    } else {
-                                        Color(0xFF36D167)
-                                    },
-                                    contentDescription = null
-                                )
-                            }
-                            if (workingMode != null) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(16.dp, 10.dp),
-                                    contentAlignment = Alignment.BottomStart,
-                                ) {
-                                    Text(
-                                        text = workingMode,
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Medium,
-                                    )
-                                }
-                            }
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(16.dp, 14.dp),
-                                contentAlignment = Alignment.TopStart,
-                            ) {
-                                Column {
-                                    Text(
-                                        text = workingText,
-                                        fontSize = 22.sp,
-                                        fontWeight = FontWeight.SemiBold,
-                                    )
-                                    Spacer(Modifier.height(1.dp))
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            text = stringResource(
-                                                R.string.home_working_version,
-                                                "${state.ksuVersion}-${state.kernelUAPIVersion}"
-                                            ),
-                                            modifier = Modifier.weight(1f, fill = false),
-                                            fontSize = 15.sp,
-                                        )
-                                        if (state.showCustomLkmBadge) {
-                                            Spacer(Modifier.width(8.dp))
-                                            StatusTag(
-                                                label = stringResource(R.string.home_lkm_custom),
-                                                contentColor = if (isDynamicColor) {
-                                                    colorScheme.onTertiaryContainer
-                                                } else if (isInDarkTheme()) {
-                                                    Color(0xFFB8E8C5)
-                                                } else {
-                                                    Color(0xFF164A29)
-                                                },
-                                                backgroundColor = if (isDynamicColor) {
-                                                    colorScheme.tertiaryContainer
-                                                } else if (isInDarkTheme()) {
-                                                    Color(0xFF315D3E)
-                                                } else {
-                                                    Color(0xFFB8E8C5)
-                                                },
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        onClick = actions.onInstallClick,
+        showIndication = true,
+        pressFeedbackType = PressFeedbackType.Tilt,
+    ) {
+        BasicComponent(
+            title = stringResource(R.string.home_click_to_check),
+            summary = stringResource(R.string.home_click_to_check_summary),
+            startAction = {
+                Icon(
+                    Icons.Rounded.Search,
+                    stringResource(R.string.home_click_to_check),
+                    modifier = Modifier.padding(end = 16.dp),
+                    tint = colorScheme.onBackground,
+                )
             }
-
-            state.kernelVersion.isGKI() -> {
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Card(
-                        modifier = Modifier.weight(1f),
-                        onClick = {
-                            if (!state.isLateLoadMode) {
-                                actions.onInstallClick()
-                            }
-                        },
-                        showIndication = !state.isLateLoadMode,
-                        pressFeedbackType = PressFeedbackType.Tilt
-                    ) {
-                        BasicComponent(
-                            title = stringResource(R.string.home_not_installed),
-                            summary = stringResource(R.string.home_click_to_install),
-                            startAction = {
-                                Icon(
-                                    Icons.Rounded.ErrorOutline,
-                                    stringResource(R.string.home_not_installed),
-                                    modifier = Modifier.padding(end = 6.dp),
-                                    tint = colorScheme.onBackground,
-                                )
-                            },
-                            endActions = {
-                                if (state.isSELinuxPermissive) {
-                                    TextButton(
-                                        text = stringResource(R.string.home_jailbreak),
-                                        onClick = actions.onJailbreakClick,
-                                        colors = ButtonDefaults.textButtonColorsPrimary()
-                                    )
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-
-            else -> {
-                Card(
-                    onClick = {
-                        if (!state.isLateLoadMode) {
-                            actions.onInstallClick()
-                        }
-                    },
-                    showIndication = !state.isLateLoadMode,
-                    pressFeedbackType = PressFeedbackType.Tilt
-                ) {
-                    BasicComponent(
-                        title = stringResource(R.string.home_unsupported),
-                        summary = stringResource(R.string.home_unsupported_reason),
-                        startAction = {
-                            Icon(
-                                Icons.Rounded.ErrorOutline,
-                                stringResource(R.string.home_unsupported),
-                                modifier = Modifier.padding(end = 16.dp),
-                                tint = colorScheme.onBackground,
-                            )
-                        }
-                    )
-                }
-            }
-        }
+        )
     }
 }
 
@@ -444,43 +247,28 @@ private fun SupportLinks(
     onOpenUrl: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val learnMoreUrl = stringResource(R.string.home_learn_kernelsu_url)
+    val submitBugUrl = stringResource(R.string.home_submit_bug_url)
 
     Card(modifier = modifier) {
         ArrowPreference(
-            title = stringResource(R.string.home_support_title),
-            summary = stringResource(R.string.home_support_content),
+            title = stringResource(R.string.home_submit_bug),
+            summary = stringResource(R.string.home_submit_bug_summary),
             startAction = {
                 Icon(
-                    imageVector = Icons.Filled.VolunteerActivism,
-                    contentDescription = stringResource(R.string.home_support_title),
+                    imageVector = Icons.Rounded.BugReport,
+                    contentDescription = stringResource(R.string.home_submit_bug),
                     modifier = Modifier.padding(end = 6.dp),
                     tint = colorScheme.onBackground,
                 )
             },
-            onClick = { onOpenUrl("https://patreon.com/weishu") },
-        )
-        ArrowPreference(
-            title = stringResource(R.string.home_learn_kernelsu),
-            summary = stringResource(R.string.home_click_to_learn_kernelsu),
-            startAction = {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.MenuBook,
-                    contentDescription = stringResource(R.string.home_learn_kernelsu),
-                    modifier = Modifier.padding(end = 6.dp),
-                    tint = colorScheme.onBackground,
-                )
-            },
-            onClick = { onOpenUrl(learnMoreUrl) },
+            onClick = { onOpenUrl(submitBugUrl) },
         )
     }
 }
 
 @Composable
 private fun InfoCard(
-    systemInfo: SystemInfo,
     modifier: Modifier = Modifier,
-    showFullStatus: Boolean = true,
 ) {
     @Composable
     fun InfoText(
@@ -520,27 +308,8 @@ private fun InfoCard(
         }
     }
 
-    val selinuxDisplay = when (systemInfo.selinuxStatus) {
-        "Enforcing" -> stringResource(R.string.selinux_status_enforcing)
-        "Permissive" -> stringResource(R.string.selinux_status_permissive)
-        "Disabled" -> stringResource(R.string.selinux_status_disabled)
-        else -> stringResource(R.string.selinux_status_unknown)
-    }
-    val seccompDisplay = when (systemInfo.seccompStatus) {
-        -1 -> stringResource(R.string.seccomp_status_not_supported)
-        0 -> stringResource(R.string.seccomp_status_disabled)
-        1 -> stringResource(R.string.seccomp_status_strict)
-        2 -> stringResource(R.string.seccomp_status_filter)
-        else -> stringResource(R.string.seccomp_status_unknown)
-    }
-
-    val manualHookText = stringResource(R.string.manual_hook)
-    val inlineHookText = stringResource(R.string.inline_hook)
-    val tracepointHookText = stringResource(R.string.tracepoint_hook)
-    val unknownHookText = stringResource(R.string.selinux_status_unknown)
-    val susfsInfo = rememberSusfsInfo(manualHookText, inlineHookText)
-    val isSusfsSupported = susfsInfo.status == SusfsStatus.Supported
-    val hookTypeLabel = rememberHookTypeLabel(manualHookText, inlineHookText, tracepointHookText, unknownHookText)
+    val context = LocalContext.current
+    val appVersion = remember(context) { getManagerVersion(context).versionName }
 
     Column(
         modifier = modifier,
@@ -549,68 +318,9 @@ private fun InfoCard(
         Card(modifier = Modifier.fillMaxWidth()) {
             Column(modifier = Modifier.padding(16.dp)) {
                 InfoText(
-                    icon = Icons.Filled.Tag,
-                    title = stringResource(R.string.home_manager_version),
-                    content = systemInfo.managerVersion,
-                )
-                InfoText(
-                    icon = Icons.Filled.DeveloperBoard,
-                    title = stringResource(R.string.home_kernel),
-                    content = systemInfo.kernelVersion,
-                )
-                if (showFullStatus) {
-                    if (!systemInfo.kernelFullVersion.isNullOrBlank()) {
-                        InfoText(
-                            icon = Icons.Filled.Info,
-                            title = stringResource(R.string.home_kernel_full_version),
-                            content = systemInfo.kernelFullVersion,
-                        )
-                    }
-                    if (isSusfsSupported) {
-                        InfoText(
-                            icon = Icons.Filled.Build,
-                            title = stringResource(R.string.home_susfs_version),
-                            content = susfsInfo.detail,
-                        )
-                    } else if (!hookTypeLabel.isNullOrBlank()) {
-                        InfoText(
-                            icon = Icons.Filled.Build,
-                            title = stringResource(R.string.hook_type),
-                            content = hookTypeLabel,
-                        )
-                    }
-                    if (!systemInfo.zygiskImplementation.isNullOrBlank()) {
-                        InfoText(
-                            icon = Icons.Filled.Extension,
-                            title = stringResource(R.string.home_zygisk_implementation),
-                            content = systemInfo.zygiskImplementation,
-                        )
-                    }
-                }
-                InfoText(
-                    icon = Icons.Filled.Smartphone,
-                    title = stringResource(R.string.home_device_model),
-                    content = systemInfo.deviceModel,
-                )
-                InfoText(
-                    icon = Icons.Filled.Fingerprint,
-                    title = stringResource(R.string.home_fingerprint),
-                    content = systemInfo.fingerprint,
-                    bottomPadding = 0.dp,
-                )
-            }
-        }
-        Card(modifier = Modifier.fillMaxWidth()) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                InfoText(
-                    icon = Icons.Filled.Security,
-                    title = stringResource(R.string.home_selinux_status),
-                    content = selinuxDisplay,
-                )
-                InfoText(
-                    icon = Icons.Filled.FilterList,
-                    title = stringResource(R.string.home_seccomp_status),
-                    content = seccompDisplay,
+                    icon = Icons.Rounded.Info,
+                    title = stringResource(R.string.home_app_version),
+                    content = appVersion,
                     bottomPadding = 0.dp,
                 )
             }
