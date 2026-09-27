@@ -1,0 +1,380 @@
+// 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/about/AboutMiuix.kt
+// 改动（改动日期：2026-09-28）：
+//   ① 只改包名与 import；版式、滚动视差、Logo 淡出/缩放、LazyColumn 结构、Card +
+//      ArrowPreference 链接行全部与上游一致。
+//   ② 去掉毛玻璃那一路：上游在 enableBlur 为真时给 Logo、应用名和链接卡片套 textureBlur
+//      （还带 logoBlend / blendColors 两套混色表），本项目的 LocalEnableBlur 恒为 false，
+//      这些分支连同 BlurColors / BlendColorEntry / BlurBlendMode / isRuntimeShaderSupported
+//      / rememberLayerBackdrop / layerBackdrop 的引用一并删除——纯色路径与上游非毛玻璃时完全一样。
+//   ③ BgEffectBackground 用本项目的简化实现（上游那套 RuntimeShader 背景本项目不搬）。
+package com.lemon.mrs.ui.screen.about
+
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.captionBar
+import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.layout.positionInWindow
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.flow.onEach
+import com.lemon.mrs.R
+import com.lemon.mrs.ui.component.miuix.effect.BgEffectBackground
+import com.lemon.mrs.ui.theme.LocalEnableBlur
+import com.lemon.mrs.ui.util.BlurredBar
+import com.lemon.mrs.ui.util.rememberBlurBackdrop
+import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.CardDefaults
+import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.ScrollBehavior
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Back
+import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+
+@Composable
+fun AboutScreenMiuix(
+    state: AboutUiState,
+    actions: AboutScreenActions,
+) {
+    val topAppBarScrollBehavior = MiuixScrollBehavior()
+    val lazyListState = rememberLazyListState()
+    var logoHeightPx by remember { mutableIntStateOf(0) }
+
+    val scrollProgress by remember {
+        derivedStateOf {
+            if (logoHeightPx <= 0) {
+                0f
+            } else {
+                val index = lazyListState.firstVisibleItemIndex
+                val offset = lazyListState.firstVisibleItemScrollOffset
+                if (index > 0) 1f else (offset.toFloat() / logoHeightPx).coerceIn(0f, 1f)
+            }
+        }
+    }
+
+    val enableBlur = LocalEnableBlur.current
+    val barBlurBackdrop = rememberBlurBackdrop(enableBlur)
+    val blurActive = barBlurBackdrop != null && scrollProgress == 1f
+    val barColor = if (blurActive) {
+        Color.Transparent
+    } else {
+        if (scrollProgress == 1f) colorScheme.surface else Color.Transparent
+    }
+
+    Scaffold(
+        topBar = {
+            BlurredBar(backdrop = barBlurBackdrop, blurActive = blurActive) {
+                SmallTopAppBar(
+                    title = state.title,
+                    scrollBehavior = topAppBarScrollBehavior,
+                    color = barColor,
+                    titleColor = colorScheme.onSurface.copy(
+                        alpha = ((scrollProgress - 0.35f) / 0.65f).coerceIn(0f, 1f),
+                    ),
+                    navigationIcon = {
+                        IconButton(
+                            onClick = actions.onBack
+                        ) {
+                            val layoutDirection = LocalLayoutDirection.current
+                            Icon(
+                                modifier = Modifier.graphicsLayer {
+                                    if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+                                },
+                                imageVector = MiuixIcons.Back,
+                                contentDescription = null,
+                                tint = colorScheme.onBackground
+                            )
+                        }
+                    },
+                )
+            }
+        },
+        popupHost = { },
+        contentWindowInsets = WindowInsets.systemBars.add(WindowInsets.displayCutout).only(WindowInsetsSides.Horizontal),
+    ) { innerPadding ->
+        Box(modifier = Modifier) {
+            AboutContent(
+                state = state,
+                actions = actions,
+                innerPadding = innerPadding,
+                topAppBarScrollBehavior = topAppBarScrollBehavior,
+                lazyListState = lazyListState,
+                scrollProgress = scrollProgress,
+                onLogoHeightChanged = { logoHeightPx = it },
+            )
+        }
+    }
+}
+
+@Composable
+private fun AboutContent(
+    state: AboutUiState,
+    actions: AboutScreenActions,
+    innerPadding: PaddingValues,
+    topAppBarScrollBehavior: ScrollBehavior,
+    lazyListState: LazyListState,
+    scrollProgress: Float,
+    onLogoHeightChanged: (Int) -> Unit,
+) {
+    val layoutDirection = LocalLayoutDirection.current
+    val density = LocalDensity.current
+
+    // Logo parallax/fade tracking
+    var logoHeightDp by remember { mutableStateOf(300.dp) }
+    var logoAreaY by remember { mutableFloatStateOf(0f) }
+    var iconY by remember { mutableFloatStateOf(0f) }
+    var projectNameY by remember { mutableFloatStateOf(0f) }
+    var versionCodeY by remember { mutableFloatStateOf(0f) }
+
+    var iconProgress by remember { mutableFloatStateOf(0f) }
+    var projectNameProgress by remember { mutableFloatStateOf(0f) }
+    var versionCodeProgress by remember { mutableFloatStateOf(0f) }
+    var initialLogoAreaY by remember { mutableFloatStateOf(0f) }
+
+    LaunchedEffect(lazyListState) {
+        snapshotFlow { lazyListState.firstVisibleItemScrollOffset }
+            .onEach { offset ->
+                if (lazyListState.firstVisibleItemIndex > 0) {
+                    if (iconProgress != 1f) iconProgress = 1f
+                    if (projectNameProgress != 1f) projectNameProgress = 1f
+                    if (versionCodeProgress != 1f) versionCodeProgress = 1f
+                    return@onEach
+                }
+
+                if (initialLogoAreaY == 0f && logoAreaY > 0f) {
+                    initialLogoAreaY = logoAreaY
+                }
+                val refLogoAreaY = if (initialLogoAreaY > 0f) initialLogoAreaY else logoAreaY
+
+                val stage1TotalLength = refLogoAreaY - versionCodeY
+                val stage2TotalLength = versionCodeY - projectNameY
+                val stage3TotalLength = projectNameY - iconY
+
+                val versionCodeDelay = stage1TotalLength * 0.5f
+                versionCodeProgress = ((offset.toFloat() - versionCodeDelay) / (stage1TotalLength - versionCodeDelay).coerceAtLeast(1f))
+                    .coerceIn(0f, 1f)
+                projectNameProgress = ((offset.toFloat() - stage1TotalLength) / stage2TotalLength.coerceAtLeast(1f))
+                    .coerceIn(0f, 1f)
+                iconProgress = ((offset.toFloat() - stage1TotalLength - stage2TotalLength) / stage3TotalLength.coerceAtLeast(1f))
+                    .coerceIn(0f, 1f)
+            }
+            .collect { }
+    }
+
+    val scrollPadding = PaddingValues(
+        top = innerPadding.calculateTopPadding(),
+        start = innerPadding.calculateStartPadding(layoutDirection),
+        end = innerPadding.calculateEndPadding(layoutDirection),
+    )
+    val logoPadding = PaddingValues(
+        top = innerPadding.calculateTopPadding() + 40.dp,
+        start = innerPadding.calculateStartPadding(layoutDirection),
+        end = innerPadding.calculateEndPadding(layoutDirection),
+    )
+
+    BgEffectBackground(
+        dynamicBackground = false,
+        modifier = Modifier.fillMaxSize(),
+        bgModifier = Modifier,
+        isFullSize = true,
+        effectBackground = false,
+        alpha = { 1f - scrollProgress },
+    ) {
+        // Logo area
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    top = logoPadding.calculateTopPadding() + 52.dp,
+                    start = logoPadding.calculateStartPadding(layoutDirection),
+                    end = logoPadding.calculateEndPadding(layoutDirection),
+                )
+                .onSizeChanged { size ->
+                    with(density) { logoHeightDp = size.height.toDp() }
+                },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(100.dp)
+                    .clipToBounds()
+                    .graphicsLayer {
+                        alpha = 1 - iconProgress
+                        scaleX = 1 - (iconProgress * 0.05f)
+                        scaleY = 1 - (iconProgress * 0.05f)
+                    }
+                    .onGloballyPositioned { coordinates ->
+                        if (iconY != 0f) return@onGloballyPositioned
+                        val y = coordinates.positionInWindow().y
+                        val size = coordinates.size
+                        iconY = y + size.height
+                    },
+            ) {
+                Image(
+                    modifier = Modifier.requiredSize(245.dp),
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = null,
+                )
+            }
+            Text(
+                modifier = Modifier
+                    .padding(top = 12.dp, bottom = 5.dp)
+                    .onGloballyPositioned { coordinates ->
+                        if (projectNameY != 0f) return@onGloballyPositioned
+                        val y = coordinates.positionInWindow().y
+                        val size = coordinates.size
+                        projectNameY = y + size.height
+                    }
+                    .graphicsLayer {
+                        alpha = 1 - projectNameProgress
+                        scaleX = 1 - (projectNameProgress * 0.05f)
+                        scaleY = 1 - (projectNameProgress * 0.05f)
+                    },
+                text = state.appName,
+                color = colorScheme.onBackground,
+                fontWeight = FontWeight.Bold,
+                fontSize = 35.sp,
+            )
+            Text(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .graphicsLayer {
+                        alpha = 1 - versionCodeProgress
+                        scaleX = 1 - (versionCodeProgress * 0.05f)
+                        scaleY = 1 - (versionCodeProgress * 0.05f)
+                    }
+                    .onGloballyPositioned { coordinates ->
+                        if (versionCodeY != 0f) return@onGloballyPositioned
+                        val y = coordinates.positionInWindow().y
+                        val size = coordinates.size
+                        versionCodeY = y + size.height
+                    },
+                color = colorScheme.onSurfaceVariantSummary,
+                text = state.versionName,
+                fontSize = 14.sp,
+                textAlign = TextAlign.Center,
+            )
+        }
+
+        // Scrollable content
+        LazyColumn(
+            state = lazyListState,
+            modifier = Modifier
+                .fillMaxSize()
+                .scrollEndHaptic()
+                .overScrollVertical()
+                .nestedScroll(topAppBarScrollBehavior.nestedScrollConnection),
+            contentPadding = PaddingValues(
+                top = scrollPadding.calculateTopPadding(),
+                start = scrollPadding.calculateStartPadding(layoutDirection),
+                end = scrollPadding.calculateEndPadding(layoutDirection),
+            ),
+            overscrollEffect = null,
+        ) {
+            // Transparent spacer matching logo height
+            item(key = "logoSpacer") {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(
+                            logoHeightDp + 52.dp + logoPadding.calculateTopPadding() - scrollPadding.calculateTopPadding() + 126.dp,
+                        )
+                        .onSizeChanged { size ->
+                            onLogoHeightChanged(size.height)
+                        }
+                        .onGloballyPositioned { coordinates ->
+                            val y = coordinates.positionInWindow().y
+                            val size = coordinates.size
+                            logoAreaY = y + size.height
+                        },
+                    contentAlignment = Alignment.TopCenter,
+                    content = { },
+                )
+            }
+
+            item(key = "about") {
+                Column(
+                    modifier = Modifier
+                        .fillParentMaxHeight()
+                        .padding(bottom = innerPadding.calculateBottomPadding() + 12.dp),
+                ) {
+                    Card(
+                        modifier = Modifier.padding(horizontal = 12.dp),
+                        colors = CardDefaults.defaultColors(
+                            colorScheme.surfaceContainer,
+                            Color.Transparent,
+                        ),
+                    ) {
+                        state.links.forEach {
+                            ArrowPreference(
+                                title = it.fullText,
+                                onClick = {
+                                    actions.onOpenLink(it.url)
+                                }
+                            )
+                        }
+                    }
+                    Spacer(
+                        Modifier.height(
+                            WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding() +
+                                    WindowInsets.captionBar.asPaddingValues().calculateBottomPadding()
+                        )
+                    )
+                }
+            }
+        }
+    }
+}

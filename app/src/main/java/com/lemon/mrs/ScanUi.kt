@@ -5,68 +5,34 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.systemBars
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Article
-import androidx.compose.material.icons.rounded.Cottage
-import androidx.compose.material.icons.rounded.FolderZip
-import androidx.compose.material.icons.rounded.History
-import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.SystemUpdate
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.add
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.displayCutout
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBars
-import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.sp
-import com.lemon.mrs.ui.component.ActionRow
-import com.lemon.mrs.ui.component.FloatingBottomBar
-import com.lemon.mrs.ui.component.FloatingBottomBarItem
-import com.lemon.mrs.ui.component.InfoRow
-import com.lemon.mrs.ui.component.bottombar.LocalMainPagerState
-import com.lemon.mrs.ui.component.bottombar.rememberMainPagerState
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
-import top.yukonga.miuix.kmp.basic.TextButton
-import top.yukonga.miuix.kmp.basic.TopAppBar
-import top.yukonga.miuix.kmp.utils.overScrollVertical
-import top.yukonga.miuix.kmp.utils.scrollEndHaptic
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Cottage
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -74,66 +40,55 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.lemon.mrs.ui.component.FloatingBottomBar
+import com.lemon.mrs.ui.component.FloatingBottomBarItem
+import com.lemon.mrs.ui.component.bottombar.LocalMainPagerState
+import com.lemon.mrs.ui.component.bottombar.rememberMainPagerState
+import com.lemon.mrs.ui.screen.about.AboutScreen
+import com.lemon.mrs.ui.screen.home.HomeActions
+import com.lemon.mrs.ui.screen.home.HomePagerMiuix
+import com.lemon.mrs.ui.screen.home.HomeUiState
+import com.lemon.mrs.ui.screen.settings.SettingPagerMiuix
+import com.lemon.mrs.ui.screen.settings.SettingsScreenActions
+import com.lemon.mrs.ui.screen.settings.SettingsUiState
+import com.lemon.mrs.ui.screen.sulog.SulogActions
+import com.lemon.mrs.ui.screen.sulog.SulogScreenMiuix
+import com.lemon.mrs.ui.screen.sulog.SulogScreenState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
-import top.yukonga.miuix.kmp.basic.Button
-import top.yukonga.miuix.kmp.basic.Card
-import top.yukonga.miuix.kmp.basic.CardColors
-import top.yukonga.miuix.kmp.basic.CardDefaults
-import top.yukonga.miuix.kmp.basic.CircularProgressIndicator
-import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.icon.MiuixIcons
-import top.yukonga.miuix.kmp.icon.extended.ExpandLess
-import top.yukonga.miuix.kmp.icon.extended.ExpandMore
-import top.yukonga.miuix.kmp.icon.extended.Info
-import top.yukonga.miuix.kmp.icon.extended.Layers
-import top.yukonga.miuix.kmp.icon.extended.Lock
+import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 import top.yukonga.miuix.kmp.theme.ThemeController
-import top.yukonga.miuix.kmp.utils.PressFeedbackType
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
+import top.yukonga.miuix.kmp.utils.overScrollVertical
+import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 
 private const val TAB_HOME = 0
 private const val TAB_HISTORY = 1
 private const val TAB_SETTINGS = 2
 private const val TAB_COUNT = 3
-private const val NORMAL_KEY = -1
 
-private val CARD_SHAPE = RoundedCornerShape(16.dp)
-private val PILL_SHAPE = RoundedCornerShape(percent = 50)
-private val CARD_BORDER = 1.dp
-private val HEADER_ICON_SIZE = 40.dp
-private val HEADER_ICON_GAP = 3.dp
-private val GLYPH_LARGE = 52.dp
-private val GLYPH_SMALL = 30.dp
-private val BUTTON_RADIUS = 24.dp
-private val BUTTON_HEIGHT = 48.dp
-
-private val WARNING_ON_LIGHT = Color(0xFFBF6A00)
-private val WARNING_ON_DARK = Color(0xFFFFC24B)
-private val OK_ON_LIGHT = Color(0xFF2E7D32)
-private val OK_ON_DARK = Color(0xFF7FD48C)
-
+/**
+ * 扫描结果的数据形状：跟 C++ 核心吐出来的 JSON 一一对应，[parseReport] 负责解析。
+ *
+ * 界面这一轮整包换成 SukiSU 的骨架、三页的数据都先空着（用户要求），
+ * 但扫描这一路（选包 -> nativeScanJson -> parseReport）留着没动：主页大卡片的动作
+ * 已经接到选包上，只是结果暂时不显示。往后把 [ScanState] 接到新界面上即可。
+ */
 private sealed interface ScanState {
     data object Idle : ScanState
     data object Scanning : ScanState
@@ -167,32 +122,37 @@ data class ScanReport(
 
 @Composable
 fun ScannerScreen(scan: (String) -> String) {
+    var aboutOpen by remember { mutableStateOf(false) }
+    if (aboutOpen) {
+        AboutScreen(onBack = { aboutOpen = false })
+    } else {
+        ScannerShell(scan = scan, onOpenAbout = { aboutOpen = true })
+    }
+}
+
+@Composable
+private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
-    var expanded by remember { mutableStateOf(emptySet<Int>()) }
     var lastPath by remember { mutableStateOf<String?>(null) }
     val pagerState = rememberPagerState(pageCount = { TAB_COUNT })
     val mainPagerState = rememberMainPagerState(pagerState)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    var history by remember { mutableStateOf(HistoryStore.load(context)) }
+
+    // 三页的骨架状态：全是空数据，往后接真实数据就换这里。
+    val homeState = remember { HomeUiState() }
+    val sulogState = remember { SulogScreenState() }
+    val settingsState = remember { SettingsUiState() }
 
     fun runScan(path: String) {
         lastPath = path
         state = ScanState.Scanning
-        expanded = emptySet()
         scope.launch {
             val outcome = withContext(Dispatchers.IO) {
-                runCatching {
-                    val json = scan(path)
-                    parseReport(json) to json
-                }
+                runCatching { parseReport(scan(path)) }
             }
             state = outcome.fold(
-                onSuccess = { (report, json) ->
-                    val finishedAt = System.currentTimeMillis()
-                    history = HistoryStore.append(context, historyEntryOf(report, json, finishedAt))
-                    ScanState.Done(report, finishedAt)
-                },
+                onSuccess = { report -> ScanState.Done(report, System.currentTimeMillis()) },
                 onFailure = { ScanState.Failed(it.message ?: "扫描失败") },
             )
         }
@@ -207,6 +167,15 @@ fun ScannerScreen(scan: (String) -> String) {
             runScan(path)
         }
     }
+
+    val homeActions = remember(picker) {
+        HomeActions(
+            onInstallClick = { picker.launch(arrayOf("*/*")) },
+            onOpenUrl = { url -> openLink(context, url) },
+        )
+    }
+    val sulogActions = remember { SulogActions() }
+    val settingsActions = remember(onOpenAbout) { SettingsScreenActions(onOpenAbout = onOpenAbout) }
 
     // 手指滑 pager 时把底栏高亮同步过去（版式照 SukiSU 的 MainScreen）。
     LaunchedEffect(pagerState.currentPage) {
@@ -260,34 +229,24 @@ fun ScannerScreen(scan: (String) -> String) {
                 ) { page ->
                     val bottomInnerPadding = innerPadding.calculateBottomPadding()
                     when (page) {
-                        TAB_HOME -> HomeScreen(
-                            state = state,
-                            expanded = expanded,
+                        TAB_HOME -> HomePagerMiuix(
+                            state = homeState,
+                            actions = homeActions,
                             bottomInnerPadding = bottomInnerPadding,
-                            onToggle = { key ->
-                                expanded = if (key in expanded) expanded - key else expanded + key
-                            },
-                            onPick = { picker.launch(arrayOf("*/*")) },
-                            onRescan = { lastPath?.let { runScan(it) } },
                         )
 
-                        TAB_HISTORY -> HistoryScreen(
-                            entries = history,
+                        TAB_HISTORY -> SulogScreenMiuix(
+                            state = sulogState,
+                            actions = sulogActions,
                             bottomInnerPadding = bottomInnerPadding,
-                            onOpen = { entry ->
-                                runCatching { parseReport(entry.reportJson) }.getOrNull()?.let { report ->
-                                    state = ScanState.Done(report, entry.finishedAt)
-                                    expanded = emptySet()
-                                    mainPagerState.animateToPage(TAB_HOME)
-                                }
-                            },
-                            onClear = { history = HistoryStore.clear(context) },
                         )
 
-                        else -> SettingsScreen(
-                            history = history,
+                        else -> SettingPagerMiuix(
+                            uiState = settingsState,
+                            actions = settingsActions,
                             bottomInnerPadding = bottomInnerPadding,
-                            onClearHistory = { history = HistoryStore.clear(context) },
+                            isKpmAvailable = false,
+                            isSusfsSupported = false,
                         )
                     }
                 }
@@ -296,7 +255,12 @@ fun ScannerScreen(scan: (String) -> String) {
     }
 }
 
-/** 底栏的一格：图标在上、文字在下（跟 SukiSU 的 BottomBarMiuix 一致）。 */
+private fun openLink(context: Context, url: String) {
+    if (url.isBlank()) return
+    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
+}
+
+/** 底栏的一根：图标在上、文字在下（跟 SukiSU 的 BottomBarMiuix 一致）。 */
 @Composable
 private fun RowScope.BottomTab(
     selected: Boolean,
@@ -359,644 +323,6 @@ internal fun PageScaffold(
         }
     }
 }
-
-@Composable
-private fun HomeScreen(
-    state: ScanState,
-    expanded: Set<Int>,
-    bottomInnerPadding: Dp,
-    onToggle: (Int) -> Unit,
-    onPick: () -> Unit,
-    onRescan: () -> Unit,
-) {
-    PageScaffold(title = "主页", bottomInnerPadding = bottomInnerPadding) {
-        item {
-            Column(
-                modifier = Modifier.padding(top = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SectionTitle("模块检查")
-                StatusCard(state = state, onPick = onPick, onRescan = onRescan)
-
-                val report = (state as? ScanState.Done)?.report ?: return@Column
-                SectionTitle("模块信息")
-                ModuleInfoCard(report)
-
-                SectionTitle("检测结果")
-                if (report.findings.isEmpty()) {
-                    NormalCard(
-                        report = report,
-                        expanded = NORMAL_KEY in expanded,
-                        onToggle = { onToggle(NORMAL_KEY) },
-                    )
-                } else {
-                    report.findings.forEachIndexed { index, finding ->
-                        FindingCard(
-                            finding = finding,
-                            expanded = index in expanded,
-                            onToggle = { onToggle(index) },
-                        )
-                    }
-                }
-
-                if (report.notes.isNotEmpty()) {
-                    SectionTitle("扫描备注")
-                    NotesCard(report.notes)
-                }
-            }
-        }
-    }
-}
-
-/**
- * 主页顶上的大状态卡：版式照 SukiSU 的 StatusCard——
- * 整张卡按风险换底色，右下角一枚溢出的大图标，左上角是结论大字，左下角放操作。
- */
-@Composable
-private fun StatusCard(state: ScanState, onPick: () -> Unit, onRescan: () -> Unit) {
-    val tint = statusTint(state)
-    val working = state == ScanState.Scanning
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.defaultColors(color = statusContainer(state)),
-        cornerRadius = 16.dp,
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(IntrinsicSize.Min),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Box(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .offset(27.dp, 31.dp),
-                    contentAlignment = Alignment.BottomEnd,
-                ) {
-                    StatusGlyph(state = state, size = 110.dp, tint = tint.copy(alpha = 0.8f))
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp, 14.dp),
-                    contentAlignment = Alignment.TopStart,
-                ) {
-                    Column {
-                        Text(
-                            text = statusTitle(state),
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.height(1.dp))
-                        Text(
-                            text = statusDetail(state),
-                            fontSize = MiuixTheme.textStyles.body2.fontSize,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp, 10.dp),
-                    contentAlignment = Alignment.BottomStart,
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(
-                            text = if (state is ScanState.Done) "重新检测" else "选择模块 zip",
-                            onClick = if (state is ScanState.Done) onRescan else onPick,
-                            enabled = !working,
-                        )
-                        if (state is ScanState.Done) {
-                            Spacer(Modifier.width(8.dp))
-                            TextButton(text = "选择其他模块", onClick = onPick)
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun statusTint(state: ScanState): Color = when (state) {
-    ScanState.Scanning -> MiuixTheme.colorScheme.primary
-    ScanState.Idle -> MiuixTheme.colorScheme.primary
-    is ScanState.Failed -> MiuixTheme.colorScheme.error
-    is ScanState.Done -> when {
-        state.report.high > 0 -> MiuixTheme.colorScheme.error
-        state.report.medium > 0 -> warningColor()
-        else -> okColor()
-    }
-}
-
-@Composable
-private fun statusContainer(state: ScanState): Color = when (state) {
-    is ScanState.Failed -> MiuixTheme.colorScheme.errorContainer
-    is ScanState.Done -> if (state.report.high > 0) {
-        MiuixTheme.colorScheme.errorContainer
-    } else {
-        MiuixTheme.colorScheme.secondaryContainer
-    }
-
-    else -> MiuixTheme.colorScheme.surfaceContainer
-}
-
-@Composable
-private fun StatusGlyph(state: ScanState, size: Dp, tint: Color) {
-    when (state) {
-        ScanState.Scanning -> Box(
-            modifier = Modifier.size(size),
-            contentAlignment = Alignment.Center,
-        ) {
-            CircularProgressIndicator(size = size * 0.75f)
-        }
-
-        ScanState.Idle -> Icon(
-            imageVector = MiuixIcons.Layers,
-            contentDescription = null,
-            modifier = Modifier.size(size),
-            tint = tint,
-        )
-
-        is ScanState.Failed -> StateIcon(R.drawable.ic_state_alert, tint, size)
-
-        is ScanState.Done -> StateIcon(
-            if (state.report.high > 0 || state.report.medium > 0) R.drawable.ic_state_alert
-            else R.drawable.ic_state_ok,
-            tint,
-            size,
-        )
-    }
-}
-
-@Composable
-private fun StateIcon(resId: Int, tint: Color, size: Dp) {
-    Icon(
-        painter = painterResource(resId),
-        contentDescription = null,
-        modifier = Modifier.size(size),
-        tint = tint,
-    )
-}
-@Composable
-private fun FindingCard(finding: Finding, expanded: Boolean, onToggle: () -> Unit) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .border(CARD_BORDER, severityBorder(finding.severity), CARD_SHAPE),
-        colors = panelColors(),
-        cornerRadius = 16.dp,
-        pressFeedbackType = PressFeedbackType.Sink,
-        onClick = onToggle,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                SeverityGlyph(finding.severity)
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = finding.rule, style = MiuixTheme.textStyles.body1)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = severitySummary(finding.severity),
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                StatusPill(severityLabel(finding.severity), severityColor(finding.severity))
-                Spacer(Modifier.width(4.dp))
-                Chevron(expanded)
-            }
-            if (expanded) {
-                Spacer(Modifier.height(14.dp))
-                DetailCard(icon = MiuixIcons.Lock, title = "说明", body = finding.detail)
-                Spacer(Modifier.height(10.dp))
-                DetailCard(
-                    icon = MiuixIcons.Info,
-                    title = "详情",
-                    body = locationLine(finding),
-                    tail = finding.file,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NormalCard(report: ScanReport, expanded: Boolean, onToggle: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = panelColors(),
-        cornerRadius = 16.dp,
-        pressFeedbackType = PressFeedbackType.Sink,
-        onClick = onToggle,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                StateIcon(R.drawable.ic_state_ok, okColor(), GLYPH_SMALL)
-                Spacer(Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(text = "未发现风险特征", style = MiuixTheme.textStyles.body1)
-                    Spacer(Modifier.height(2.dp))
-                    Text(
-                        text = "模块的行为都在正常范围内",
-                        style = MiuixTheme.textStyles.footnote1,
-                        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                StatusPill("正常", okColor())
-                Spacer(Modifier.width(4.dp))
-                Chevron(expanded)
-            }
-            if (expanded) {
-                Spacer(Modifier.height(14.dp))
-                DetailCard(
-                    icon = MiuixIcons.Lock,
-                    title = "说明",
-                    body = "逐条匹配模块内脚本与配置里的特征，并按组合行为与路径敏感度升级判定",
-                )
-                Spacer(Modifier.height(10.dp))
-                DetailCard(
-                    icon = MiuixIcons.Info,
-                    title = "详情",
-                    body = "共解析 ${report.fileCount} 个文件，未命中任何风险特征",
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SeverityGlyph(severity: String) {
-    val color = severityColor(severity)
-    if (severity == "high" || severity == "medium") {
-        StateIcon(R.drawable.ic_state_alert, color, GLYPH_SMALL)
-    } else {
-        Icon(
-            imageVector = MiuixIcons.Info,
-            contentDescription = null,
-            modifier = Modifier.size(GLYPH_SMALL - 4.dp),
-            tint = color,
-        )
-    }
-}
-
-@Composable
-private fun Chevron(expanded: Boolean) {
-    Icon(
-        imageVector = if (expanded) MiuixIcons.ExpandLess else MiuixIcons.ExpandMore,
-        contentDescription = null,
-        modifier = Modifier.size(20.dp),
-        tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-    )
-}
-
-@Composable
-private fun StatusPill(text: String, color: Color) {
-    Box(
-        modifier = Modifier
-            .clip(PILL_SHAPE)
-            .background(color.copy(alpha = 0.12f))
-            .border(CARD_BORDER, color.copy(alpha = 0.45f), PILL_SHAPE)
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-    ) {
-        Text(text = text, style = MiuixTheme.textStyles.footnote1, color = color)
-    }
-}
-
-@Composable
-private fun DetailCard(icon: ImageVector, title: String, body: String, tail: String = "") {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surface),
-        cornerRadius = 16.dp,
-    ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(14.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = icon,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = title,
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
-            Spacer(Modifier.height(6.dp))
-            Text(text = body, style = MiuixTheme.textStyles.body1)
-            if (tail.isNotEmpty()) {
-                Spacer(Modifier.height(2.dp))
-                Text(
-                    text = tail,
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    fontFamily = FontFamily.Monospace,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun NotesCard(notes: List<String>) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-            notes.forEach { note ->
-                Text(
-                    text = "· $note",
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun SettingsScreen(
-    history: List<HistoryEntry>,
-    bottomInnerPadding: Dp,
-    onClearHistory: () -> Unit,
-) {
-    val context = LocalContext.current
-    val version = remember(context) { appVersion(context) }
-    var cachedBytes by remember(context) { mutableStateOf(MainActivity.cachedModuleBytes(context)) }
-
-    PageScaffold(title = "设置", bottomInnerPadding = bottomInnerPadding) {
-        item {
-            Column(
-                modifier = Modifier.padding(top = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                SectionTitle("更新")
-                UpdateCard(version)
-
-                SectionTitle("存储")
-                Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-                    ActionRow(
-                        icon = Icons.Rounded.FolderZip,
-                        title = "清理扫描缓存",
-                        summary = if (cachedBytes > 0) {
-                            "选中的 zip 会临时拷一份到缓存：${formatBytes(cachedBytes)}"
-                        } else {
-                            "没有缓存的模块包"
-                        },
-                        tail = if (cachedBytes > 0) "清理" else null,
-                        enabled = cachedBytes > 0,
-                        onClick = {
-                            MainActivity.clearCachedModule(context)
-                            cachedBytes = 0L
-                        },
-                    )
-                    ActionRow(
-                        icon = Icons.Rounded.History,
-                        title = "检查历史",
-                        summary = "已存 ${history.size} 条，最多保留 $MAX_ENTRIES 条",
-                        tail = if (history.isEmpty()) null else "清空",
-                        enabled = history.isNotEmpty(),
-                        onClick = onClearHistory,
-                    )
-                }
-
-                SectionTitle("关于")
-                Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-                    InfoRow(
-                        icon = Icons.Rounded.Info,
-                        title = stringResource(R.string.app_name),
-                        summary = "模块风险检测：只看不装，扫描全程离线",
-                    )
-                    InfoRow(icon = Icons.Rounded.SystemUpdate, title = "版本", tail = version)
-                    InfoRow(
-                        icon = Icons.AutoMirrored.Rounded.Article,
-                        title = "包名",
-                        tail = context.packageName,
-                    )
-                }
-
-                Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-                    Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
-                        Text(
-                            text = "这个工具做什么",
-                            fontSize = MiuixTheme.textStyles.headline1.fontSize,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "选一个模块 zip，在设备本地解析它的脚本、配置与二进制，按「特征表 + 升级表」判定风险。扫描全程离线、不需要 root、不安装任何东西；只有「检查更新」会联网。",
-                            fontSize = MiuixTheme.textStyles.body2.fontSize,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Text(
-                            text = "免责说明",
-                            fontSize = MiuixTheme.textStyles.headline1.fontSize,
-                            fontWeight = FontWeight.Medium,
-                        )
-                        Spacer(Modifier.height(4.dp))
-                        Text(
-                            text = "判定是启发式的，只作参考，不能替代人工审阅模块源码。",
-                            fontSize = MiuixTheme.textStyles.body2.fontSize,
-                            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                        )
-                    }
-                }
-            }
-        }
-    }
-}
-
-@Composable
-internal fun SectionTitle(text: String) {
-    Text(
-        text = text,
-        style = MiuixTheme.textStyles.footnote1,
-        color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(start = 4.dp, top = 4.dp),
-    )
-}
-
-/** 扫描出来的模块信息：一行一项，跟设置页同一套行组件。 */
-@Composable
-private fun ModuleInfoCard(report: ScanReport) {
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-        InfoRow(icon = Icons.Rounded.Info, title = "模块名", tail = report.moduleName)
-        InfoRow(icon = Icons.Rounded.Info, title = "版本", tail = report.version)
-        InfoRow(icon = Icons.Rounded.Info, title = "作者", tail = report.author)
-        InfoRow(icon = Icons.Rounded.Info, title = "模块 ID", tail = report.moduleId)
-        InfoRow(icon = Icons.Rounded.Info, title = "文件数", tail = report.fileCount.toString())
-    }
-}
-private fun formatBytes(bytes: Long): String = when {
-    bytes >= 1024 * 1024 -> "%.1f MiB".format(bytes / 1024.0 / 1024.0)
-    bytes >= 1024 -> "%.0f KiB".format(bytes / 1024.0)
-    else -> "$bytes B"
-}
-
-@Composable
-private fun UpdateCard(installed: String) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    var checking by remember { mutableStateOf(false) }
-    var result by remember { mutableStateOf<UpdateResult?>(null) }
-
-    Card(modifier = Modifier.fillMaxWidth(), colors = panelColors(), cornerRadius = 16.dp) {
-        Column(modifier = Modifier.fillMaxWidth().padding(18.dp)) {
-            Text(text = "更新检查", style = MiuixTheme.textStyles.body1)
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "从 GitHub Releases 取最新版本号比对，这是本工具唯一需要联网的地方。",
-                style = MiuixTheme.textStyles.footnote1,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            )
-            val caption = updateCaption(checking, result, installed)
-            if (caption.isNotEmpty()) {
-                Spacer(Modifier.height(10.dp))
-                Text(
-                    text = caption,
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = updateCaptionColor(result),
-                    modifier = if (result is UpdateResult.Newer) {
-                        Modifier.clickable { openUrl(context, (result as UpdateResult.Newer).url) }
-                    } else {
-                        Modifier
-                    },
-                )
-            }
-            Spacer(Modifier.height(12.dp))
-            Button(
-                onClick = {
-                    if (!checking) {
-                        checking = true
-                        result = null
-                        scope.launch {
-                            result = checkUpdate(installed)
-                            checking = false
-                        }
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                cornerRadius = BUTTON_RADIUS,
-                minHeight = BUTTON_HEIGHT,
-            ) {
-                Text(text = if (checking) "正在检查…" else "检查更新", style = MiuixTheme.textStyles.button)
-            }
-        }
-    }
-}
-
-private fun updateCaption(checking: Boolean, result: UpdateResult?, installed: String): String = when {
-    checking -> "正在检查…"
-    result is UpdateResult.Current -> "已经是最新版本（v$installed）"
-    result is UpdateResult.Newer -> "有新版本 v${result.version}，点这里打开发布页"
-    result is UpdateResult.Failed -> "检查失败：${result.message}。一直失败多半是当前网络连不上 GitHub。"
-    else -> ""
-}
-
-@Composable
-private fun updateCaptionColor(result: UpdateResult?): Color = when (result) {
-    is UpdateResult.Newer -> MiuixTheme.colorScheme.primary
-    is UpdateResult.Failed -> MiuixTheme.colorScheme.error
-    else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
-}
-
-private fun openUrl(context: Context, url: String) {
-    if (url.isBlank()) return
-    runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url))) }
-}
-
-@Composable
-internal fun panelColors(): CardColors =
-    CardDefaults.defaultColors(color = MiuixTheme.colorScheme.surfaceContainerHigh)
-
-@Composable
-private fun isDarkSurface(): Boolean = MiuixTheme.colorScheme.surface.luminance() <= 0.5f
-
-@Composable
-private fun warningColor(): Color = if (isDarkSurface()) WARNING_ON_DARK else WARNING_ON_LIGHT
-
-@Composable
-private fun okColor(): Color = if (isDarkSurface()) OK_ON_DARK else OK_ON_LIGHT
-
-@Composable
-private fun severityColor(severity: String): Color = when (severity) {
-    "high" -> MiuixTheme.colorScheme.error
-    "medium" -> warningColor()
-    "low" -> okColor()
-    else -> MiuixTheme.colorScheme.onSurfaceVariantSummary
-}
-
-@Composable
-private fun severityBorder(severity: String): Color = when (severity) {
-    "high" -> MiuixTheme.colorScheme.error
-    "medium" -> warningColor()
-    else -> Color.Transparent
-}
-
-private fun severityLabel(severity: String) = when (severity) {
-    "high" -> "高危"
-    "medium" -> "中危"
-    "low" -> "低危"
-    else -> "信息"
-}
-
-private fun severitySummary(severity: String) = when (severity) {
-    "high" -> "高危行为，建议不要安装"
-    "medium" -> "可疑行为，需要人工确认"
-    "low" -> "轻微风险，通常可以忽略"
-    else -> "只是行为记录，不构成风险"
-}
-
-private fun statusTitle(state: ScanState): String = when (state) {
-    ScanState.Idle -> "尚未选择模块"
-    ScanState.Scanning -> "正在检查…"
-    is ScanState.Failed -> "检查失败"
-    is ScanState.Done -> when {
-        state.report.high > 0 -> "发现高危风险"
-        state.report.medium > 0 -> "存在可疑行为"
-        else -> "未发现明显风险"
-    }
-}
-
-private fun statusDetail(state: ScanState): String = when (state) {
-    ScanState.Idle -> "只检查未安装的模块包，不解包安装、不改动设备"
-    ScanState.Scanning -> "正在解析模块包内容"
-    is ScanState.Failed -> state.message
-    is ScanState.Done -> state.report.verdict
-}
-
-private fun statusCaption(state: ScanState): String {
-    if (state !is ScanState.Done) return ""
-    val time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(state.finishedAt))
-    val module = if (state.report.moduleName.isNotBlank()) state.report.moduleName else state.report.moduleId
-    val head = if (module.isNotBlank()) "模块 $module · " else ""
-    return head + "上次检测 $time · 解析 ${state.report.fileCount} 个文件"
-}
-
-private fun locationLine(finding: Finding): String {
-    if (finding.file.isBlank()) return "未定位到具体文件"
-    val name = finding.file.substringAfterLast('/').ifBlank { finding.file }
-    return if (finding.line > 0) "文件($name)第 ${finding.line} 行" else "文件($name)"
-}
-
-@Suppress("DEPRECATION")
-private fun appVersion(context: Context): String =
-    runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }
-        .getOrNull()
-        .orEmpty()
 
 private fun parseReport(json: String): ScanReport {
     val root = JSONObject(json)
