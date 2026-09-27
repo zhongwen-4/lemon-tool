@@ -12,7 +12,8 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   （整卡英雄状态卡 + 一页一个 Scaffold/TopAppBar + 12dp 卡片流）；版本 **0.4.0/code5**。
   CI 第一次出包失败（`checkReleaseAarMetadata`：MiuiX 0.9.4 要求 compileSdk ≥ 37）**已修**：
   compileSdk 升 37（配 `compileSdkMinor 2`）、删掉硬要求 minSdk 33 的 `miuix-blur`；本机已把 CI
-  出包链路里除 native 编译以外的环节全跑绿，**等 CI 复跑出包 + 真机看观感**。
+  出包链路里除 native 编译以外的环节全跑绿；**CI 复跑已绿**（run `36282815228`，artifact 1.10 MiB）。
+  **现在只差真机看观感与整条链路**（不要 tag 发版就先不动）。
 
 ## Next
 
@@ -28,7 +29,8 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - 2026-09-27：**修掉 CI 出包失败**（run `36281282791`）—— 升 MiuiX 0.9.4 时 compileSdk 留在 36，
   `apk` job 卡死在 `checkReleaseAarMetadata`；改成 `compileSdk 37` + `compileSdkMinor 2`
   （SDK 平台从 37 起按小版本发布，用 `android-37.2`；targetSdk 不动），并删掉硬要求 minSdk 33 的
-  `miuix-blur` 依赖。commit `6af075b`；详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
+  `miuix-blur` 依赖。commit `6af075b`，**CI 复跑（run `36282815228`）两个 job 全绿、出包成功**；
+  详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
 - 2026-09-27：移植 SukiSU 的界面代码 —— 只搬组件与骨架、只做 Miuix 一套、图标继续用
   `material-icons-extended`；三页按它的版式重画；GPL-3.0 义务已履行（每个搬进来的文件写出处与改动日期，
   它的启动图标一个字没搬）。commit `a05fdbb`。

@@ -107,6 +107,7 @@
   minSdk 24 冲突，代码里没人用它，直接删依赖。CI 里平台换 `platforms;android-37.2` +
   `build-tools;37.0.0`。commit `6af075b`。知识：
   `knowledge/build/compile-sdk-and-aar-metadata.md`。
+  **复跑结果**：CI run `36282815228`（commit `bac6019`）两个 job 全绿，`apk` 出包成功，artifact `mrs-apk` **1.10 MiB**（远低于 12 MiB 预算）。
 - **新版式一次都没被看过**（2026-09-27）：本机只能编 Kotlin，渲染要么等 CI 出的 APK、要么等真机。
   两个我照上游抄但没验证过的地方：英雄卡靠 `Row(height(IntrinsicSize.Min))` 撑高度、
   右上角 110dp 大图标靠 `offset` 溢出被卡片裁掉——上游是这么写的，但与我们的文案长度不同，
