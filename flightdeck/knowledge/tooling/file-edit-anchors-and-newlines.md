@@ -51,3 +51,21 @@ RECHECK WHEN: 仓库改了换行策略、或本机换掉 apply_patch 的包装�
 - 万一真切掉了，`git show HEAD:<仓库内路径>` 能把原文按行取回来（本机实测中文不乱码，
   但先设 `[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)`），
   再把缺的行号区间插回去，比自己重写一遍安全。
+
+## 2026-09-28 又栽一次：切片端点是肉眼从 dump 里读的，容易差一位
+
+同一招（按行号切片重拼）当天第二次失手，形态是**丢一个闭合花括号**：把 `StatusCard(...)` 与
+`InfoCard(...)` 两处调用换成新调用时，切片写成了 `$o[99..169]`，而那个 `}`（闭合上面 `if` 块的最后一行）
+正好落在 `$o[170]` —— 于是它跟着被"替换"掉。文件照样写成功，脚本照样打印行数，
+报错要到很远的 `HomePagerMiuix` 结尾才出现，看起来像"多了个括号"，其实是少了一个。
+
+规矩（在上面的三条之外）：
+
+- 切片端点**不要凭 dump 的肉眼计数**：dump 里的前缀（`"$i|"`）会让人把 0 基/1 基数错。
+  用代码取，别用眼睛数：`[regex]::Match($ls[$i],'^\s*').Value` 拿缩进、`"$i|$($ls[$i])"` 拿内容，
+  而且**改完立刻再 dump 一次边界两侧各 3 行**复核。
+- 结构敏感的文件（Kotlin）拼完先数一次花括号平衡，比"能编译"更早暴露问题：
+  ```powershell
+  $t = [System.IO.File]::ReadAllText($p)
+  "open=" + ([regex]::Matches($t,'\{')).Count + " close=" + ([regex]::Matches($t,'\}')).Count
+  ```

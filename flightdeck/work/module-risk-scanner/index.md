@@ -198,6 +198,10 @@
     **AGP 必须 ≥ 9.1.0**（我们是 8.11.1），要升就连带升 AGP 9 / Gradle 9 / Compose 1.12，并改 CI 的
     `gradle-version` 与 JDK。不升则用手写的 `SettingRow`（已落地）。详见
     `knowledge/android/miuix-0.8.8.md` 的「升到 0.9.x 的代价」。
+12. **三页接真实数据（下一轮就做）**：骨架已就位、口径已定 —— 主页 = 「点此开始检测」+「应用版本」+
+    「提交 BUG」+ **扫描结果**（现在选完 zip、结果算完就扔，得接到界面上）；检查历史 = **本项目自己的
+    扫描记录**（本项目**没有** `/data/adb/ksu/log` 这个数据源，要拿 `filesDir` 里的记录喂 SU 日志列表骨架）；
+    设置 = 关于 + 检查更新。用户 2026-09-28 原话：`然后实现一下检查模块和检查历史的功能`。
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -342,9 +346,29 @@
   ① here-string 丢换行把 `package` 粘进注释，假象像「Kotlin 增量缓存坏了」
   （`knowledge/tooling/here-string-package-line.md`）；
   ② `git push` 连不上 github.com —— DNS 解到了被墙的 IP，本地起 CONNECT 隧道绕过去
-  （`knowledge/tooling/github-push-when-ip-blocked.md`）。
+  （结论当天稍后即被推翻：真凶是本机 7890 系统代理，见 `knowledge/tooling/github-push-and-local-proxy.md`）。
   本机 `:app:compileDebugKotlin` / `compileReleaseKotlin` / 两个 `check*AarMetadata` / 两个 `process*MainManifest` /
   `minifyReleaseWithR8` / `optimizeReleaseResources` 全过；**三页观感与真机链路仍只靠 CI + 真机**。
+- 2026-09-28 **主页/设置页精简收尾 + 去掉莫奈取色**（用户口径：`不要莫奈取色了，用sukisu的配色`，
+  设置页 `就留个关于和检查更新`，主页 `不支持` → `点此开始检测`、信息区只留「应用版本」、
+  两个状态（SELinux / Seccomp）删掉、`支持开发/了解xxx` → `提交BUG`）。
+  - 取色改走上游 `MiuixKernelSUTheme` 的**非莫奈那一支**（`ColorSchemeMode.System` + 不指定 keyColor +
+    `Spec2025` + `TonalSpot`）；`MiuixTheme.isDynamicColor` 因此变 false，上游那些 `if (isDynamicColor)`
+    分支全部走硬编码色 —— 这就是「SukiSU 非莫奈」的观感。见 `knowledge/android/theme-non-monet-sukisu.md`。
+  - `HomeMiuix.kt`：`StatusCard` 三分支只剩一支、改名 `CheckEntryCard`（另两支是 KernelSU 内核取数）；
+    `InfoCard` 只留一行「应用版本」（`getManagerVersion` 从 PackageManager 读，不依赖 root）；
+    `SupportLinks` 换成一行「提交 BUG」→ 本项目 issues。
+  - `SettingsMiuix.kt`：只留「检查更新」+「关于」两行。
+  - `strings.xml`：新增 6 条；删掉 79 条已无引用的（被删组件与旧设置页那批根管理器开关）。
+  - 版本 0.5.0/code6 → **0.6.0/code7**，commit `c14ecbb`（已推）。
+  - 本机 8 条出包前置全过（debug/release Kotlin、两个 AAR 元数据、两个清单合并、R8、资源优化）。
+  - **推送的真凶找到了**：本机 `HKCU\Software\Microsoft\Windows\CurrentVersion\Internet Settings` 里
+    `ProxyEnable=1`、`ProxyServer=127.0.0.1:7890`（真有进程在听）。**PowerShell 的 `Invoke-*` 走这个
+    WinINET 代理，git 用的 libcurl 不走** —— 所以同一台机器上 API 一直通、push 一直不通。
+    `git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 push` 3 秒推完。
+    上一轮那条「DNS 解到被墙 IP、本地开 CONNECT 隧道」的结论**已被推翻**；知识文件更名为
+    `knowledge/tooling/github-push-and-local-proxy.md`（隧道降级成「没有代理时」的备选，并记下两个坑：
+    CONNECT 行里端口后面还跟着 HTTP 版本会让 `int.Parse` 炸、github 的候选 IP 会漂）。
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
@@ -360,7 +384,7 @@
 - `knowledge/tooling/file-edit-anchors-and-newlines.md` — 用脚本改文件（尤其批量替换）之前扫一眼
 - `knowledge/tooling/here-string-package-line.md` — 用 here-string / 脚本往仓库里写 .kt 之前必读
   （丢了换行会把 `package` 粘进注释，症状像编译器缓存坏了）
-- `knowledge/tooling/github-push-when-ip-blocked.md` — git push 连不上 github.com 时读
+- `knowledge/tooling/github-push-and-local-proxy.md` — **git push 连不上 github.com 时先读这条**（多半是本机 7890 系统代理）
 - `knowledge/build/release-and-update-check.md` — 动版本号、发版、或改「检查更新」前必读
 - `knowledge/detection/dry-run-sandbox.md` — 要评估动态/半动态分析（执行轨迹）时读，
   含「假 PATH 沙箱」的坑与「为什么进不了 APK」的结论
@@ -372,6 +396,6 @@
 - 脚本断言「CI 全过、本机全红」→ 读 `knowledge/tooling/powershell-chinese-encoding-traps.md`
 - 需要 Android 模块规范细节（module.prop、脚本钩子、system 覆盖方式）→
   先建 `knowledge/android/` 下的条目再读
-- `git push` 连接被重置 / 连不上 github.com → 读 `knowledge/tooling/github-push-when-ip-blocked.md`
+- `git push` 连接被重置 / 连不上 github.com → 读 `knowledge/tooling/github-push-and-local-proxy.md`
 - 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`
   （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.9.4.md`（组件签名与硬约束）
