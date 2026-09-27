@@ -54,3 +54,26 @@ Invoke-RestMethod -Uri "https://api.github.com/repos/SukiSU-Ultra/SukiSU-Ultra/c
 - `webui/`、`kernelFlash/`、`templateeditor/`、`markdown/`：功能不存在。
 - 它每个界面写两遍（`XxxMaterial.kt` + `XxxMiuix.kt`，由 `UiMode.kt` 切）。**本项目只做 Miuix 一套**
   （用户 2026-09-27 定），所以搬的时候只取 `*Miuix.kt`。
+## 第二批：整包换界面（commit 8517d3f，2026-09-28，版本 0.5.0/code6）
+
+用户口径变了两回，最终是「**把现有 UI 删掉，完全照搬 SukiSU 的，功能不变**」，紧接着两步细化：
+「主页只留组件骨架、数据清空」「检查历史改用它的 SU 日志列表，其他组件不要」「其他的也要骨架、数据先空着」。
+所以这一批搬的是**骨架**，一行业务数据都没接。
+
+| 本项目文件 | 上游 | 改了什么 |
+| --- | --- | --- |
+| `ui/screen/home/{HomeMiuix,HomeUiState,HomeUtils}.kt` | `screen/home/` 同名 | 结构尺寸一字不差；砍掉内核取数（`getZygiskImplementation` / `rememberSusfsInfo` / `rememberHookTypeLabel` 留同名空实现、`KernelVersion.isGKI()` 恒 false）；`HomeUiState` 每个字段补空默认值；删掉全部 `@Preview` |
+| `ui/screen/about/{AboutMiuix,AboutScreen,AboutUiState,AboutUtils}.kt` | `screen/about/` 同名 | 同理；去掉 textureBlur / logoBlend |
+| `ui/screen/sulog/{SulogListMiuix,SulogUiState}.kt` + `ui/util/sulog/SulogModels.kt` | `screen/sulog/` + `ui/util/SulogHelper.kt` | **只要列表**：条目卡 + 列表段 + 条目详情弹窗 + 取标题/描述/标签/返回值的几个函数；上游那页的顶栏（返回/清空/筛选）、SearchBox/SearchPager/SearchBarFake、日志文件下拉、PullToRefresh、状态提示卡全部不要。`SulogHelper` 只留数据形状（读 `/data/adb/ksu/log` 的函数不搬） |
+| `ui/screen/settings/{SettingsMiuix,SettingsUiState}.kt` | `screen/settings/` 同名 | 脚本整包搬运（改包名 + 删一行 `layerBackdrop` 用法 + `selectedIndex` 恒 0），Card 分组与三种 Preference 一行没动 |
+| `ui/component/{KsuIsValid,WarningLevel}.kt`、`ui/component/dialog/{ConfirmDialog,LoadingDialog}.kt`、`ui/component/miuix/{WarningCard,SendLogDialog}.kt`、`ui/component/statustag/*`、`ui/component/rebootlistpopup/RebootListPopupMiuix.kt`、`ui/theme/Theme.kt`、`ui/util/{BlurExt,LocaleHelper}.kt`、`ui/UiMode.kt` | 各家 | **同名同签名的空壳**：`KsuIsValid` 直接渲染 content、`UninstallDialog`/`SendLogDialog`/`RebootListPopup` 是 `= Unit`、`rememberLoadingDialog` 的 handle 照常能 withLoading 但不弹东西、`rememberBlurBackdrop` 恒 null、`UiMode` 只有 `Miuix` 一项、`LocaleHelper.SUPPORTED_TAGS` 是空表 |
+
+**主界面换法**：`ScanUi.kt` 从 1041 行重写成 358 行——只留外壳（悬浮底栏 + HorizontalPager）、
+`PageScaffold`（每页自己的 Scaffold+TopAppBar+一条 LazyColumn，给底栏留白）、扫描数据形状与
+`parseReport`。老的 `History.kt`（`HistoryEntry`/`HistoryStore`/`HistoryScreen`）**整份删掉**。
+扫描这一路（选包 → `nativeScanJson` → `parseReport`）保留，主页大卡片的动作已接到选包上，
+但结果暂时不显示（用户要求数据先空着）。
+
+**搬的时候的取舍（都是用户明说的）**：毛玻璃继续不做（`miuix-blur` 要 minSdk 33）；
+只看 Miuix 一路；上游那一页里「打开另一个子页面」的 ArrowPreference 全部保留、
+动作走 `SettingsScreenActions` 的空实现（主题/工具/KPM/SuSFS/卸载这些本项目还没有）。

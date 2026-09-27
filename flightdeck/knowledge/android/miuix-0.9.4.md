@@ -75,3 +75,21 @@ ArrowPreference(
   `onSurfaceContainer`、`onSurfaceVariantSummary`、`dividerLine`、`errorContainer`、`secondaryContainer`。
 - `MiuixTheme.textStyles` 仍是 main/paragraph/body1/body2/button/footnote1/footnote2/headline1/headline2/subtitle/title1…4。
 - 主题取色：`ThemeController(colorSchemeMode = ColorSchemeMode.MonetSystem)`，另有 `ThemeColorSpec` / `ThemePaletteStyle`。
+## 图标：0.9.4 只有 extended 一个包（2026-09-28 实测）
+
+`miuix-icons-android:0.9.4` 的 classes.jar 里**只有** `top/yukonga/miuix/kmp/icon/extended/`（157 个 Kt 类），
+**没有 `icon/basic` 包**。从上游（用的不是这一版）抄界面时，遇到 `MiuixIcons.Basic.ArrowRight` 这种就必须换：
+
+- 0.9.4 的写法是 **`MiuixIcons.Back`**（import `top.yukonga.miuix.kmp.icon.extended.Back`）——
+  `MiuixIcons.<名字>` 直接就是扩展属性，不经过 `.Extended`。
+- **没有 `ArrowRight`**；可用的近义是 `ChevronForward` / `ChevronBackward` / `Forward`。
+  （本项目 SU 日志条目卡尾部箭头因此改成 `MiuixIcons.ChevronForward`。）
+- 核对办法：解 aar 里的 `classes.jar`，列 `icon/` 下的条目名（别猜）。
+
+## 另外两条 0.9.4 实测
+
+- `Card` 有两个重载：静态的 `(modifier, cornerRadius, insideMargin, colors, content)` 与可点的
+  `(modifier, cornerRadius, insideMargin, colors, pressFeedbackType, showIndication, holdDownState,
+  onClick, onLongPress, content)`——**可点那个同样有 `insideMargin`**，全用命名参数传即可。
+- `top.yukonga.miuix.kmp.overlay.OverlayDialog` 在 0.9.4 里存在（同层还有 `OverlayListPopup` /
+  `OverlayBottomSheet` / `OverlayCascadingListPopup`）。

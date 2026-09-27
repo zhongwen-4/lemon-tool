@@ -332,7 +332,19 @@
   版本 0.3.0/code4 → **0.4.0/code5**。踩到的坑记进 `knowledge/tooling/file-edit-anchors-and-newlines.md`
   （按行号切片重拼时边界算错，把 `HistoryEntry`/`HistoryStore` 整段切掉了，靠 `git show HEAD:` 取回）。
   **本机 `:app:compileDebugKotlin --offline` 与 `:app:compileReleaseKotlin` 都过**；打 APK 与观感仍只靠 CI + 真机。
-
+- 2026-09-28 **界面整包换成 SukiSU 的骨架**（用户第二次改口径：`你直接把现有的ui删掉，然后完全照搬sukisu的，功能不变`，
+  随后细化成 `主页只留组件骨架、数据清空` / `检查历史用它的 SU 日志列表、其他组件不要` / `其他的也要骨架、数据先空着`）。
+  搬法：上游源码整包解到 `%TEMP%\suku_0928`，逐文件「改包名 → 删 import → 砍不可用依赖 → 留同名空实现 →
+  `values-zh-rCN` 批量抽字符串」。**主页 / 关于 / 设置三页照搬结构尺寸**（设置页 572 行整包脚本搬运），
+  **检查历史整份删掉换 SU 日志列表**（`History.kt` 已删，只留条目卡 + 详情弹窗），三页数据全是空状态。
+  `ScanUi.kt` 1041 → 358 行，只剩外壳 + `PageScaffold` + 扫描管线。
+  版本 0.4.0/code5 → **0.5.0/code6**。踩到两个坑并已进知识库：
+  ① here-string 丢换行把 `package` 粘进注释，假象像「Kotlin 增量缓存坏了」
+  （`knowledge/tooling/here-string-package-line.md`）；
+  ② `git push` 连不上 github.com —— DNS 解到了被墙的 IP，本地起 CONNECT 隧道绕过去
+  （`knowledge/tooling/github-push-when-ip-blocked.md`）。
+  本机 `:app:compileDebugKotlin` / `compileReleaseKotlin` / 两个 `check*AarMetadata` / 两个 `process*MainManifest` /
+  `minifyReleaseWithR8` / `optimizeReleaseResources` 全过；**三页观感与真机链路仍只靠 CI + 真机**。
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
@@ -346,6 +358,9 @@
 - `knowledge/android/sukisu-ultra-as-ui-reference.md` — 要照搬/参考别的 App 的界面（尤其底栏、图标混用）前必读
 - `knowledge/tooling/which-hosts-are-reachable.md` — 要拉外网内容（图标 SVG / 源码 / Maven jar）时读
 - `knowledge/tooling/file-edit-anchors-and-newlines.md` — 用脚本改文件（尤其批量替换）之前扫一眼
+- `knowledge/tooling/here-string-package-line.md` — 用 here-string / 脚本往仓库里写 .kt 之前必读
+  （丢了换行会把 `package` 粘进注释，症状像编译器缓存坏了）
+- `knowledge/tooling/github-push-when-ip-blocked.md` — git push 连不上 github.com 时读
 - `knowledge/build/release-and-update-check.md` — 动版本号、发版、或改「检查更新」前必读
 - `knowledge/detection/dry-run-sandbox.md` — 要评估动态/半动态分析（执行轨迹）时读，
   含「假 PATH 沙箱」的坑与「为什么进不了 APK」的结论
@@ -357,5 +372,6 @@
 - 脚本断言「CI 全过、本机全红」→ 读 `knowledge/tooling/powershell-chinese-encoding-traps.md`
 - 需要 Android 模块规范细节（module.prop、脚本钩子、system 覆盖方式）→
   先建 `knowledge/android/` 下的条目再读
+- `git push` 连接被重置 / 连不上 github.com → 读 `knowledge/tooling/github-push-when-ip-blocked.md`
 - 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`
   （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.9.4.md`（组件签名与硬约束）
