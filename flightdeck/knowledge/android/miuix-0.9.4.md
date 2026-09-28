@@ -6,7 +6,9 @@ SUMMARY: 0.9.x **拆了坐标**：`miuix-ui-android` / `miuix-nav-android` / `mi
 compose-bom 2026.09.00 —— **与 SukiSU Ultra 完全同一套**，所以它的界面代码可以直接搬。
 **硬门槛（2026-09-27 实测）**：0.9.4 全家桶要求 **`compileSdk ≥ 37`**（差一档就在
 `checkReleaseAarMetadata` 直接失败，20 条 issue）；`miuix-blur-android:0.9.4` 的 manifest 硬要求
-**`minSdk 33`**，与本项目 `minSdk 24` 冲突，所以**那个坐标已经删掉**（代码里也没人用它）。
+**`minSdk 33`**，与本项目 `minSdk 24` 冲突 —— **2026-09-29 已重新引入**，靠 app manifest 里的
+`<uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur"/>` 放行（上游也这么绕；细节见
+`miuix-blur-and-liquid-glass.md`）。
 它的兄弟 **`miuix-shader-android:0.9.4`** 门槛不同：**minSdk 24**，2026-09-28 起已启用
 （给关于页的 OS3 渐变背景用，见 `about-bg-effect-shader.md`）。
 详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
@@ -24,8 +26,8 @@ RECHECK WHEN: MiuiX 再升版本，或 compose-bom / AGP 换大版本之后。
 - `app/build.gradle` 依赖：`miuix-ui-android` / `miuix-icons-android` / `miuix-nav-android` /
   `miuix-preference-android`，全是 **0.9.4**；compose-bom 2026.09.00；
   `material-icons-extended`（图标仍用它，Apache-2.0）。
-  ~~`miuix-blur-android`~~ **2026-09-27 已删除**：它的 manifest 硬要求 `minSdk 33`，与本项目 `minSdk 24` 冲突
-  （毛玻璃那一路移植时本来就没要，见 `sukisu-ui-port.md`）。2026-09-28 起新增
+  **`miuix-blur-android:0.9.4`**（2026-09-29 重新加回：磨砂玻璃与液态玻璃都靠它，用 `tools:overrideLibrary`
+  绕开它的 minSdk 33，见 `miuix-blur-and-liquid-glass.md`）。2026-09-28 起新增
   **`miuix-shader-android:0.9.4`**（minSdk 24，包名 `top.yukonga.miuix.kmp.shader`，给关于页的
   OS3 渐变背景；**`miuix-ui` 不会带它进来，必须显式加依赖行**）。
 - 本机 `./gradlew.bat :app:compileDebugKotlin --offline` 与 `compileReleaseKotlin` 都能过

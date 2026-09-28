@@ -414,8 +414,38 @@
   - 两条新知识：`android/about-bg-effect-shader.md`、`android/miuix-theme-scope.md`；更新
     `android/sukisu-ui-port.md`（第三批 + 返回键那个例外）、`android/miuix-0.9.4.md`（miuix-shader 门槛）。
 
+- 2026-09-29 **磨砂玻璃 + 液态玻璃落地；关于页返回手势/背景补齐；CI 签名改成固定钥匙**。
+  用户口径：「关于页的系统返回手势有问题（返回直接退到桌面）/ 关于页的背景也没实现 / 模块检查 / 实现液态玻璃」+「磨砂玻璃你也没实现啊」，
+  外加一句关键线索「我从最新的 action 里面下的」。
+  - **先破案再动手**：三条症状（返回退桌面、背景没实现、模块检查没实现）**正好是 0.6.0/code7 的功能集**
+    （BackHandler 与背景是 0.8.0 加的、模块检查是 0.7.0 加的）→ 不是功能缺失，是**装的不是新包**。
+    查 CI：分支构建原来每次现生成一把**随机钥匙**签名，覆盖安装必然失败（只能先卸载），
+    手机上留着的还是老版本。修法：仓库里放一把固定的公开 CI 钥匙 `ci-signing/mrs-ci.jks`，
+    分支构建与 tag 走同一条取钥匙的路；产物改名成 `mrs-<version>-c<code>.apk`。
+    → 新知识 `build/ci-signing-stable-key.md`。
+  - **磨砂玻璃 + 液态玻璃**：接 `miuix-blur-android:0.9.4`（manifest 硬写 minSdk 33 → app manifest 里
+    `tools:overrideLibrary` 放行，上游同款做法），整份换回上游的 `ui/util/BlurExt.kt` 与
+    `ui/component/FloatingBottomBar.kt`，新搬 `ui/component/liquid/`（CombinedBackdrop / InnerShadow /
+    Lens / Vibrancy）与 `ui/component/miuix/animation/InteractiveHighlight.kt`；
+    主壳照上游 `MainScreen` 接线（`rememberBlurBackdrop` + `rememberLayerBackdrop` + 两层 `layerBackdrop`，
+    底栏收 `backdrop`）；两个开关落进 `ui/util/DisplaySettings.kt`（SharedPreferences，默认都开），
+    设置页补两行 `SwitchPreference`（模糊 / 液态玻璃）。门槛：磨砂要 API 31、液态玻璃折射要 API 33。
+    → 新知识 `android/miuix-blur-and-liquid-glass.md`（同时**更正** `build/compile-sdk-and-aar-metadata.md`
+    里「库的 minSdk 别用 overrideLibrary 硬过」那条，以及 `android/miuix-0.9.4.md` 里「miuix-blur 已删除」）。
+  - **关于页**：返回手势从 `BackHandler` 换成 `PredictiveBackHandler` + 外层 `graphicsLayer` 跟手滑出
+    （上游是 navigation3 路由栈在做同一件事）；背景门槛从上游的 `SDK >= 35` 降到 `isRuntimeShaderSupported()`
+    （API 33，Android 13/14 也能看），更低版本由 `BgEffectBackground` 补一层**静态渐变**兜底
+    （原来那里直接退化成纯 Box、什么都没有）。→ 新知识 `android/overlay-page-and-predictive-back.md`。
+  - 版本 0.8.0/code9 → **0.9.0/code10**，commit `9cc8a86`；CI run `36490628242` 两个 job 全绿，
+    产物 `mrs-apk-0.9.0-c10-9cc8a86`（1.37 MB）。本机 8 条出包前置全过。
+  - **待用户在真机确认**：装之前**必须先卸载旧版**（签名换了），装完在主页看「应用版本」是不是 0.9.0；
+    磨砂/液态玻璃在 Android 12 以下看不到属正常（API 门槛）。
+
 ## Read now
 
+- `knowledge/android/miuix-blur-and-liquid-glass.md` — 动磨砂/液态玻璃、加 blur/backdrop、或问「效果为什么看不到」时读
+- `knowledge/android/overlay-page-and-predictive-back.md` — 加「盖在主壳上的整页」、或用户反馈「返回退到桌面 / 返回后结果丢了」时读
+- `knowledge/build/ci-signing-stable-key.md` — 用户说「装了你给的最新包还是旧界面」时先读
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
 - `knowledge/build/compile-sdk-and-aar-metadata.md` — 升 Compose/MiuiX 依赖、或 CI 报 AAR 元数据 / minSdk 门槛时读
 - `knowledge/build/msvc-utf8-source.md`、`knowledge/build/posix-vs-win32-portability.md`

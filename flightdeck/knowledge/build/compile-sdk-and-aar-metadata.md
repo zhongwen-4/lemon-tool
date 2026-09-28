@@ -58,8 +58,12 @@ available in 24
   Gradle 才会去用 `platforms;android-37.2`；minor 写错就直接报「找不到平台」。
 - `compileSdk` 与 `targetSdk` 语义不同：前者是编译期 API 面，**不 opt-in 新行为**；权限、edge-to-edge、
   后台限制这些运行时行为归后者管。日志推荐的是 compileSdk，别顺手把 targetSdk 一起提。
-- 库的 minSdk 门槛**别用 `tools:overrideLibrary` 硬过** —— 库真调了高版本 API 时会在低版本设备上崩。
-  正解是删依赖，或抬高本项目 minSdk（会丢老设备）。
+- 库的 minSdk 门槛**别默认拿 `tools:overrideLibrary` 硬过** —— 库在高版本 API 上没做运行时门控时，
+  低版本设备会崩。**2026-09-28 更正**：`miuix-blur:0.9.4`（manifest 硬写 minSdk 33）是**可以**这么绕的，
+  上游 SukiSU（minSdk 26）就是这么做的 —— 前提是**核实过库在低版本路径上只做运行时门控**
+  （`isRenderEffectSupported()` / `isRuntimeShaderSupported()`；`rememberLayerBackdrop` 这类构造方法
+  用 javap 核过方法体里没有 `android.graphics` 引用）。做法与边界见
+  `knowledge/android/miuix-blur-and-liquid-glass.md`。
 - 本地提前查 AAR 门槛，省一轮 CI：`7z e -so <aar> META-INF/com/android/build/gradle/aar-metadata.properties`
   （`7z` 在 `D:\7z\7z.exe`）。Gradle 缓存里的解包产物在
   `C:\Users\admin\.gradle\caches\9.7.1\transforms\*\transformed\<名字>\`。
