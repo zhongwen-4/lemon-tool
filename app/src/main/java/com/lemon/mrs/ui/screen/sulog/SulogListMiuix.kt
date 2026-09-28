@@ -16,6 +16,13 @@
 //   ⑤ 条目卡尾部那个箭头：上游用 MiuixIcons.Basic.ArrowRight，但本项目锁的
 //      miuix-icons 0.9.4 只有 top.yukonga.miuix.kmp.icon.extended 一个包（没有 basic），
 //      这里改用同语义的 MiuixIcons.ChevronForward。
+//   ⑥ 2026-09-28 接上「检查历史」：本项目的历史是扫描记录、不是 SU 日志，所以
+//      ① 顶栏标题换成「检查历史」（R.string.scan_history，不再叫「SU 日志」）；
+//      ② 条目类型加了 SulogEventType.ScanReport 一支，四个取值小函数各补一个分支
+//         （模块名 / 扫描对象 / 高·中·低计数 / 结论）；sulogEntrySummaryTags 因此改成 @Composable
+//         （标签要读 string 资源）；
+//      ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」——点了先弹确认，
+//         确认后才走 actions.onCleanFile（清空是不可逆的，不做静默删除）。
 package com.lemon.mrs.ui.screen.sulog
 
 import androidx.compose.foundation.Image
@@ -36,6 +43,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -60,26 +69,29 @@ import androidx.compose.ui.unit.sp
 import com.lemon.mrs.PageScaffold
 import com.lemon.mrs.R
 import com.lemon.mrs.ui.component.statustag.StatusTag
+import com.lemon.mrs.ui.util.sulog.ScanEntryFields
 import com.lemon.mrs.ui.util.sulog.SulogEntry
 import com.lemon.mrs.ui.util.sulog.SulogEventType
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
+import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
+import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
-/** SU 日志列表页：顶栏 + 一列日志条目，点一条开详情弹窗。数据从 [state] 来，默认是空的。 */
+/** 检查历史页：顶栏 + 一列检查记录，点一条开详情弹窗。数据从 [state] 来，默认是空的。 */
 @Composable
-@Suppress("UNUSED_PARAMETER")
 fun SulogScreenMiuix(
     state: SulogScreenState,
     actions: SulogActions,
     bottomInnerPadding: Dp,
 ) {
     var selectedEntry by remember { mutableStateOf<SulogEntry?>(null) }
+    var clearConfirming by remember { mutableStateOf(false) }
 
     SulogDetailDialog(
         show = selectedEntry != null,
@@ -87,11 +99,21 @@ fun SulogScreenMiuix(
         onDismiss = { selectedEntry = null },
     )
 
-    PageScaffold(title = stringResource(R.string.settings_sulog), bottomInnerPadding = bottomInnerPadding) {
+    SulogClearConfirmDialog(
+        show = clearConfirming,
+        onDismiss = { clearConfirming = false },
+        onConfirm = {
+            clearConfirming = false
+            actions.onCleanFile()
+        },
+    )
+
+    PageScaffold(title = stringResource(R.string.scan_history), bottomInnerPadding = bottomInnerPadding) {
         sulogEntriesSection(
             entries = state.entries,
             errorMessage = state.errorMessage,
             onEntryClick = { selectedEntry = it },
+            onClearClick = { clearConfirming = true },
         )
     }
 }
@@ -100,6 +122,7 @@ private fun LazyListScope.sulogEntriesSection(
     entries: List<SulogEntry>,
     errorMessage: String?,
     onEntryClick: (SulogEntry) -> Unit,
+    onClearClick: () -> Unit,
 ) {
     when {
         errorMessage != null -> item {
@@ -110,11 +133,42 @@ private fun LazyListScope.sulogEntriesSection(
             )
         }
 
-        else -> itemsIndexed(entries, key = { index, entry -> "$index-${entry.key}" }) { index, entry ->
-            SulogEntryCard(
-                entry = entry,
-                onClick = { onEntryClick(entry) },
+        entries.isEmpty() -> item {
+            SulogMessageCard(
+                modifier = Modifier.fillParentMaxSize(),
+                title = stringResource(R.string.scan_history_empty),
+                summary = stringResource(R.string.scan_history_empty_summary),
             )
+        }
+
+        else -> {
+            itemsIndexed(entries, key = { index, entry -> "$index-${entry.key}" }) { _, entry ->
+                SulogEntryCard(
+                    entry = entry,
+                    onClick = { onEntryClick(entry) },
+                )
+            }
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                ) {
+                    ArrowPreference(
+                        title = stringResource(R.string.scan_history_clear),
+                        summary = stringResource(R.string.scan_history_clear_summary),
+                        startAction = {
+                            Icon(
+                                Icons.Rounded.DeleteSweep,
+                                contentDescription = stringResource(R.string.scan_history_clear),
+                                modifier = Modifier.padding(end = 6.dp),
+                                tint = colorScheme.onBackground,
+                            )
+                        },
+                        onClick = onClearClick,
+                    )
+                }
+            }
         }
     }
 }
@@ -282,6 +336,8 @@ private fun sulogEntryTitle(entry: SulogEntry): String {
         SulogEventType.IoctlGrantRoot -> stringResource(R.string.sulog_filter_ioctl_grant_root)
         SulogEventType.DaemonEvent -> stringResource(R.string.sulog_filter_daemon_restart)
         SulogEventType.Dropped -> "Dropped"
+        SulogEventType.ScanReport -> entry.fields[ScanEntryFields.MODULE]?.takeIf { it.isNotBlank() }
+            ?: stringResource(R.string.scan_result)
         SulogEventType.Unknown -> entry.fields["type"]?.replace('_', ' ')?.replaceFirstChar(Char::uppercase) ?: "Unknown"
     }
 }
@@ -291,10 +347,12 @@ private fun sulogEntryDescription(entry: SulogEntry): String? {
     return when (entry.eventType) {
         SulogEventType.DaemonEvent -> entry.fields["boot_id"]?.let { "Boot ID: $it" }
         SulogEventType.Dropped -> entry.fields["ts_ns"]?.let { "Timestamp: $it" }
+        SulogEventType.ScanReport -> entry.fields[ScanEntryFields.TARGET]
         else -> entry.fields["argv"] ?: entry.fields["file"]
     }
 }
 
+@Composable
 private fun sulogEntrySummaryTags(entry: SulogEntry): List<String> {
     val comm = entry.fields["comm"]
     val pid = entry.fields["pid"]
@@ -302,6 +360,11 @@ private fun sulogEntrySummaryTags(entry: SulogEntry): List<String> {
     return when (entry.eventType) {
         SulogEventType.DaemonEvent -> listOfNotNull(entry.fields["restart"]?.let { "Restart #$it" } ?: "Daemon restarted")
         SulogEventType.Dropped -> listOfNotNull(entry.fields["dropped"]?.let { "$it lost" })
+        SulogEventType.ScanReport -> listOf(
+            "${stringResource(R.string.scan_severity_high)} ${entry.fields[ScanEntryFields.HIGH].orEmpty()}",
+            "${stringResource(R.string.scan_severity_medium)} ${entry.fields[ScanEntryFields.MEDIUM].orEmpty()}",
+            "${stringResource(R.string.scan_severity_low)} ${entry.fields[ScanEntryFields.LOW].orEmpty()}",
+        )
         else -> listOfNotNull(comm?.takeIf { it.isNotBlank() }, pid?.let { "PID $it" }, uid?.let { "UID $it" })
     }
 }
@@ -317,5 +380,43 @@ private fun sulogEntryDetailText(entry: SulogEntry) = buildAnnotatedString {
 }
 
 private fun sulogEntryStatus(entry: SulogEntry): String? {
+    if (entry.eventType == SulogEventType.ScanReport) return entry.fields[ScanEntryFields.VERDICT]
     return entry.fields["retval"]?.toIntOrNull()?.let { retval -> if (retval == 0) "Success" else "Exit $retval" }
+}
+
+/** 清空检查历史前的确认弹窗（清空不可逆，不做静默删除）。 */
+@Composable
+private fun SulogClearConfirmDialog(
+    show: Boolean,
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+) {
+    OverlayDialog(
+        show = show,
+        title = stringResource(R.string.scan_history_clear),
+        onDismissRequest = onDismiss,
+        content = {
+            Column {
+                Text(
+                    text = stringResource(R.string.scan_history_clear_summary),
+                    fontSize = 14.sp,
+                    color = colorScheme.onSurfaceVariantSummary,
+                )
+                Spacer(Modifier.height(12.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(android.R.string.cancel),
+                        onClick = onDismiss,
+                    )
+                    TextButton(
+                        modifier = Modifier.weight(1f),
+                        text = stringResource(R.string.scan_history_clear),
+                        onClick = onConfirm,
+                        colors = ButtonDefaults.textButtonColorsPrimary(),
+                    )
+                }
+            }
+        },
+    )
 }

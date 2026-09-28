@@ -13,7 +13,6 @@
     <string name="module_changelog">更新日志</string>
     <string name="module_update">更新</string>
     <string name="new_version_available">发现新版本：%s，点击升级！</string>
-    <string name="settings_sulog">SU 日志</string>
     <string name="sulog_failed_to_load">加载 SU 日志失败</string>
     <string name="sulog_filter_root_execve">Root execve</string>
     <string name="sulog_filter_sucompat">Classic SU</string>
@@ -28,4 +27,20 @@
     <string name="home_submit_bug">提交 BUG</string>
     <string name="home_submit_bug_summary">发现问题？到 GitHub 提 issue</string>
     <string name="home_submit_bug_url">https://github.com/zhongwen-4/lemon-tool/issues</string>
+    <string name="scan_history">检查历史</string>
+    <string name="scan_running">正在检测…</string>
+    <string name="scan_failed">检测失败</string>
+    <string name="scan_result">检测结果</string>
+    <string name="scan_author">作者</string>
+    <string name="scan_files">文件数</string>
+    <string name="scan_severity_high">高危</string>
+    <string name="scan_severity_medium">中危</string>
+    <string name="scan_severity_low">低危</string>
+    <string name="scan_severity_info">信息</string>
+    <string name="scan_findings_count">发现 %1$d 条</string>
+    <string name="scan_truncated">结果过多，已截断</string>
+    <string name="scan_history_empty">还没有检查记录</string>
+    <string name="scan_history_empty_summary">回主页点「点此开始检测」，选一个模块安装包试试</string>
+    <string name="scan_history_clear">清空检查历史</string>
+    <string name="scan_history_clear_summary">删除全部本地记录，不影响已安装的模块</string>
 </resources>

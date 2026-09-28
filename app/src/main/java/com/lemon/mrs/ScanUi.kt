@@ -59,11 +59,17 @@ import com.lemon.mrs.ui.screen.settings.SettingPagerMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogActions
 import com.lemon.mrs.ui.screen.sulog.SulogScreenMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogScreenState
+import com.lemon.mrs.ui.util.sulog.ScanEntryFields
+import com.lemon.mrs.ui.util.sulog.SulogEntry
+import com.lemon.mrs.ui.util.sulog.SulogEventType
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
@@ -89,7 +95,7 @@ private const val TAB_COUNT = 3
  * 但扫描这一路（选包 -> nativeScanJson -> parseReport）留着没动：主页大卡片的动作
  * 已经接到选包上，只是结果暂时不显示。往后把 [ScanState] 接到新界面上即可。
  */
-private sealed interface ScanState {
+sealed interface ScanState {
     data object Idle : ScanState
     data object Scanning : ScanState
     data class Done(val report: ScanReport, val finishedAt: Long) : ScanState
@@ -133,25 +139,39 @@ fun ScannerScreen(scan: (String) -> String) {
 @Composable
 private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
-    var lastPath by remember { mutableStateOf<String?>(null) }
+    // 检查历史里显示的「扫的是哪个文件」——用 SAF 给的显示名，比缓存路径可读。
+    var targetName by remember { mutableStateOf("") }
     val pagerState = rememberPagerState(pageCount = { TAB_COUNT })
     val mainPagerState = rememberMainPagerState(pagerState)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
-    // 三页的骨架状态：全是空数据，往后接真实数据就换这里。
+    // 主页的数据还是空壳（本项目没有内核 / KernelSU 那套信息）。
     val homeState = remember { HomeUiState() }
-    val sulogState = remember { SulogScreenState() }
+
+    // 检查历史 = 本项目自己的扫描记录：一行一条 JSON 存在 filesDir，进页面时读一次。
+    // 记录在扫描成功后就写盘，这里只负责读出来并映射成 SU 日志列表能渲染的条目。
+    var history by remember { mutableStateOf<List<ScanRecord>>(emptyList()) }
+    LaunchedEffect(Unit) {
+        history = withContext(Dispatchers.IO) { ScanHistory.load(context) }
+    }
+    val sulogState = remember(history) {
+        SulogScreenState(entries = history.map(::scanRecordToSulogEntry))
+    }
 
     fun runScan(path: String) {
-        lastPath = path
         state = ScanState.Scanning
         scope.launch {
             val outcome = withContext(Dispatchers.IO) {
                 runCatching { parseReport(scan(path)) }
             }
             state = outcome.fold(
-                onSuccess = { report -> ScanState.Done(report, System.currentTimeMillis()) },
+                onSuccess = { report ->
+                    val finishedAt = System.currentTimeMillis()
+                    val record = ScanHistory.of(report, targetName, finishedAt)
+                    history = withContext(Dispatchers.IO) { ScanHistory.append(context, record) }
+                    ScanState.Done(report, finishedAt)
+                },
                 onFailure = { ScanState.Failed(it.message ?: "扫描失败") },
             )
         }
@@ -162,9 +182,10 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
         val path = runCatching { MainActivity.copyToCache(context, uri) }.getOrNull()
         if (path == null) {
             state = ScanState.Failed("无法读取所选文件")
-        } else {
-            runScan(path)
+            return@rememberLauncherForActivityResult
         }
+        targetName = MainActivity.displayName(context, uri) ?: uri.lastPathSegment ?: "所选文件"
+        runScan(path)
     }
 
     val homeActions = remember(picker) {
@@ -173,7 +194,15 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
             onOpenUrl = { url -> openLink(context, url) },
         )
     }
-    val sulogActions = remember { SulogActions() }
+    val sulogActions = remember(context) {
+        SulogActions(
+            // 清空是不可逆的：界面那边先弹确认，确认后才走到这里。
+            onCleanFile = {
+                ScanHistory.clear(context)
+                history = emptyList()
+            },
+        )
+    }
 
     // 手指滑 pager 时把底栏高亮同步过去（版式照 SukiSU 的 MainScreen）。
     LaunchedEffect(pagerState.currentPage) {
@@ -241,6 +270,7 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
                             state = homeState,
                             actions = homeActions,
                             bottomInnerPadding = bottomInnerPadding,
+                            scanState = state,
                         )
 
                         TAB_HISTORY -> SulogScreenMiuix(
@@ -361,3 +391,37 @@ private fun parseReport(json: String): ScanReport {
         notes = (0 until notes.length()).map { notes.optString(it) },
     )
 }
+
+/**
+ * 一条检查记录 -> 一个 SU 日志列表能渲染的条目。
+ * 列表骨架是移植件（SulogListMiuix.kt），形状不动，映射全在这一层做：
+ * 标题放模块名、描述放扫描对象、三个标签放高·中·低危计数、尾部状态放结论。
+ */
+private fun scanRecordToSulogEntry(record: ScanRecord): SulogEntry {
+    val title = record.moduleName.ifBlank { record.moduleId }
+    val time = formatScanTime(record.finishedAt)
+    return SulogEntry(
+        key = record.id,
+        eventType = SulogEventType.ScanReport,
+        rawLine = record.verdict,
+        timestampText = time,
+        fields = linkedMapOf(
+            ScanEntryFields.MODULE to title,
+            ScanEntryFields.TARGET to record.target,
+            ScanEntryFields.HIGH to record.high.toString(),
+            ScanEntryFields.MEDIUM to record.medium.toString(),
+            ScanEntryFields.LOW to record.low.toString(),
+            ScanEntryFields.VERDICT to record.verdict,
+            "版本" to record.version,
+            "包名" to record.moduleId,
+            "作者" to record.author,
+            "文件数" to record.fileCount.toString(),
+            "信息" to record.info.toString(),
+            "发现" to record.findings.size.toString(),
+            "时间" to time,
+        ).filterValues { it.isNotBlank() },
+    )
+}
+
+private fun formatScanTime(millis: Long): String =
+    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(millis))
