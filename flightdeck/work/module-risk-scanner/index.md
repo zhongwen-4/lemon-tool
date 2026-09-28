@@ -198,10 +198,14 @@
     **AGP 必须 ≥ 9.1.0**（我们是 8.11.1），要升就连带升 AGP 9 / Gradle 9 / Compose 1.12，并改 CI 的
     `gradle-version` 与 JDK。不升则用手写的 `SettingRow`（已落地）。详见
     `knowledge/android/miuix-0.8.8.md` 的「升到 0.9.x 的代价」。
-12. **三页接真实数据（下一轮就做）**：骨架已就位、口径已定 —— 主页 = 「点此开始检测」+「应用版本」+
-    「提交 BUG」+ **扫描结果**（现在选完 zip、结果算完就扔，得接到界面上）；检查历史 = **本项目自己的
-    扫描记录**（本项目**没有** `/data/adb/ksu/log` 这个数据源，要拿 `filesDir` 里的记录喂 SU 日志列表骨架）；
-    设置 = 关于 + 检查更新。用户 2026-09-28 原话：`然后实现一下检查模块和检查历史的功能`。
+12. ~~三页接真实数据~~ **已完成**（2026-09-28，见「进度」最后一条）：检查模块与检查历史都接上了。
+13. **真机验收**（下一件事）：装 0.7.0 上真机，走一遍「点此开始检测 → 选 zip → 看结论卡与发现列表 →
+    切到检查历史看记录 → 点条目看详情 → 清空」，重点看这几处观感与手感：结论卡的长文本换行、
+    发现卡的等级配色在深色下是否可读、条目卡在大字号下的裁切、清空确认弹窗的按钮宽度。
+14. 检查历史还差的周边（用户没要，先记着）：搜索 / 按等级筛选 / 单条删除 / 导出报告。
+15. 记录里现在只存 findings 的摘要字段，**没有存 notes 以外的原文上下文**；如果以后要「点开看原文件那一行」，
+    得连文件内容一起存（体积会涨，要重新掂量）。
+
 ## 进度
 
 - 2026-09-20 建档；同日定下 Android + C++ + 体积优先。
@@ -369,6 +373,26 @@
     上一轮那条「DNS 解到被墙 IP、本地开 CONNECT 隧道」的结论**已被推翻**；知识文件更名为
     `knowledge/tooling/github-push-and-local-proxy.md`（隧道降级成「没有代理时」的备选，并记下两个坑：
     CONNECT 行里端口后面还跟着 HTTP 版本会让 `int.Parse` 炸、github 的候选 IP 会漂）。
+
+- 2026-09-28 **实现检查模块与检查历史**（用户口径：`开工，检查历史上面的su日志改成检查历史`）。
+  - 检查模块 = 把已经打通的扫描链路接到界面：主页新增 `ScanSummarySection`
+    （检测中 `CircularProgressIndicator(progress = null)` 转圈 / 失败 `WarningCard` / 成功出结论卡），
+    结论卡按最高等级换底色，含 verdict 大字、模块名、版本·作者·文件数、高/中/低/信息计数标签、
+    发现条数与 notes；发现逐条一卡（等级标签 + 规则名 + 文件:行 + 说明），
+    走 LazyColumn 的**独立 item**（几百条也是懒加载，不撑爆首屏）。`ScanState` 由 private 改公开。
+  - 检查历史 = **本项目自己的扫描记录**（本项目没有 `/data/adb/ksu/log`）：新增 `ScanHistory.kt`，
+    一行一条 JSON 存 `filesDir/scan_history.jsonl`，新的在前、上限 200、超出丢最旧，读写全包在
+    `runCatching` 里（读坏当空历史）。扫描成功后写一条并刷新内存列表；进页面读一次。
+    骨架仍用移植来的 SU 日志列表：映射在 `ScanUi.kt` 的 `scanRecordToSulogEntry`，
+    键名走 `ScanEntryFields` 两边共用（防写岔）。顶栏标题由「SU 日志」改成「检查历史」，
+    空历史给提示卡，列表底部加一行「清空检查历史」（先弹确认再删，清空不可逆）。
+    MainActivity 加 `displayName()`，从 SAF 取显示名当历史里的「目标」。
+  - 版本 0.6.0/code7 → **0.7.0/code8**，commit `3ffed5b`。
+  - 本机 8 条出包前置全过。三条知识：新增 `android/scan-history-data-source.md`（数据源选择 + 映射表 +
+    两个必须知道的点）、`android/miuix-0.9.4.md` 补「查组件签名的三条路」、
+    `tooling/github-push-and-local-proxy.md` 补「代理会被随时开关，先看端口有没有在听」。
+  - 顺带发现：**代理软件关掉后，git push 直连就通了**（带 `-c http.proxy=127.0.0.1:7890` 反而失败）。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
@@ -376,6 +400,7 @@
 - `knowledge/build/msvc-utf8-source.md`、`knowledge/build/posix-vs-win32-portability.md`
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.9.4.md` — **动界面（MiuiX 0.9.4）前必读**：组件签名是实拉 sources jar 核对过的
+- `knowledge/android/scan-history-data-source.md` — 要动「检查历史」这一页、或给功能找本地持久化方案时读
 - `knowledge/android/sukisu-ui-port.md` — 要**继续移植 SukiSU 的界面**、或给本项目加新界面时必读
 - `knowledge/android/miuix-0.8.8.md` — 0.8.8 时期的历史记录（日常改界面看 0.9.4 那份）
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）

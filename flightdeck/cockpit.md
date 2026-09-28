@@ -7,22 +7,19 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 
 ## In flight
 
-- `work/module-risk-scanner/` — **界面骨架已按 SukiSU 摆好，下一步接真实数据**。
-  三页口径用户已在 2026-09-28 定死：主页 = 「点此开始检测」+「应用版本」+「提交 BUG」+ **扫描结果**；
-  检查历史 = **本项目自己的扫描记录**（本项目没有 `/data/adb/ksu/log` 这个数据源）；
-  设置 = 关于 + 检查更新。取色走 SukiSU 的**非莫奈**那一支（不再用莫奈取色）。
-  主页/设置页的精简与配色已落地、本机 8 条出包前置（debug/release Kotlin、两个 AAR 元数据、
-  两个清单合并、R8、资源优化）全过；版本 **0.6.0/code7**、commit `c14ecbb` 已推，
-  **CI run 28 两个 job 全绿（`core tests (host)` + `apk (arm64-v8a)`，已出包）**。
-  用户接下来要的是：`然后实现一下检查模块和检查历史的功能`。
+- `work/module-risk-scanner/` — **三页都接上真实数据了，等真机验收**。
+  三页口径用户已在 2026-09-28 定死并落地：主页 = 「点此开始检测」+ **扫描结果**（结论卡 + 逐条发现）
+  +「应用版本」+「提交 BUG」；检查历史 = **本项目自己的扫描记录**（一行一条 JSONL 存 `filesDir`，
+  上限 200），骨架仍是移植来的 SU 日志列表、顶栏标题已改成「检查历史」；设置 = 关于 + 检查更新。
+  取色走 SukiSU 的**非莫奈**那一支。版本 **0.7.0/code8**、commit `3ffed5b` 已推，
+  **CI run 30 两个 job 全绿（已出包）**。本机 8 条出包前置全过。
+  下一件事：装真机走一遍全链路（选 zip → 结论卡 → 发现列表 → 检查历史 → 详情 → 清空）。
 
 ## Next
 
-- **实现「检查模块」**：扫描链路（SAF 选 zip → `nativeScanJson` → `parseReport` → `ScanState`）已经全通，
-  只差显示 —— 把 `ScanState` 接到主页：扫描中的进度态、结果卡（模块名/版本/作者/文件数 +
-  高/中/低/信息计数 + `verdict`）、逐条 findings（按等级配色）、`notes` 与 `truncated`、失败态。
-- **实现「检查历史」**：用本项目自己的扫描记录（`filesDir` 里一份 JSONL，条数上限约 200）喂
-  SukiSU 的 SU 日志列表骨架（`SulogScreenMiuix` 的形状不动，`SulogScreenState.entries` 填映射后的记录）。
+- **真机验收**：重点看结论卡长文本换行、发现卡等级配色在深色下是否可读、条目卡在大字号下的裁切、
+  清空确认弹窗的按钮宽度。扫描本身只在真机验证过「选 zip → 出报告」，这轮补上界面显示后要重走一遍。
+- 检查历史的周边（用户没要，先记着）：搜索 / 按等级筛选 / 单条删除 / 导出报告。
 - 真机看三页观感：英雄卡实际高度与溢出图标的裁切、底栏胶囊拖动切页的手感、MiuiX 行组件在卡片里的间距。
 - 给 zip 条目数加上限（防内存被打爆）。
 - 用真实模块样本压误报（现在的夹具是自造的，覆盖面有限）。
@@ -37,6 +34,13 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   commit `c14ecbb`。三条知识：`android/theme-non-monet-sukisu.md`（新增）、
   `tooling/github-push-and-local-proxy.md`（改名并**推翻**昨天的结论：真凶是本机 7890 系统代理，
   PowerShell 走它、git 不走）、`tooling/file-edit-anchors-and-newlines.md`（补记切片端点差一位的第二次失手）。
+- 2026-09-28：**实现检查模块与检查历史** —— 主页新增 `ScanSummarySection`（检测中转圈 / 失败卡 /
+  结论卡）与逐条发现卡（走 LazyColumn 独立 item，懒加载）；新增 `ScanHistory.kt`（`filesDir` 里一行一条
+  JSONL，上限 200），映射层把记录变成 SU 日志列表能渲染的条目、键名走 `ScanEntryFields` 两边共用；
+  顶栏标题由「SU 日志」改成「检查历史」，补空态提示与「清空检查历史」（先弹确认）。版本 0.7.0/code8，
+  commit `3ffed5b`。三条知识：`android/scan-history-data-source.md`（新增）、`android/miuix-0.9.4.md`
+  补「查组件签名的三条路」、`tooling/github-push-and-local-proxy.md` 补「代理会被随时开关」，
+  另在 `tooling/file-edit-anchors-and-newlines.md` 记下「脚本报 OK 但文件没变」出现过两次。
 - 2026-09-28：**界面整包换成 SukiSU 的骨架**（UI 口径）—— 主页 / 关于 / 设置照搬结构与尺寸、
   检查历史换成 SU 日志列表、三页数据全是空状态，`History.kt` 删掉，`ScanUi.kt` 重写（1041 → 358 行）。
   版本 0.5.0/code6，commit `8517d3f`。两个坑进了知识库：here-string 丢换行把 `package` 粘进注释

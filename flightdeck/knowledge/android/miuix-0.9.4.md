@@ -93,3 +93,29 @@ ArrowPreference(
   onClick, onLongPress, content)`——**可点那个同样有 `insideMargin`**，全用命名参数传即可。
 - `top.yukonga.miuix.kmp.overlay.OverlayDialog` 在 0.9.4 里存在（同层还有 `OverlayListPopup` /
   `OverlayBottomSheet` / `OverlayCascadingListPopup`）。
+
+## 查 MiuiX 组件签名的三条路（2026-09-28 实测，按优先级）
+
+1. **上游 GitHub 仓库 `yukonga/miuix`**（最准最快，这次就是这么查到进度指示器的）：
+   `api.github.com/repos/yukonga/miuix/git/trees/main?recursive=1` 列全树找 `.kt`，
+   再用 `contents/<路径>?ref=main` + `Accept: application/vnd.github.raw` 取原文。
+   源码在 `miuix-ui/src/commonMain/kotlin/top/yukonga/miuix/kmp/...`（`miuix-preference` 等同理）。
+2. **`javap` 解本地 aar 的 classes.jar**（只想确认某个组件/重载存不存在、看 JVM 签名）：
+   缓存路径是 `C:\Users\admin\.gradle\caches\modules-2\files-2.1\top.yukonga.miuix.kmp\<构件>\0.9.4\<hash>\*.aar`，
+   用 `[System.IO.Compression.ZipFile]` 取里面的 `classes.jar`，再
+   `& "$JDK\bin\javap.exe" -classpath classes.jar top.yukonga.miuix.kmp.basic.ProgressIndicatorKt`。
+   注意 javap 打出来的是**混淆后的 JVM 签名**（`LinearProgressIndicator--jt2gSs`，`Dp` 变 `float`、
+   `Color` 变 `long`），只能看形状与参数个数，**参数名要靠第 1 条**。
+3. ~~拉 `-sources.jar`~~：`repo1.maven.org` 的目录索引常超时，本机 `Invoke-WebRequest` 直连也连不上
+   （这次 2 秒就报「无法连接到远程服务器」）。别浪费步数。
+
+**这次的结果（进度指示器，0.9.4 实有）**：
+
+```kotlin
+CircularProgressIndicator(modifier, progress: Float? = null, colors, strokeWidth: Dp, size: Dp)
+LinearProgressIndicator(modifier, progress: Float? = null, colors, height: Dp)
+InfiniteProgressIndicator(modifier, color: Color = Color.Gray, size: Dp, strokeWidth: Dp, orbitingDotSize: Dp)
+```
+
+**`progress = null` 就是「不确定进度」的转圈动画**（内部走 `rememberInfiniteTransition`），
+所以「扫描中」这种没有百分比的等待态直接传 `null` 即可，不用自己写 `restartable` 动画。

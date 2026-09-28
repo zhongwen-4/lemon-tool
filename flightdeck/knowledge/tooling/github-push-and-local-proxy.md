@@ -37,6 +37,24 @@ RECHECK WHEN: 代理软件关掉或换端口之后、换机器之后、或哪天
 - PowerShell 的 `Invoke-*` 一直能用（查 CI 从来没断过），这一点当时被当成了"网是好的"的证据，
   其实是"PowerShell 走了代理"的证据。
 
+## 代理软件是随时会开关的：两边都试一次（2026-09-28 当天就来回变了）
+
+同一天里这个代理**先开、后关**：上午 `ProxyEnable=1` + 7890 在听（push 必须带 `-c http.proxy`），
+下午用户把它关了（`ProxyEnable=0`、7890 没人听）→ 这时**直连 `git push` 就通了**，
+再带 `-c http.proxy=http://127.0.0.1:7890` 反而报
+`Failed to connect to github.com port 443 via 127.0.0.1 after 2112 ms`。
+
+所以正确姿势是**先看当前状态再决定**，不要记住「必须带代理」这个结论：
+
+```powershell
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -Name ProxyEnable,ProxyServer
+Get-NetTCPConnection -State Listen -LocalPort 7890 -ErrorAction SilentlyContinue
+# 端口在听 -> 带 -c http.proxy=...；没人听 -> 直接 git push
+```
+
+判断依据是「**那个端口此刻有没有进程在听**」，不是 `ProxyEnable` 的值本身
+（这次 `ProxyEnable=1` 时确实在听，但两者理论上可以不同步）。
+
 ## 备选：本地 CONNECT 隧道（没有代理时才用）
 
 思路：起一个只监听 `127.0.0.1` 的 TCP 隧道，把 `CONNECT host:443` 转给一个手工测通的 IP。

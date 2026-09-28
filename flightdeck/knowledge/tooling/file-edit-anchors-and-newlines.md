@@ -69,3 +69,23 @@ RECHECK WHEN: 仓库改了换行策略、或本机换掉 apply_patch 的包装�
   $t = [System.IO.File]::ReadAllText($p)
   "open=" + ([regex]::Matches($t,'\{')).Count + " close=" + ([regex]::Matches($t,'\}')).Count
   ```
+
+## 2026-09-28 第三次：「脚本报 OK、文件没变」出现过两次
+
+两次都是**插入型**改动静默没生效：一次是给 `MainActivity.kt` 插一行 import（`Contains` 为真、
+打印 OK，回读却发现没有），一次是给 work index 的 `## Read now` 插一行指针（同样打印 OK、
+`Select-String` 却搜不到）。**重跑同一条命令就过了**，两次的锚点事后手工验证都能匹配，
+所以不是锚点问题——是这套「读全文 → Replace → WriteAllText」在本机偶发不稳。
+
+结论（比"再确认一次锚点"更实用）：
+
+- **别信脚本自己打印的 OK。** 写完整份文件后立刻回读断言，断言才是唯一的成功判据：
+  ```powershell
+  $v = [System.IO.File]::ReadAllText($p)
+  "ok=$($v.Contains($new))"
+  ```
+- 断言为 false 就**重跑同一条命令**（别先怀疑锚点、别急着换写法），本机两次都是重跑即中。
+- 顺手把 `$nl = if ($t.Contains("`r`n")) { "`r`n" } else { "`n" }` 先算出来再拼锚点，
+  别在 `@()` 数组里用 `'...' + "`r`n" + '...'` 这种就地拼接——它是这两次里共有的写法特征。
+- 同一轮里改多个位置时，把「锚点/替换/标签」收集成数组再统一跑**并不能**豁免这条：
+  上面两次就是这么写的。
