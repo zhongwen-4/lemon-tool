@@ -520,34 +520,34 @@ private fun scanRecordToSulogEntry(record: ScanRecord): SulogEntry {
 }
 
 /**
- * 检查历史详情里 fields 之后的那段正文：发现逐条（等级 / 规则 / 文件:行 / 说明）+ 核心给的提示。
- * 用户 2026-09-29 的口径：结果全部留在「检查历史」，主页只留一张按风险着色的结论卡。
- * 标签直接用 [ScanEntryFields] 那套中文键名 —— 与上面 fields 的键名同一套，本来就写在同一个映射里。
+ * 检查历史详情里 fields 之后的那段正文 —— 写成与上面 fields 同一套「key: value」日志格式
+ * （用户 2026-09-29：每条检查都照 SU 日志那种日志写法来），发现逐条一段、提示一段，全是等宽文本、可选中复制。
+ * 段落标题与等级标签都复用 [ScanEntryFields] 里那套中文键名。
  */
 private fun scanRecordDetail(record: ScanRecord): String? {
     val lines = mutableListOf<String>()
-    if (record.findings.isNotEmpty()) {
-        lines += "【发现明细】"
-        record.findings.forEachIndexed { index, finding ->
-            val where = when {
-                finding.file.isBlank() -> ""
-                finding.line > 0 -> finding.file + ":" + finding.line
-                else -> finding.file
-            }
-            val place = if (where.isEmpty()) "" else " —— " + where
-            lines += (index + 1).toString() + ". [" + severityLabel(finding.severity) + "] " + finding.rule + place
-            if (finding.detail.isNotBlank()) lines += "    " + finding.detail
+    record.findings.forEachIndexed { index, finding ->
+        if (index > 0) lines += ""
+        lines += "发现 " + (index + 1) + "/" + record.findings.size
+        lines += "等级: " + severityLabel(finding.severity)
+        lines += "规则: " + finding.rule
+        if (finding.file.isNotBlank()) {
+            lines += "文件: " + finding.file + if (finding.line > 0) ":" + finding.line else ""
         }
-        if (record.truncated) lines += "（结果过多，已截断）"
+        if (finding.detail.isNotBlank()) lines += "说明: " + finding.detail
+    }
+    if (record.truncated) {
+        if (lines.isNotEmpty()) lines += ""
+        lines += "截断: 结果过多，只保留了前面这些"
     }
     if (record.notes.isNotEmpty()) {
         if (lines.isNotEmpty()) lines += ""
-        lines += "【提示】"
-        record.notes.forEach { lines += "· " + it }
+        record.notes.forEachIndexed { index, note ->
+            lines += "提示 " + (index + 1) + ": " + note
+        }
     }
     return lines.takeIf { it.isNotEmpty() }?.joinToString("\n")
 }
-
 /** 核心给的 severity 是英文小写（high / medium / low / info），翻成与 fields 键名同一套中文。 */
 private fun severityLabel(severity: String): String = when (severity) {
     "high" -> ScanEntryFields.HIGH

@@ -35,8 +35,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
@@ -63,6 +61,7 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -407,85 +406,86 @@ private fun ScanResultStatusCard(
     onClick: () -> Unit,
 ) {
     val dark = isInDarkTheme()
-    val (container, accent, icon) = when {
-        report.high > 0 -> Triple(
-            if (dark) Color(0xFF310808) else Color(0xFFF8E2E2),
-            Color(0xFFF72727),
-            Icons.Rounded.ErrorOutline,
-        )
-
-        report.medium > 0 -> Triple(
-            if (dark) Color(0xFF3E2F1B) else Color(0xFFFFF0DB),
-            Color(0xFFF5A623),
-            Icons.Rounded.Warning,
-        )
-
-        else -> Triple(
-            if (dark) Color(0xFF1A3825) else Color(0xFFDFFAE4),
-            Color(0xFF36D167),
-            Icons.Rounded.CheckCircleOutline,
-        )
+    // 卡片按「最高那一档」定色、定标题：高危 -> 中危 -> 低危（只有低危 / 信息也算低危），
+    // 一档都没有才落到「未发现风险」（那种情况叫它低危是假话）。
+    val level = when {
+        report.high > 0 -> "high"
+        report.medium > 0 -> "medium"
+        report.low > 0 || report.info > 0 -> "low"
+        else -> "none"
+    }
+    val container = when (level) {
+        "high" -> if (dark) Color(0xFF310808) else Color(0xFFF8E2E2)
+        "medium" -> if (dark) Color(0xFF3E2F1B) else Color(0xFFFFF0DB)
+        else -> if (dark) Color(0xFF1A3825) else Color(0xFFDFFAE4)
+    }
+    val accent = when (level) {
+        "high" -> Color(0xFFF72727)
+        "medium" -> Color(0xFFF5A623)
+        else -> Color(0xFF36D167)
+    }
+    val icon = when (level) {
+        "high" -> Icons.Rounded.ErrorOutline
+        "medium" -> Icons.Rounded.Warning
+        else -> Icons.Rounded.CheckCircleOutline
+    }
+    val title = when (level) {
+        "high" -> stringResource(R.string.scan_severity_high)
+        "medium" -> stringResource(R.string.scan_severity_medium)
+        "low" -> stringResource(R.string.scan_severity_low)
+        else -> stringResource(R.string.scan_no_findings)
     }
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(IntrinsicSize.Min),
-        verticalAlignment = Alignment.CenterVertically,
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.defaultColors(color = container),
+        onClick = onClick,
+        showIndication = true,
+        pressFeedbackType = PressFeedbackType.Tilt,
     ) {
-        Card(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.defaultColors(color = container),
-            onClick = onClick,
-            showIndication = true,
-            pressFeedbackType = PressFeedbackType.Tilt,
-        ) {
-            Box {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .offset(27.dp, 31.dp),
-                    contentAlignment = Alignment.BottomEnd,
-                ) {
-                    Icon(
-                        modifier = Modifier.size(110.dp),
-                        imageVector = icon,
-                        tint = accent,
-                        contentDescription = null,
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp, 14.dp),
-                    contentAlignment = Alignment.TopStart,
-                ) {
-                    Column {
-                        Text(
-                            text = report.verdict,
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.SemiBold,
-                        )
-                        Spacer(Modifier.height(1.dp))
-                        Text(
-                            text = severityCountsText(report),
-                            fontSize = 15.sp,
-                            modifier = Modifier.weight(1f, fill = false),
-                        )
-                    }
-                }
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(16.dp, 10.dp),
-                    contentAlignment = Alignment.BottomStart,
-                ) {
-                    Text(
-                        text = report.moduleName.ifBlank { report.moduleId },
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Medium,
-                    )
-                }
+        Box {
+            // 装饰层：右下角那枚「溢出、被卡片裁掉一角」的大图标。
+            // 这里必须用 matchParentSize()、不能用 fillMaxSize() —— 后者会让这一层也参与定尺寸，
+            // 三块内容于是被塞进同一格、文字互相压住（0.11.0 那个观感 bug 就是这么来的）。
+            Box(
+                modifier = Modifier
+                    .matchParentSize()
+                    .offset(27.dp, 31.dp),
+                contentAlignment = Alignment.BottomEnd,
+            ) {
+                Icon(
+                    modifier = Modifier.size(110.dp),
+                    imageVector = icon,
+                    tint = accent,
+                    contentDescription = null,
+                )
+            }
+            // 内容层自己定卡片高度：大字等级 -> 计数 -> 模块名，靠 Spacer 拉开，不会重叠。
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 16.dp, end = 16.dp, top = 14.dp, bottom = 14.dp),
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    text = severityCountsText(report),
+                    fontSize = 15.sp,
+                )
+                Spacer(Modifier.height(18.dp))
+                Text(
+                    text = report.moduleName.ifBlank { report.moduleId },
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    // 给右下角那枚大图标留出位置：它可见的那一角从右边起约 83dp 宽。
+                    modifier = Modifier.padding(end = 96.dp),
+                )
             }
         }
     }
