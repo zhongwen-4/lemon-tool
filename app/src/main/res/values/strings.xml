@@ -38,6 +38,7 @@
     <string name="scan_severity_low">低危</string>
     <string name="scan_severity_info">信息</string>
     <string name="scan_findings_count">发现 %1$d 条</string>
+    <string name="scan_no_findings">未发现风险</string>
     <string name="scan_truncated">结果过多，已截断</string>
     <string name="scan_history_empty">还没有检查记录</string>
     <string name="scan_history_empty_summary">回主页点「点此开始检测」，选一个模块安装包试试</string>

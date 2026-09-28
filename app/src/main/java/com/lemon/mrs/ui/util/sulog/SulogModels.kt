@@ -38,6 +38,11 @@ data class SulogEntry(
     val rawLine: String,
     val timestampText: String?,
     val fields: Map<String, String>,
+    /**
+     * ScanReport 专用：详情弹窗在 fields 之后原样渲染的那段明细正文（发现逐条 + 提示），
+     * 由 ScanUi.kt 的 scanRecordToSulogEntry 填好。null 表示这类条目没有附加明细。
+     */
+    val extraDetail: String? = null,
 ) {
     val searchableText: String by lazy {
         buildString {
@@ -68,4 +73,5 @@ object ScanEntryFields {
     const val MEDIUM = "中危"
     const val LOW = "低危"
     const val VERDICT = "结论"
+    const val INFO = "信息"
 }

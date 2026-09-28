@@ -12,10 +12,12 @@
 //      - InfoCard 只留一行「应用版本」（版本号从本机 PackageManager 取），上游那一堆内核/设备信息
 //        与 SELinux + Seccomp 两张信息卡全删。
 //      - SupportLinks（支持开发 / 了解 KernelSU）换成一行「提交 BUG」，指向本项目 issues。
-//   ⑥ 2026-09-28 接上「检查模块」：新增 ScanSummarySection（检测中转圈 / 失败报错 / 成功出结论卡）
-//      与 scanFindingsSection（发现逐条一卡，按等级配色）——扫描本身在 ScanUi.kt 里跑，
-//      这里只负责把 ScanState 画出来。findings 走 LazyColumn 的独立 item，
-//      这样几百条也是懒加载，不会把首屏撑爆。
+//   ⑥ 2026-09-28 接上「检查模块」：主页加一张结论卡与逐条发现卡（扫描在 ScanUi.kt 里跑，
+//      这里只负责把 ScanState 画出来）。
+//   ⑦ 2026-09-29 用户口径变了：**结果全部进「检查历史」**，主页只留一张检查卡 ——
+//      待机是「点此开始检测」，出结果后按最高风险整卡着色（高危红 / 中危黄 / 其余绿；
+//      版式照上游主页那张「工作中」卡：左上大字结论 + 一行计数、左下模块名、右下 110dp 大图标），
+//      逐条发现卡与那张详细结论卡都从主页删掉（明细在检查历史的详情里看）。
 package com.lemon.mrs.ui.screen.home
 
 import androidx.compose.animation.AnimatedVisibility
@@ -33,7 +35,10 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
@@ -41,11 +46,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyListScope
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.BugReport
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material.icons.rounded.ErrorOutline
+import androidx.compose.material.icons.rounded.CheckCircleOutline
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -57,18 +63,16 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.lemon.mrs.Finding
 import com.lemon.mrs.R
 import com.lemon.mrs.ScanState
+import com.lemon.mrs.ScanReport
 import com.lemon.mrs.ui.component.WarningLevel
 import com.lemon.mrs.ui.component.dialog.rememberConfirmDialog
 import com.lemon.mrs.ui.component.miuix.WarningCard
 import com.lemon.mrs.ui.component.rebootlistpopup.RebootListPopupMiuix
-import com.lemon.mrs.ui.component.statustag.StatusTag
 import com.lemon.mrs.ui.theme.LocalEnableBlur
 import com.lemon.mrs.ui.theme.isInDarkTheme
 import com.lemon.mrs.ui.util.BlurredBar
@@ -164,8 +168,7 @@ fun HomePagerMiuix(
                         if (state.showRootWarning) {
                             WarningCard(stringResource(id = R.string.grant_root_failed))
                         }
-                        CheckEntryCard(actions = actions)
-                        ScanSummarySection(scanState = scanState)
+                        CheckCard(scanState = scanState, actions = actions)
                         InfoCard(modifier = Modifier.fillMaxWidth())
                         SupportLinks(
                             onOpenUrl = actions.onOpenUrl,
@@ -173,7 +176,6 @@ fun HomePagerMiuix(
                         )
                     }
                 }
-                scanFindingsSection(scanState = scanState)
                 item {
                     Spacer(Modifier.height(bottomInnerPadding))
                 }
@@ -233,30 +235,7 @@ private fun TopBar(
         )
     }
 }
-@Composable
-private fun CheckEntryCard(
-    actions: HomeActions,
-) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        onClick = actions.onInstallClick,
-        showIndication = true,
-        pressFeedbackType = PressFeedbackType.Tilt,
-    ) {
-        BasicComponent(
-            title = stringResource(R.string.home_click_to_check),
-            summary = stringResource(R.string.home_click_to_check_summary),
-            startAction = {
-                Icon(
-                    Icons.Rounded.Search,
-                    stringResource(R.string.home_click_to_check),
-                    modifier = Modifier.padding(end = 16.dp),
-                    tint = colorScheme.onBackground,
-                )
-            }
-        )
-    }
-}
+
 
 @Composable
 private fun SupportLinks(
@@ -346,11 +325,22 @@ private fun InfoCard(
 
 // ---- 检查模块：把 ScanUi.kt 里跑出来的 ScanState 画出来 ----
 
-/** 检测中转圈 / 失败报错 / 成功出结论卡。Idle 时什么都不画。 */
+/**
+ * 检查卡：主页上唯一的检查入口，长相跟着 [scanState] 走。
+ *
+ * 待机 = 上游那张「点此开始检测」行卡；检测中 = 转圈 + 文案；
+ * 出结果 = 照 SukiSU 主页「工作中」那张卡的版式，整卡按最高风险换成红 / 黄 / 绿 ——
+ * 左上是大字结论加一行计数，左下角是模块名，右下角一枚被卡片裁掉一角的 110dp 大图标。
+ * **结果明细不在这里**（用户口径：结果全部进「检查历史」），主页只留这张结论卡；
+ * 点它一律是「重新选包检测」。
+ */
 @Composable
-private fun ScanSummarySection(scanState: ScanState) {
+private fun CheckCard(
+    scanState: ScanState,
+    actions: HomeActions,
+) {
     when (scanState) {
-        is ScanState.Idle -> Unit
+        is ScanState.Idle -> CheckEntryCard(actions = actions)
 
         is ScanState.Scanning -> Card(modifier = Modifier.fillMaxWidth()) {
             Row(
@@ -378,189 +368,137 @@ private fun ScanSummarySection(scanState: ScanState) {
             modifier = Modifier.fillMaxWidth(),
         )
 
-        is ScanState.Done -> ScanResultCard(scanState)
+        is ScanState.Done -> ScanResultStatusCard(
+            report = scanState.report,
+            onClick = actions.onInstallClick,
+        )
     }
 }
 
-/** 结论卡：整卡按最高等级换底色，里面是结论大字 + 模块信息 + 四级计数 + 提示。 */
 @Composable
-private fun ScanResultCard(done: ScanState.Done) {
-    val report = done.report
-    val container = when {
-        report.high > 0 -> severityContainerColor("high")
-        report.medium > 0 -> severityContainerColor("medium")
-        else -> colorScheme.surfaceContainer
-    }
-
+private fun CheckEntryCard(
+    actions: HomeActions,
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.defaultColors(
-            color = container,
-            contentColor = colorScheme.onSurfaceContainer,
-        ),
+        onClick = actions.onInstallClick,
+        showIndication = true,
+        pressFeedbackType = PressFeedbackType.Tilt,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(
-                text = report.verdict,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = colorScheme.onSurface,
-            )
-            Text(
-                text = report.moduleName.ifBlank { report.moduleId },
-                fontSize = MiuixTheme.textStyles.headline1.fontSize,
-                fontWeight = FontWeight.Medium,
-                color = colorScheme.onSurface,
-            )
-            val meta = listOfNotNull(
-                report.version.takeIf { it.isNotBlank() },
-                report.author.takeIf { it.isNotBlank() }
-                    ?.let { stringResource(R.string.scan_author) + "：" + it },
-                stringResource(R.string.scan_files) + "：" + report.fileCount,
-            ).joinToString(" · ")
-            Text(
-                text = meta,
-                fontSize = MiuixTheme.textStyles.body2.fontSize,
-                color = colorScheme.onSurfaceVariantSummary,
-            )
-            Row(
-                modifier = Modifier.padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-            ) {
-                CountTag(stringResource(R.string.scan_severity_high), report.high, "high")
-                CountTag(stringResource(R.string.scan_severity_medium), report.medium, "medium")
-                CountTag(stringResource(R.string.scan_severity_low), report.low, "low")
-                CountTag(stringResource(R.string.scan_severity_info), report.info, "info")
-            }
-            if (report.findings.isNotEmpty()) {
-                Text(
-                    text = stringResource(R.string.scan_findings_count, report.findings.size),
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight(550),
-                    color = colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(top = 2.dp),
+        BasicComponent(
+            title = stringResource(R.string.home_click_to_check),
+            summary = stringResource(R.string.home_click_to_check_summary),
+            startAction = {
+                Icon(
+                    Icons.Rounded.Search,
+                    stringResource(R.string.home_click_to_check),
+                    modifier = Modifier.padding(end = 16.dp),
+                    tint = colorScheme.onBackground,
                 )
             }
-            if (report.truncated) {
-                Text(
-                    text = stringResource(R.string.scan_truncated),
-                    fontSize = 12.sp,
-                    color = colorScheme.onSurfaceVariantSummary,
-                )
-            }
-            report.notes.forEach { note ->
-                Text(
-                    text = note,
-                    fontSize = 12.sp,
-                    color = colorScheme.onSurfaceVariantSummary,
-                )
-            }
-        }
+        )
     }
 }
 
-/** 一条发现：等级小标签 + 规则名 + 文件:行 + 说明。 */
+/** 结论卡：整卡按最高风险着色（高危红 / 中危黄 / 其余绿），版式与上游「工作中」那张卡一致。 */
 @Composable
-private fun ScanFindingCard(finding: Finding) {
-    Card(
+private fun ScanResultStatusCard(
+    report: ScanReport,
+    onClick: () -> Unit,
+) {
+    val dark = isInDarkTheme()
+    val (container, accent, icon) = when {
+        report.high > 0 -> Triple(
+            if (dark) Color(0xFF310808) else Color(0xFFF8E2E2),
+            Color(0xFFF72727),
+            Icons.Rounded.ErrorOutline,
+        )
+
+        report.medium > 0 -> Triple(
+            if (dark) Color(0xFF3E2F1B) else Color(0xFFFFF0DB),
+            Color(0xFFF5A623),
+            Icons.Rounded.Warning,
+        )
+
+        else -> Triple(
+            if (dark) Color(0xFF1A3825) else Color(0xFFDFFAE4),
+            Color(0xFF36D167),
+            Icons.Rounded.CheckCircleOutline,
+        )
+    }
+
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(bottom = 12.dp),
+            .height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.defaultColors(color = container),
+            onClick = onClick,
+            showIndication = true,
+            pressFeedbackType = PressFeedbackType.Tilt,
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                StatusTag(
-                    label = finding.severityLabel(),
-                    backgroundColor = severityContainerColor(finding.severity),
-                    contentColor = severityAccentColor(finding.severity),
-                )
-                Text(
-                    text = finding.rule,
-                    fontSize = MiuixTheme.textStyles.headline1.fontSize,
-                    fontWeight = FontWeight.Medium,
-                    color = colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
-                )
-            }
-            if (finding.file.isNotBlank()) {
-                Text(
-                    text = if (finding.line > 0) finding.file + "：" + finding.line else finding.file,
-                    fontSize = 12.sp,
-                    color = colorScheme.onSurfaceVariantSummary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (finding.detail.isNotBlank()) {
-                Text(
-                    text = finding.detail,
-                    fontSize = 12.sp,
-                    color = colorScheme.onSurfaceVariantSummary,
-                )
+            Box {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset(27.dp, 31.dp),
+                    contentAlignment = Alignment.BottomEnd,
+                ) {
+                    Icon(
+                        modifier = Modifier.size(110.dp),
+                        imageVector = icon,
+                        tint = accent,
+                        contentDescription = null,
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp, 14.dp),
+                    contentAlignment = Alignment.TopStart,
+                ) {
+                    Column {
+                        Text(
+                            text = report.verdict,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Spacer(Modifier.height(1.dp))
+                        Text(
+                            text = severityCountsText(report),
+                            fontSize = 15.sp,
+                            modifier = Modifier.weight(1f, fill = false),
+                        )
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(16.dp, 10.dp),
+                    contentAlignment = Alignment.BottomStart,
+                ) {
+                    Text(
+                        text = report.moduleName.ifBlank { report.moduleId },
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium,
+                    )
+                }
             }
         }
     }
 }
 
-/** 发现逐条一卡；走 LazyColumn 的独立 item，几百条也不会把首屏撑爆。 */
-private fun LazyListScope.scanFindingsSection(scanState: ScanState) {
-    val findings = (scanState as? ScanState.Done)?.report?.findings.orEmpty()
-    itemsIndexed(findings) { _, finding ->
-        ScanFindingCard(finding)
+/** 「高危 n · 中危 n …」：只列非零的那几档；一档都没有就说「未发现风险」。 */
+@Composable
+private fun severityCountsText(report: ScanReport): String {
+    val parts = buildList {
+        if (report.high > 0) add(stringResource(R.string.scan_severity_high) + " " + report.high)
+        if (report.medium > 0) add(stringResource(R.string.scan_severity_medium) + " " + report.medium)
+        if (report.low > 0) add(stringResource(R.string.scan_severity_low) + " " + report.low)
+        if (report.info > 0) add(stringResource(R.string.scan_severity_info) + " " + report.info)
     }
-}
-
-/** 计数小标签：底色与前景色都按等级走，跟结论卡、发现卡同一套。 */
-@Composable
-private fun CountTag(label: String, count: Int, severity: String) {
-    StatusTag(
-        label = if (count > 0) label + " " + count else label,
-        backgroundColor = severityContainerColor(severity),
-        contentColor = severityAccentColor(severity),
-    )
-}
-
-/** 等级底色：高危 / 中危与 WarningCard 那两套一致，低危另给一档蓝，信息用卡片底色。 */
-@Composable
-private fun severityContainerColor(severity: String): Color {
-    val dark = isInDarkTheme()
-    return when (severity) {
-        "high" -> if (dark) Color(0xFF310808) else Color(0xFFF8E2E2)
-        "medium" -> if (dark) Color(0xFF3E2F1B) else Color(0xFFFFF0DB)
-        "low" -> if (dark) Color(0xFF152238) else Color(0xFFE3ECFB)
-        else -> colorScheme.surfaceContainer
-    }
-}
-
-/** 等级前景色：与上面那几档底色配对，保证对比度。 */
-@Composable
-private fun severityAccentColor(severity: String): Color = when (severity) {
-    "high" -> Color(0xFFF72727)
-    "medium" -> Color(0xFFF5A623)
-    "low" -> Color(0xFF2A6BE0)
-    else -> colorScheme.onSurfaceVariantSummary
-}
-
-/** 核心给的 severity 是英文小写（high / medium / low / info），这里翻成给人看的词。 */
-@Composable
-private fun Finding.severityLabel(): String = when (severity) {
-    "high" -> stringResource(R.string.scan_severity_high)
-    "medium" -> stringResource(R.string.scan_severity_medium)
-    "low" -> stringResource(R.string.scan_severity_low)
-    else -> stringResource(R.string.scan_severity_info)
+    return if (parts.isEmpty()) stringResource(R.string.scan_no_findings) else parts.joinToString(" · ")
 }

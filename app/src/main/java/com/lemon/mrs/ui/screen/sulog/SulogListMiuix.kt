@@ -23,6 +23,9 @@
 //         （标签要读 string 资源）；
 //      ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」——点了先弹确认，
 //         确认后才走 actions.onCleanFile（清空是不可逆的，不做静默删除）。
+//   ⑦ 2026-09-29 用户口径：「检查模块的结果全部放进检查历史」——条目详情里除了 fields 那几行，
+//      再加一段正文（发现逐条 + 提示，ScanUi.kt 的 scanRecordDetail 生成、走 SulogEntry.extraDetail），
+//      主页那边只留一张按风险着色的结论卡。
 package com.lemon.mrs.ui.screen.sulog
 
 import androidx.compose.foundation.Image
@@ -315,6 +318,15 @@ private fun SulogDetailDialog(
                         fontSize = 14.sp,
                         fontFamily = FontFamily.Monospace,
                     )
+                    // 本项目自己的检查结果：发现逐条 + 提示（由 ScanUi.kt 填进 extraDetail）。
+                    displayEntry.extraDetail?.let { detail ->
+                        Text(
+                            text = detail,
+                            fontSize = 14.sp,
+                            fontFamily = FontFamily.Monospace,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                    }
                 }
                 Spacer(Modifier.height(12.dp))
                 TextButton(
