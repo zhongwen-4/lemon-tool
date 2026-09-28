@@ -9,8 +9,12 @@ SUMMARY: 本项目已是 **GPL-3.0**（根目录 LICENSE），与 SukiSU 源码�
 **「不要毛玻璃」这条一决定，blur/liquid/InteractiveHighlight 整条链都不用搬**——上游那个
 `InteractiveHighlight` 只在 `isBlurEnabled` 那一路里用，纯色路径不需要它，顺带避开
 `android.graphics.RuntimeShader`（要 API 33）与本项目 minSdk 24 的冲突。
+**两个例外 / 补充（2026-09-28）**：① 关于页的 OS3 渐变背景**不是毛玻璃**，它只在运行时门控
+API 33/35，已经搬进来（见 `about-bg-effect-shader.md`）——「不搬 blur」与「搬那个背景」并不冲突；
+② 上游页面的「返回」由 navigation3 的路由栈管，本项目没有导航库，**凡是从 `ScannerScreen` 切出去的子页
+都得自己接 `BackHandler`**（不接的话在子页按返回直接退出 App；关于页就是这么修的）。
 READ WHEN: before 继续移植 SukiSU（或 KernelSU 系）的界面代码、或要给本项目加新界面时。
-RECHECK WHEN: 上游大改目录结构，或本项目决定启用毛玻璃之后。
+RECHECK WHEN: 上游大改目录结构，或本项目决定启用毛玻璃、或引入导航库之后。
 
 ---
 
@@ -77,3 +81,18 @@ Invoke-RestMethod -Uri "https://api.github.com/repos/SukiSU-Ultra/SukiSU-Ultra/c
 **搬的时候的取舍（都是用户明说的）**：毛玻璃继续不做（`miuix-blur` 要 minSdk 33）；
 只看 Miuix 一路；上游那一页里「打开另一个子页面」的 ArrowPreference 全部保留、
 动作走 `SettingsScreenActions` 的空实现（主题/工具/KPM/SuSFS/卸载这些本项目还没有）。
+
+## 第三批：关于页的两处修正（commit `08c4cb4`，2026-09-28，版本 0.8.0/code9）
+
+用户口径：「关于页的返回逻辑有问题，并且关于页不是有背景色吗，也抄过来」。
+
+| 本项目文件 | 上游 | 改了什么 |
+| --- | --- | --- |
+| `ui/screen/about/AboutScreen.kt` | 同名 | **补 `BackHandler(enabled = true) { onBack() }`**：上游的返回归 navigation3 的路由栈，本项目没有导航库，得自己接（不接就按返回退出 App） |
+| `ui/screen/about/AboutMiuix.kt` | 同名 | `BgEffectBackground` 的两个参数由写死的 `false` 换成算出来的 `effectBackground`（口径与理由见 `about-bg-effect-shader.md`） |
+| `ui/component/miuix/effect/`（`BgEffectBackground` / `BgEffectConfig` / `BgEffectPainter` / `BgEffectModifier` / `OS3BgFrag` / `DeviceType`）+ `ui/util/WindowSize.kt` | `ui/component/miuix/effect/*` + `ui/util/WindowSize.kt` | **新增**：整条 OS3 渐变背景；`kmp.blur` → `kmp.shader`（`app/build.gradle` 新增 `miuix-shader-android:0.9.4`） |
+| `ScanUi.kt` | 无（本项目自写） | 主题抽成 `MiuixAppTheme`，about 分支也包上（见 `miuix-theme-scope.md`） |
+
+要点：**「不搬毛玻璃」不等于「不搬 RuntimeShader」** —— 毛玻璃（`layerBackdrop` / `InteractiveHighlight`）
+要的是 minSdk 33 的 **manifest** 门槛，所以那个坐标不能用；OS3 渐变背景只是**运行时**门控，
+minSdk 24 照样编得过。

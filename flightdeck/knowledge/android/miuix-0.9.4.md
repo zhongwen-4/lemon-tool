@@ -7,6 +7,8 @@ compose-bom 2026.09.00 —— **与 SukiSU Ultra 完全同一套**，所以它�
 **硬门槛（2026-09-27 实测）**：0.9.4 全家桶要求 **`compileSdk ≥ 37`**（差一档就在
 `checkReleaseAarMetadata` 直接失败，20 条 issue）；`miuix-blur-android:0.9.4` 的 manifest 硬要求
 **`minSdk 33`**，与本项目 `minSdk 24` 冲突，所以**那个坐标已经删掉**（代码里也没人用它）。
+它的兄弟 **`miuix-shader-android:0.9.4`** 门槛不同：**minSdk 24**，2026-09-28 起已启用
+（给关于页的 OS3 渐变背景用，见 `about-bg-effect-shader.md`）。
 详见 `knowledge/build/compile-sdk-and-aar-metadata.md`。
 0.9.x 才有的东西：整个 `preference` 包（一行一项的设置列表全靠它）、`blur.*`（Backdrop 毛玻璃）、
 `MiuixScrollBehavior`、`overScrollVertical`、`isDynamicColor`。**0.8.8 里这些一个都没有**。
@@ -23,7 +25,9 @@ RECHECK WHEN: MiuiX 再升版本，或 compose-bom / AGP 换大版本之后。
   `miuix-preference-android`，全是 **0.9.4**；compose-bom 2026.09.00；
   `material-icons-extended`（图标仍用它，Apache-2.0）。
   ~~`miuix-blur-android`~~ **2026-09-27 已删除**：它的 manifest 硬要求 `minSdk 33`，与本项目 `minSdk 24` 冲突
-  （毛玻璃那一路移植时本来就没要，见 `sukisu-ui-port.md`）。
+  （毛玻璃那一路移植时本来就没要，见 `sukisu-ui-port.md`）。2026-09-28 起新增
+  **`miuix-shader-android:0.9.4`**（minSdk 24，包名 `top.yukonga.miuix.kmp.shader`，给关于页的
+  OS3 渐变背景；**`miuix-ui` 不会带它进来，必须显式加依赖行**）。
 - 本机 `./gradlew.bat :app:compileDebugKotlin --offline` 与 `compileReleaseKotlin` 都能过
   （0.9.4 的依赖已在 Gradle 缓存里）。**但这两条过不算验证过出包**：AAR 元数据与清单合并要另外跑，
   见 `knowledge/build/android-toolchain.md` 的「本机验证能走到哪一步」。打 APK 仍只靠 CI（本机没 NDK）。

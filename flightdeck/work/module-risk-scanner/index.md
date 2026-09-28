@@ -396,6 +396,24 @@
     （实测 4 秒推完）。前提是**推之前先 TCP 测一遍候选 IP**——它们隔十几分钟通断就会反过来。
     三条路的取舍已全部写进 `tooling/github-push-and-local-proxy.md`。
 
+- 2026-09-28 **关于页：接系统返回键 + 搬上游 OS3 动态背景**。用户口径：「关于页的返回逻辑有问题，
+  并且关于页不是有背景色吗，也抄过来」。
+  - 返回键：上游归 navigation3 的路由栈管，本项目没有导航库 → `AboutScreen.kt` 补 `BackHandler`，
+    否则在关于页按返回会直接退出 App。
+  - 背景色：上游的 `BgEffectBackground` 是 **AGSL RuntimeShader 渐变**（不是毛玻璃）。抄的时候
+    两个参数被写死成 `false`，而 `isRuntimeShaderSupported()` 为假时它整条 `return` → 背景完全没有。
+    这次把 effect 包整包搬进来（`BgEffectBackground` / `BgEffectConfig` / `BgEffectPainter` /
+    `BgEffectModifier` / `OS3BgFrag` / `DeviceType`）+ `ui/util/WindowSize.kt`；RuntimeShader 改从
+    **`miuix-shader-android:0.9.4`** 取（minSdk 24；上游走 `miuix-blur`，那个坐标被 minSdk 33 卡死），
+    门控保留上游口径 `isRuntimeShaderSupported() && SDK >= 35` → **只有 Android 15+ 画渐变，
+    低版本退化成窗口底色**（不是升级了才有的效果，是上游本身这么门控）。
+  - 顺带修一个真 bug：`MiuixTheme` 原先只套在 `ScannerShell` 里，关于页落到 `lightColorScheme()`
+    默认值上（深色模式底色发白、拿到的 `surface` 也不对）→ 抽成 `MiuixAppTheme`，两个分支共用。
+  - 版本 0.7.0/code8 → **0.8.0/code9**，commit `08c4cb4`；CI run `36365506193` 两个 job 全绿（已出包）；
+    本机 8 条出包前置全过。
+  - 两条新知识：`android/about-bg-effect-shader.md`、`android/miuix-theme-scope.md`；更新
+    `android/sukisu-ui-port.md`（第三批 + 返回键那个例外）、`android/miuix-0.9.4.md`（miuix-shader 门槛）。
+
 ## Read now
 
 - `knowledge/build/android-toolchain.md` — 宿主构建命令与本机工具链现状
@@ -405,6 +423,8 @@
 - `knowledge/android/miuix-0.9.4.md` — **动界面（MiuiX 0.9.4）前必读**：组件签名是实拉 sources jar 核对过的
 - `knowledge/android/scan-history-data-source.md` — 要动「检查历史」这一页、或给功能找本地持久化方案时读
 - `knowledge/android/sukisu-ui-port.md` — 要**继续移植 SukiSU 的界面**、或给本项目加新界面时必读
+- `knowledge/android/about-bg-effect-shader.md` — 动关于页背景、移植 `ui/component/miuix/effect/*`、或判断某个效果这个版本画不画得出来时读
+- `knowledge/android/miuix-theme-scope.md` — 加「不经过主壳的页面/弹层」，或某页深色下发白时读
 - `knowledge/android/miuix-0.8.8.md` — 0.8.8 时期的历史记录（日常改界面看 0.9.4 那份）
 - `knowledge/detection/rule-design.md` — 动检测规则前必读（误报是核心指标）
 - `knowledge/android/sukisu-ultra-as-ui-reference.md` — 要照搬/参考别的 App 的界面（尤其底栏、图标混用）前必读
