@@ -15,8 +15,8 @@ android {
         applicationId 'com.lemon.mrs'
         minSdk 24
         targetSdk 36
-        versionCode 9
-        versionName '0.8.0'
+        versionCode 10
+        versionName '0.9.0'
 
         ndk {
             abiFilters 'arm64-v8a'
@@ -87,6 +87,10 @@ dependencies {
     implementation 'top.yukonga.miuix.kmp:miuix-nav-android:0.9.4'
     implementation 'top.yukonga.miuix.kmp:miuix-preference-android:0.9.4'
     implementation 'top.yukonga.miuix.kmp:miuix-shader-android:0.9.4'
+    // 毛玻璃（textureBlur / layerBackdrop）与液态玻璃（lens / vibrancy / 倾斜高光）都在这个坐标里。
+    // 它的 manifest 硬写 minSdk 33，靠 AndroidManifest 的 tools:overrideLibrary 放行，运行时由
+    // isRenderEffectSupported()（API 31）/ isRuntimeShaderSupported()（API 33）门控。
+    implementation 'top.yukonga.miuix.kmp:miuix-blur-android:0.9.4'
     implementation 'androidx.activity:activity-compose:1.13.0'
     implementation platform('androidx.compose:compose-bom:2026.09.00')
     implementation 'androidx.compose.material:material-icons-extended'

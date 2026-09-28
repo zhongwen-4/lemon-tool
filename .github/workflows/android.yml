@@ -70,8 +70,20 @@ jobs:
             exit 1
           fi
 
+      - name: Read version
+        run: |
+          version_name="$(sed -nE "s/^[[:space:]]*versionName[[:space:]]+['\"]([^'\"]+)['\"].*/\1/p" app/build.gradle | head -n1)"
+          version_code="$(sed -nE "s/^[[:space:]]*versionCode[[:space:]]+([0-9]+).*/\1/p" app/build.gradle | head -n1)"
+          if [ -z "$version_name" ] || [ -z "$version_code" ]; then
+            echo "无法从 app/build.gradle 读取 versionName / versionCode" >&2
+            exit 1
+          fi
+          echo "MRS_VERSION_NAME=$version_name" >> "$GITHUB_ENV"
+          echo "MRS_VERSION_CODE=$version_code" >> "$GITHUB_ENV"
+          echo "MRS_ARTIFACT=mrs-apk-${version_name}-c${version_code}-${GITHUB_SHA::7}" >> "$GITHUB_ENV"
+          echo "本次构建：$version_name (code $version_code)"
+
       - name: Prepare signing key
-        if: startsWith(github.ref, 'refs/tags/v')
         env:
           MRS_KEYSTORE_BASE64: ${{ secrets.MRS_KEYSTORE_BASE64 }}
           MRS_STORE_PASSWORD_SECRET: ${{ secrets.MRS_STORE_PASSWORD }}
@@ -80,32 +92,33 @@ jobs:
         run: |
           umask 077
           key_store="$RUNNER_TEMP/release.jks"
-          : "${MRS_KEYSTORE_BASE64:?tag 发布必须配置 MRS_KEYSTORE_BASE64 secret}"
-          : "${MRS_STORE_PASSWORD_SECRET:?tag 发布必须配置 MRS_STORE_PASSWORD secret}"
-          : "${MRS_KEY_ALIAS_SECRET:?tag 发布必须配置 MRS_KEY_ALIAS secret}"
-          : "${MRS_KEY_PASSWORD_SECRET:?tag 发布必须配置 MRS_KEY_PASSWORD secret}"
-          printf '%s' "$MRS_KEYSTORE_BASE64" | base64 --decode > "$key_store"
-          test -s "$key_store"
-          keytool -list -keystore "$key_store" -storepass "$MRS_STORE_PASSWORD_SECRET" \
-            -alias "$MRS_KEY_ALIAS_SECRET" >/dev/null
-          echo "MRS_KEYSTORE=$key_store" >> "$GITHUB_ENV"
-          printf 'MRS_STORE_PASSWORD=%s\n' "$MRS_STORE_PASSWORD_SECRET" >> "$GITHUB_ENV"
-          printf 'MRS_KEY_ALIAS=%s\n' "$MRS_KEY_ALIAS_SECRET" >> "$GITHUB_ENV"
-          printf 'MRS_KEY_PASSWORD=%s\n' "$MRS_KEY_PASSWORD_SECRET" >> "$GITHUB_ENV"
-
-      - name: Generate temporary test signing key
-        if: ${{ !startsWith(github.ref, 'refs/tags/v') }}
-        run: |
-          umask 077
-          key_store="$RUNNER_TEMP/release.jks"
-          keytool -genkeypair -keystore "$key_store" \
-            -storepass android -keypass android -alias mrs \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=mrs,OU=dev,O=lemon_tool,C=CN"
-          echo "MRS_KEYSTORE=$key_store" >> "$GITHUB_ENV"
-          echo 'MRS_STORE_PASSWORD=android' >> "$GITHUB_ENV"
-          echo 'MRS_KEY_ALIAS=mrs' >> "$GITHUB_ENV"
-          echo 'MRS_KEY_PASSWORD=android' >> "$GITHUB_ENV"
+          if [ -n "${MRS_KEYSTORE_BASE64:-}" ]; then
+            # 配了正式签名钥匙就一律用它（tag 发布当然用，分支构建也用）：
+            # 每次 action 的产物都由同一把钥匙签，才能直接覆盖安装上一次的构建。
+            # 2026-09-28 之前分支构建是每次现生成一把随机钥匙，覆盖安装必失败、只能先卸载，
+            # 于是「从最新 action 下的包」装上去之后看到的还是旧界面。
+            printf '%s' "$MRS_KEYSTORE_BASE64" | base64 --decode > "$key_store"
+            test -s "$key_store"
+            keytool -list -keystore "$key_store" -storepass "$MRS_STORE_PASSWORD_SECRET" \
+              -alias "$MRS_KEY_ALIAS_SECRET" >/dev/null
+            echo "MRS_KEYSTORE=$key_store" >> "$GITHUB_ENV"
+            printf 'MRS_STORE_PASSWORD=%s\n' "$MRS_STORE_PASSWORD_SECRET" >> "$GITHUB_ENV"
+            printf 'MRS_KEY_ALIAS=%s\n' "$MRS_KEY_ALIAS_SECRET" >> "$GITHUB_ENV"
+            printf 'MRS_KEY_PASSWORD=%s\n' "$MRS_KEY_PASSWORD_SECRET" >> "$GITHUB_ENV"
+            echo "签名：仓库配置的正式钥匙"
+          else
+            # 没配 MRS_KEYSTORE_BASE64：用仓库里那把固定的 CI 钥匙（ci-signing/mrs-ci.jks，见同目录 README）。
+            # 2026-09-28 之前这里是每次现生成一把随机钥匙——相邻两次构建的签名不一致，覆盖安装必失败、
+            # 只能先卸载，于是「从最新 action 下的包」装上去看到的还是手机里那个旧版本。
+            key_store="$GITHUB_WORKSPACE/ci-signing/mrs-ci.jks"
+            test -s "$key_store"
+            echo "MRS_KEYSTORE=$key_store" >> "$GITHUB_ENV"
+            echo 'MRS_STORE_PASSWORD=android' >> "$GITHUB_ENV"
+            echo 'MRS_KEY_ALIAS=mrs' >> "$GITHUB_ENV"
+            echo 'MRS_KEY_PASSWORD=android' >> "$GITHUB_ENV"
+            echo "签名：仓库里的 CI 钥匙（没配 MRS_KEYSTORE_BASE64）"
+            echo "::warning title=CI 签名钥匙::用的是公开的 ci-signing/mrs-ci.jks；要正式发布请在仓库里配 MRS_KEYSTORE_BASE64 等四个 secret"
+          fi
 
       - name: Build release APK
         run: gradle assembleRelease --no-daemon
@@ -115,6 +128,10 @@ jobs:
           apk=$(ls app/build/outputs/apk/release/*.apk | head -n1)
           bytes=$(stat -c%s "$apk")
           echo "$apk is $((bytes / 1024)) KiB"
+          # 产物名带上版本号：解压后一眼能看出是哪个构建，不会再跟旧包搞混
+          versioned="app/build/outputs/apk/release/mrs-${MRS_VERSION_NAME}-c${MRS_VERSION_CODE}.apk"
+          mv "$apk" "$versioned"
+          echo "产物：$versioned"
           # MiuiX/Compose 体系本身就有几 MB 体积，比纯 View 外壳大得多，预算相应放宽
           if [ "$bytes" -gt 12582912 ]; then
             echo "APK 超过 12 MiB 预算，检查是否引入了多余依赖或多余的 ABI" >&2
@@ -123,7 +140,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: mrs-apk
+          name: ${{ env.MRS_ARTIFACT }}
           path: app/build/outputs/apk/release/*.apk
 
   publish:
@@ -136,7 +153,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: mrs-apk
+          # 产物名带版本号，这里不按名字挑，全下（改了名也不用改这里）
           path: artifact
 
       # git tag v0.2.0 && git push --tags 时把 APK 挂到 Release 上。

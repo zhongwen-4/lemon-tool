@@ -4,8 +4,8 @@
 //   ② 数据先空着：HomeUiState 全默认（无内核信息、无更新信息），相应的卡片渲染出来是空的。
 //   ③ 去内核依赖：Natives.isFullFeatured() 的底边距判断改成直接用 bottomInnerPadding；
 //      Natives / KernelVersion 的取数、Preview 相关的 import 与预览块删除。
-//   ④ 去毛玻璃：LayerBackdrop / layerBackdrop 不搬（miuix-blur 要求 minSdk 33），
-//      backdrop 恒为 null，BlurredBar 退化成纯色（见 ui/util/BlurExt.kt）。
+//   ④ 毛玻璃接上了（2026-09-28 更新）：LayerBackdrop 用 miuix-blur 的真类型，
+//      backdrop 由 ui/util/BlurExt.kt 提供，顶栏跟着滚动内容一起磨砂。
 //   ⑤ 按用户口径精简主页，组件骨架保留、只改内容：
 //      - StatusCard（上游的「工作中 / 内核支持 / 不支持」三分支）改名 CheckEntryCard 且只留一支：
 //        标题「不支持」换成「点此开始检测」，动作仍是选模块 zip；另两支是 KernelSU 内核取数，本项目没有数据源。
@@ -72,7 +72,7 @@ import com.lemon.mrs.ui.component.statustag.StatusTag
 import com.lemon.mrs.ui.theme.LocalEnableBlur
 import com.lemon.mrs.ui.theme.isInDarkTheme
 import com.lemon.mrs.ui.util.BlurredBar
-import com.lemon.mrs.ui.util.LayerBackdrop
+import top.yukonga.miuix.kmp.blur.LayerBackdrop
 import com.lemon.mrs.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.BasicComponent
 import top.yukonga.miuix.kmp.basic.Card

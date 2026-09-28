@@ -5,6 +5,11 @@ import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -33,6 +38,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -40,8 +46,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -59,6 +67,11 @@ import com.lemon.mrs.ui.screen.settings.SettingPagerMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogActions
 import com.lemon.mrs.ui.screen.sulog.SulogScreenMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogScreenState
+import com.lemon.mrs.ui.theme.LocalEnableBlur
+import com.lemon.mrs.ui.theme.LocalEnableFloatingBottomBar
+import com.lemon.mrs.ui.theme.LocalEnableFloatingBottomBarBlur
+import com.lemon.mrs.ui.util.DisplaySettings
+import com.lemon.mrs.ui.util.rememberBlurBackdrop
 import com.lemon.mrs.ui.util.sulog.ScanEntryFields
 import com.lemon.mrs.ui.util.sulog.SulogEntry
 import com.lemon.mrs.ui.util.sulog.SulogEventType
@@ -75,8 +88,11 @@ import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TopAppBar
+import top.yukonga.miuix.kmp.blur.layerBackdrop
+import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.theme.ThemeColorSpec
 import top.yukonga.miuix.kmp.theme.ThemeController
 import top.yukonga.miuix.kmp.theme.ThemePaletteStyle
@@ -129,13 +145,38 @@ data class ScanReport(
 @Composable
 fun ScannerScreen(scan: (String) -> String) {
     var aboutOpen by remember { mutableStateOf(false) }
-    if (aboutOpen) {
-        // 关于页也有自己的取色与动态背景，同样得在主题里（原先它落在 MiuixTheme 的默认浅色上）。
-        MiuixAppTheme {
-            AboutScreen(onBack = { aboutOpen = false })
-        }
-    } else {
+    // 主壳一直留在组合里，关于页是**盖在上面**的一层，不是把主壳换掉：
+    // 上游是 push 一个导航条目盖住主屏（主屏并没有被销毁），本项目没有导航库，就用同一个 Box 叠一层。
+    // 2026-09-28 之前这里是 if/else 替换，于是从关于页回来会重建主壳——底栏跳回主页、扫描结果也丢了。
+    Box(modifier = Modifier.fillMaxSize()) {
         ScannerShell(scan = scan, onOpenAbout = { aboutOpen = true })
+
+        if (aboutOpen) {
+            // 系统返回手势的进度（0..1）：由 AboutScreen 的 PredictiveBackHandler 喂上来（上游是
+            // navigation3 的路由栈在做同一件事）。页面跟着手指往右滑，松手完成才真的关、取消就弹回。
+            var aboutBackProgress by remember { mutableFloatStateOf(0f) }
+            val aboutSlide by animateFloatAsState(
+                targetValue = aboutBackProgress,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "aboutBackSlide",
+            )
+            // 关于页也有自己的取色与动态背景，同样得在主题里（原先它落在 MiuixTheme 的默认浅色上）。
+            MiuixAppTheme {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .graphicsLayer { translationX = size.width * aboutSlide }
+                        .background(colorScheme.surface)
+                        // 点按吞在自己这一层，别漏到底下的底栏上（上游的悬浮底栏也是这么干的）。
+                        .pointerInput(Unit) { detectTapGestures { } },
+                ) {
+                    AboutScreen(
+                        onBack = { aboutOpen = false },
+                        onBackProgress = { aboutBackProgress = it },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -170,6 +211,8 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
     val mainPagerState = rememberMainPagerState(pagerState)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
+    // 显示开关（磨砂玻璃 / 液态玻璃）：主壳要用，设置页也要读写同一个实例，所以在这里建一份往下传。
+    val display = remember(context) { DisplaySettings(context) }
 
     // 主页的数据还是空壳（本项目没有内核 / KernelSU 那套信息）。
     val homeState = remember { HomeUiState() }
@@ -236,7 +279,23 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
 
     // 取色口径见 MiuixAppTheme。
     MiuixAppTheme {
-        CompositionLocalProvider(LocalMainPagerState provides mainPagerState) {
+        val enableBlur = display.enableBlur
+        val enableGlass = display.enableFloatingBottomBar
+        // 磨砂玻璃：顶栏底下那层要模糊的内容（设备不支持 RenderEffect 时拿到 null，顶栏退化成纯色）。
+        val blurBackdrop = rememberBlurBackdrop(enableBlur)
+        // 液态玻璃：底栏胶囊要折射「下面的内容」，所以主内容这一层得先录进一个 backdrop
+        // （上游 MainScreen 的写法：blurBackdrop 挂外层 Box、backdrop 挂 Pager）。
+        val surfaceColor = colorScheme.surface
+        val backdrop = rememberLayerBackdrop {
+            drawRect(surfaceColor)
+            drawContent()
+        }
+        CompositionLocalProvider(
+            LocalMainPagerState provides mainPagerState,
+            LocalEnableBlur provides enableBlur,
+            LocalEnableFloatingBottomBar provides enableGlass,
+            LocalEnableFloatingBottomBarBlur provides display.enableFloatingBottomBarBlur,
+        ) {
             Scaffold(
                 bottomBar = {
                     val navInset = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
@@ -251,7 +310,10 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
                                 ),
                             selectedIndex = mainPagerState.selectedPage,
                             onSelected = { mainPagerState.animateToPage(it) },
+                            backdrop = backdrop,
                             tabsCount = TAB_COUNT,
+                            // 液态玻璃关掉时退回上游的纯色那一支（isBlurEnabled = false）。
+                            isBlurEnabled = enableGlass,
                         ) { activateTab ->
                             BottomTab(
                                 selected = mainPagerState.selectedPage == TAB_HOME,
@@ -277,7 +339,16 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
             ) { innerPadding ->
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (blurBackdrop != null) Modifier.layerBackdrop(blurBackdrop) else Modifier)
+                        .then(
+                            if (enableGlass && display.enableFloatingBottomBarBlur) {
+                                Modifier.layerBackdrop(backdrop)
+                            } else {
+                                Modifier
+                            },
+                        ),
                     overscrollEffect = null,
                 ) { page ->
                     val bottomInnerPadding = innerPadding.calculateBottomPadding()
@@ -297,6 +368,7 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
 
                         else -> SettingPagerMiuix(
                             onOpenAbout = onOpenAbout,
+                            display = display,
                             bottomInnerPadding = bottomInnerPadding,
                         )
                     }

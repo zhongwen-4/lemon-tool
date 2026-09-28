@@ -5,7 +5,9 @@
 //      只留两行——「检查更新」（SwitchPreference）与「关于」（ArrowPreference）。
 //   ② 「检查更新」的开关状态本页自持（rememberSaveable，默认开）。用户要求数据先空着，
 //      等接上真实的自动检查逻辑，再把这行换成本页外的状态。
-//   ③ 顶栏 + 一条 LazyColumn 的外壳与上游一致；毛玻璃仍是同签名占位（ui/util/BlurExt.kt，恒退化纯色）。
+//   ③ 顶栏 + 一条 LazyColumn 的外壳与上游一致；毛玻璃已接上（ui/util/BlurExt.kt 换成上游原文）。
+//   ④ 2026-09-28 用户要「磨砂玻璃 / 液态玻璃」两个效果，补两行 SwitchPreference（上游同名开关），
+//      状态放进 DisplaySettings（SharedPreferences），主壳读它决定顶栏毛玻璃与底栏液态玻璃。
 package com.lemon.mrs.ui.screen.settings
 
 import androidx.compose.foundation.layout.Spacer
@@ -22,6 +24,8 @@ import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.BlurOn
+import androidx.compose.material.icons.rounded.Opacity
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -36,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.lemon.mrs.R
 import com.lemon.mrs.ui.theme.LocalEnableBlur
 import com.lemon.mrs.ui.util.BlurredBar
+import com.lemon.mrs.ui.util.DisplaySettings
 import com.lemon.mrs.ui.util.rememberBlurBackdrop
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
@@ -52,6 +57,7 @@ import top.yukonga.miuix.kmp.utils.scrollEndHaptic
 @Composable
 fun SettingPagerMiuix(
     onOpenAbout: () -> Unit,
+    display: DisplaySettings,
     bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -85,6 +91,34 @@ fun SettingPagerMiuix(
                         .padding(top = 12.dp)
                         .fillMaxWidth(),
                 ) {
+                    SwitchPreference(
+                        title = stringResource(id = R.string.settings_enable_blur),
+                        summary = stringResource(id = R.string.settings_enable_blur_summary),
+                        startAction = {
+                            Icon(
+                                Icons.Rounded.BlurOn,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = stringResource(id = R.string.settings_enable_blur),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = display.enableBlur,
+                        onCheckedChange = { display.updateEnableBlur(it) }
+                    )
+                    SwitchPreference(
+                        title = stringResource(id = R.string.settings_enable_glass),
+                        summary = stringResource(id = R.string.settings_enable_glass_summary),
+                        startAction = {
+                            Icon(
+                                Icons.Rounded.Opacity,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = stringResource(id = R.string.settings_enable_glass),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = display.enableFloatingBottomBar,
+                        onCheckedChange = { display.updateEnableFloatingBottomBar(it) }
+                    )
                     SwitchPreference(
                         title = stringResource(id = R.string.settings_check_update),
                         summary = stringResource(id = R.string.settings_check_update_summary),

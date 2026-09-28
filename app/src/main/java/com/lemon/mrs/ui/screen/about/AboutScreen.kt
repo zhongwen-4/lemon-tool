@@ -4,20 +4,26 @@
 //   ② 上游的 BuildConfig.VERSION_NAME、R.string.about_source_code 文案（含它自己的图标许可说明）
 //      换成我们的：版本号从 PackageManager 读，链接指向本仓库。
 //   ③ 其余（state/actions 的构造方式、extractLinks 的用法）与上游一致。
-//   ④ 补 `BackHandler`：上游的「返回」由 navigation3 的路由栈接管，本项目没有导航库，系统返回键
-//      得自己接——不接的话在关于页按返回会直接退出 App（2026-09-28 修）。
+//   ④ 系统返回手势：上游由 navigation3 的路由栈接管（返回时整页跟着手指走）。本项目没有导航库，
+//      这里用 PredictiveBackHandler 自己接——进度通过 onBackProgress 喂给上层，让关于页跟着手势
+//      往右滑出去，手势取消就弹回原位，松手完成才真的关（API < 34 上它等价于普通返回键，同样回调 onBack）。
+//      0.8.0 里用的是 BackHandler：手势一样能回上一页，只是页面不会跟着手指走。
 package com.lemon.mrs.ui.screen.about
 
 import android.content.Context
-import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import com.lemon.mrs.R
+import kotlinx.coroutines.CancellationException
 
 @Composable
-fun AboutScreen(onBack: () -> Unit) {
+fun AboutScreen(
+    onBack: () -> Unit,
+    onBackProgress: (Float) -> Unit = {},
+) {
     val context = LocalContext.current
     val uriHandler = LocalUriHandler.current
     val htmlString = stringResource(
@@ -36,8 +42,17 @@ fun AboutScreen(onBack: () -> Unit) {
         onOpenLink = { url -> runCatching { uriHandler.openUri(url) } },
     )
 
-    // 关于页开着时，系统返回键先关它（回主页），别让它把 App 退掉。
-    BackHandler(enabled = true) { onBack() }
+    // 关于页开着时，系统返回手势先关它（回上一页），别让它把 App 退掉。
+    PredictiveBackHandler(enabled = true) { progress ->
+        try {
+            progress.collect { event -> onBackProgress(event.progress) }
+            onBackProgress(0f)
+            onBack()
+        } catch (e: CancellationException) {
+            // 手势半路松手取消：页面弹回原位，不关。
+            onBackProgress(0f)
+        }
+    }
 
     AboutScreenMiuix(state, actions)
 }

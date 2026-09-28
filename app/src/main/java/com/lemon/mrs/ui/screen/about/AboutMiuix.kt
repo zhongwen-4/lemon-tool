@@ -2,18 +2,17 @@
 // 改动（改动日期：2026-09-28）：
 //   ① 只改包名与 import；版式、滚动视差、Logo 淡出/缩放、LazyColumn 结构、Card +
 //      ArrowPreference 链接行全部与上游一致。
-//   ② 去掉毛玻璃那一路：上游在 enableBlur 为真时给 Logo、应用名和链接卡片套 textureBlur
-//      （还带 logoBlend / blendColors 两套混色表），本项目的 LocalEnableBlur 恒为 false，
+//   ② 关于页自己这一层不套毛玻璃（2026-09-28 仍是这样）：上游在 enableBlur 为真时给 Logo、
+//      应用名和链接卡片套 textureBlur（还带 logoBlend / blendColors 两套混色表），
 //      这些分支连同 BlurColors / BlendColorEntry / BlurBlendMode / rememberLayerBackdrop
 //      / layerBackdrop 的引用一并删除——纯色路径与上游非毛玻璃时完全一样。
-//   ③ 动态背景改成本项目口径：上游的开关是 `isRuntimeShaderSupported() && enableBlur && SDK >= 35`，
-//      本项目没有毛玻璃那一支（`LocalEnableBlur` 恒为 false），所以只留
-//      `isRuntimeShaderSupported() && SDK >= 35` —— Android 15+ 才画 OS3 动态渐变背景，
-//      低版本退化成平台窗口底色（上游本来也是这么门控的）；`bgModifier` 保持 `Modifier`，
-//      因为上游那里传的是 `layerBackdrop`（毛玻璃的壳），本项目不搬。
+//      （顶栏 / 底栏的毛玻璃与液态玻璃在别处，见 ui/util/BlurExt.kt 与 ui/component/FloatingBottomBar.kt。）
+//   ③ 动态背景的门槛：上游是 `isRuntimeShaderSupported() && enableBlur && SDK >= 35`（Android 15+ 才画）；
+//      2026-09-28 用户反馈「关于页的背景也没实现」，门槛降到 RuntimeShader 自己的要求（API 33），
+//      Android 13 / 14 也画；更低版本由 BgEffectBackground 的静态渐变兜底。
+//      `bgModifier` 保持 `Modifier`（上游那里传的是 layerBackdrop，本项目不搬）。
 package com.lemon.mrs.ui.screen.about
 
-import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -230,9 +229,10 @@ private fun AboutContent(
         end = innerPadding.calculateEndPadding(layoutDirection),
     )
 
-    val effectBackground = remember {
-        isRuntimeShaderSupported() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
-    }
+    // 上游门控是 `isRuntimeShaderSupported() && SDK >= 35`（只有 Android 15+ 才画）。
+    // 用户 2026-09-28 反馈「关于页的背景也没实现」：门槛降到 RuntimeShader 自己的要求（API 33），
+    // Android 13 / 14 也看得到渐变；更低版本由 BgEffectBackground 的静态渐变兜底。
+    val effectBackground = remember { isRuntimeShaderSupported() }
 
     BgEffectBackground(
         dynamicBackground = effectBackground,

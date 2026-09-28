@@ -1,8 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <!-- 只有「检查更新」用得到网络；扫描模块全程离线。 -->
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- miuix-blur:0.9.4 的 manifest 硬要求 minSdkVersion 33，而本项目是 24。                   上游 SukiSU（minSdk 26）就是这么放行的：库在低版本上只做运行时门控，不会真去调高版本 API。 -->
+    <uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur" />
 
     <application
         android:allowBackup="false"
