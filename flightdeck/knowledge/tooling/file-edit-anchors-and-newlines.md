@@ -98,3 +98,15 @@ RECHECK WHEN: 仓库改了换行策略、或本机换掉 apply_patch 的包装�
 
 规矩：here-string 只用来装「多行正文」，**每次拼接都显式补一个换行**；
 `$row + $anchor` 这种写法改成 `$row + "`n" + $anchor`。
+## 2026-09-29 第五次：按标记截断文件，标记**之前**的同名函数被留下了
+
+重写 `HomeMiuix.kt` 的「检查模块」那一段时，用 `IndexOf('// ---- 检查模块')` 截断、再拼上新的尾部。
+问题是标记**之后的**内容才是要换掉的，而**标记之前**正好还躺着一个同名函数 `CheckEntryCard`（旧版），
+于是新尾部又定义了一个同名函数 → 编译报 `Conflicting overloads: ... CheckEntryCard`。
+
+规矩：截断前先确认「这个标记之前的最后一个函数是谁、新尾部有没有同名函数」；
+改完先数一遍重名：
+
+```powershell
+([regex]::Matches($t, 'private fun CheckEntryCard')).Count   # 期望 1
+```

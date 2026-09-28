@@ -44,3 +44,23 @@ RECHECK WHEN: 记录里要加字段（记得同时改 `ScanEntryFields` 与 `Sca
 - 上限 200 条，`append` 是「读全量 → 前插 → take(200) → 整份重写」，所以会丢最旧的。
   文件很小（一条几百字节），不值得为它上数据库。
 - 清空是**不可逆**的：界面先弹确认（`SulogClearConfirmDialog`），确认后才走 `SulogActions.onCleanFile`。
+
+## 2026-09-29：结果明细全部进历史（主页只留一张结论卡）
+
+用户口径变了：**主页只放「应用版本 / 提交 BUG / 开始检查」**，检查完那张卡按最高风险整卡着色
+（高危红 / 中危黄 / 其余绿，照上游主页「工作中」那张卡的版式），**逐条发现卡与详细结论卡不再出现在主页**。
+于是 `SulogEntry` 多了一个本项目自加的字段：
+
+```kotlin
+val extraDetail: String? = null   // ScanReport 专用：详情弹窗在 fields 之后原样渲染的正文
+```
+
+- 填它的是 `ScanUi.kt` 的 `scanRecordDetail(record)`：发现逐条（`[高危] rule —— file:line` + 说明，
+  等宽字体、可选中复制）+ `record.notes` 的提示 + 截断说明；段落标题「【发现明细】」「【提示】」，
+  等级标签复用 `ScanEntryFields.HIGH/MEDIUM/LOW/INFO`（都在同一个映射里，不再引一套新文案）。
+- 读它的是 `SulogListMiuix.kt` 的 `SulogDetailDialog`：挂在同一个 `SelectionContainer` 里、
+  fields 之后另起一段 Text。
+- 给移植件加字段的原则照旧：**字段加在数据形状上、渲染留在边界**，骨架的版式不动。
+  其它事件类型（RootExecve 等）不填 extraDetail → 行为与以前完全一致。
+- 主页那张结论卡的四档计数只列非零项（`severityCountsText`），一档都没有才说「未发现风险」；
+  点它仍然 = 「重新选包检测」（明细去「检查历史」里看）。
