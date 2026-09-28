@@ -55,12 +55,15 @@ RECHECK WHEN: 记录里要加字段（记得同时改 `ScanEntryFields` 与 `Sca
 val extraDetail: String? = null   // ScanReport 专用：详情弹窗在 fields 之后原样渲染的正文
 ```
 
-- 填它的是 `ScanUi.kt` 的 `scanRecordDetail(record)`：发现逐条（`[高危] rule —— file:line` + 说明，
-  等宽字体、可选中复制）+ `record.notes` 的提示 + 截断说明；段落标题「【发现明细】」「【提示】」，
-  等级标签复用 `ScanEntryFields.HIGH/MEDIUM/LOW/INFO`（都在同一个映射里，不再引一套新文案）。
+- 填它的是 `ScanUi.kt` 的 `scanRecordDetail(record)`：**写成与 fields 同一套「key: value」日志格式**
+  （用户 2026-09-29：「每个检查都按 SU 日志那种写法来」）—— 发现逐条一段
+  （`发现 1/12` / `等级:` / `规则:` / `文件: path:line` / `说明:`），截断写 `截断: …`，
+  提示写 `提示 1: …`；等级标签复用 `ScanEntryFields.HIGH/MEDIUM/LOW/INFO`（都在同一个映射里，不再引新文案）。
+  全是等宽文本、可选中复制 —— 与 `sulogEntryDetailText` 那几行字段排在一起是同一个观感。
 - 读它的是 `SulogListMiuix.kt` 的 `SulogDetailDialog`：挂在同一个 `SelectionContainer` 里、
   fields 之后另起一段 Text。
 - 给移植件加字段的原则照旧：**字段加在数据形状上、渲染留在边界**，骨架的版式不动。
   其它事件类型（RootExecve 等）不填 extraDetail → 行为与以前完全一致。
-- 主页那张结论卡的四档计数只列非零项（`severityCountsText`），一档都没有才说「未发现风险」；
-  点它仍然 = 「重新选包检测」（明细去「检查历史」里看）。
+- 主页那张结论卡的**标题直接写风险等级**（高 / 中 / 低），四档计数只列非零项（`severityCountsText`），
+  只有一档都没有时才落到「未发现风险」；点它仍然 = 「重新选包检测」（明细去「检查历史」里看）。
+  那张卡的版式坑（三层 `fillMaxSize` 导致文字重叠）单独记在 `android/compose-box-corner-layout.md`。

@@ -470,6 +470,16 @@
   - **待用户在真机确认（0.11.0）**：主页应只剩三张卡；扫一个模块看结论卡是否按风险变红 / 黄 / 绿
     （大字 + 计数 + 左下模块名 + 右下大图标裁得好看不好看 —— 上游那套版式本项目还没在真机看过）；
     切到检查历史点条目，详情里应有「【发现明细】」逐条与「【提示】」。
+  - **2026-09-29 第四轮（用户真机反馈：文字重合 / 历史按 SU 日志写法 / 卡片标题写等级）**：
+    ① 结论卡**文字重叠**是我上一轮的锅：三块内容都写成 `Box(fillMaxSize)`，被塞进同一格互相压住。
+    改成装饰图标层 `matchParentSize()`（不参与定尺寸）、内容层一个 `Column` 自己定高，模块名给
+    图标留 96dp + 省略号。坑单独记成 `knowledge/android/compose-box-corner-layout.md`。
+    ② 结论卡**标题**按最高等级直接写「高危 / 中危 / 低危」；只有一档都没有才写「未发现风险」。
+    ③ 检查历史的条目详情改成 **SU 日志那套「key: value」逐行写法**（发现逐条：等级 / 规则 / 文件 / 说明；
+    截断与提示也各占一行），列表条目卡本来就是移植来的 SU 日志卡，不动。
+    版本 **0.11.1/code13**，本机 8 条出包前置全过。
+  - **待用户在真机确认（0.11.1）**：结论卡上大字等级、计数、模块名三行不重叠；模块名过长时是省略号且不进图标；
+    检查历史点条目，详情是「发现 1/12 / 等级: / 规则: / 文件: / 说明:」这样的逐行日志。
 
 ## Read now
 
@@ -481,6 +491,7 @@
 - `knowledge/build/msvc-utf8-source.md`、`knowledge/build/posix-vs-win32-portability.md`
   — 动 C++ 源码前扫一眼，省一次编译失败、省一次「CI 红而本机绿」
 - `knowledge/android/miuix-0.9.4.md` — **动界面（MiuiX 0.9.4）前必读**：组件签名是实拉 sources jar 核对过的
+- `knowledge/android/compose-box-corner-layout.md` — 做「四角 + 溢出大图标」那种卡片版式、或卡片里文字重合时读
 - `knowledge/android/scan-history-data-source.md` — 要动「检查历史」这一页、或给功能找本地持久化方案时读
 - `knowledge/android/sukisu-ui-port.md` — 要**继续移植 SukiSU 的界面**、或给本项目加新界面时必读
 - `knowledge/android/about-bg-effect-shader.md` — 动关于页背景、移植 `ui/component/miuix/effect/*`、或判断某个效果这个版本画不画得出来时读
