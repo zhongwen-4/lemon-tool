@@ -53,7 +53,7 @@ $c = Invoke-RestMethod -Uri "https://api.github.com/repos/<owner>/<repo>/content
 
 - 要看目录或统计规模，先走 `git/trees/<branch>?recursive=1`，一次拿到全部 `path` + `size`
   ——比逐个 `contents` 请求便宜得多（用 `Where-Object` 过滤 + `Measure-Object -Sum` 算总量）。
-- **`.svg` 返回的是 `[System.Xml.XmlDocument]`**（响应 content-type = `image/svg+xml`）：
+- **XML 都会被自动解析成 `[System.Xml.XmlDocument]`**：`.svg`（content-type `image/svg+xml`）如此，仓库里的 `strings.xml` 也如此 —— 2026-09-29 又栽一次，在 `strings.xml` 里 `Select-String` 找文案一条都搜不到，真因就是它：
   用 `$c.OuterXml` 取原文。`$c.Length` 为空是正常的，`.GetType().FullName` 一看便知。
 - 文本文件（`.kt` / `.toml` / `LICENSE`）用上面这段直接拿到字符串。
 - 二进制（png / jar）走 `Invoke-WebRequest -Uri ... -OutFile <每次新建的唯一路径>`；别用 curl，

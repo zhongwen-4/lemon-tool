@@ -89,3 +89,12 @@ RECHECK WHEN: 仓库改了换行策略、或本机换掉 apply_patch 的包装�
   别在 `@()` 数组里用 `'...' + "`r`n" + '...'` 这种就地拼接——它是这两次里共有的写法特征。
 - 同一轮里改多个位置时，把「锚点/替换/标签」收集成数组再统一跑**并不能**豁免这条：
   上面两次就是这么写的。
+## 2026-09-29 第四次：把 here-string 当替换文本用，又是丢末尾换行
+
+给 `SettingsMiuix.kt` 插一行 SwitchPreference 时，把 `$row = @'...'@` 直接当替换文本，
+于是插入块的最后一行 `)` 与原有的下一行粘成 `)                    SwitchPreference(` ——
+编译报的是 `Unresolved reference 'SwitchPreference' on receiver of type 'Unit'` 加一串
+`Expecting ')'`，看着像括号写错，其实是少了一个换行。
+
+规矩：here-string 只用来装「多行正文」，**每次拼接都显式补一个换行**；
+`$row + $anchor` 这种写法改成 `$row + "`n" + $anchor`。

@@ -25,6 +25,14 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   覆盖安装必失败）。CI 改成用仓库里固定的 `ci-signing/mrs-ci.jks`，产物改名带版本号。版本
   **0.9.0/code10**、commit `9cc8a86`，CI run `36490628242` 两个 job 全绿（产物 `mrs-apk-0.9.0-c10-9cc8a86`）。
   **下一件事：让用户先卸载旧版再装 0.9.0，在主页核对「应用版本」。**
+  **2026-09-29 第二轮（用户：把预测性返回手势加个开关）**：设置页补上游同名行（文案照抄上游 zh-CN），
+  状态进 `DisplaySettings.enablePredictiveBack`（默认开）；开关直接管关于页那一处：开 = `PredictiveBackHandler`
+  （跟手滑出）、关 = `BackHandler`（照常回上一页、页面不动画），两条只挂一条。**没照上游的应用级机制**
+  （上游是 API 34+ 用隐藏 API 翻平台标志 + `org.lsposed.hiddenapibypass`，重启才生效、只影响平台动画）——
+  本项目没引那层依赖，预测性返回也只有关于页一处。manifest 同时补 `android:enableOnBackInvokedCallback="true"`
+  （配 `tools:targetApi="33"`），否则 API 33/34 收不到进度回调、跟手动画出不来。版本 **0.10.0/code11**、
+  commit `5ce94a1`，本机 8 条出包前置全过，CI run `36494192545`。**下一件事仍是真机验收**，
+  外加：设置页核对四行开关、关掉预测性返回看关于页返回是不是不再跟手。
 
 ## Next
 
@@ -34,6 +42,8 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - **关于页的观感**：渐变背景 2026-09-29 起 **Android 13（API 33）以上都有**（门槛从上游的 `SDK >= 35` 降下来了），
   更低版本是一层**静态渐变**兜底；真机顺带看：系统返回手势是**回主页而不是退出**、整页跟着手指滑出、
   Logo 区滚动淡出、深色下关于页底色不再发白。
+- **预测性返回开关**：设置页应有四行开关（模糊 / 液态玻璃 / 预测性返回手势 / 检查更新）；关掉「预测性返回手势」后
+  从关于页返回仍是回上一页，只是页面不再跟手滑出；开着时在 Android 13/14 也应该跟手（manifest 已补平台 opt-in）。
 - 真机看三页观感：英雄卡实际高度与溢出图标的裁切、底栏胶囊拖动切页的手感、MiuiX 行组件在卡片里的间距。
 - 给 zip 条目数加上限（防内存被打爆）。
 - 用真实模块样本压误报（现在的夹具是自造的，覆盖面有限）。
@@ -42,6 +52,11 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   再看顶栏毛玻璃在滚动时是否自然、底栏胶囊的折射与倾斜高光是否过度。
 
 ## 已落地（倒序；细节都在 work 包里）
+- 2026-09-29（第二轮）：**预测性返回手势加开关** —— 设置页一行 SwitchPreference（上游文案「预测性返回手势」，
+  图标 `Icons.AutoMirrored.Rounded.MenuOpen`），状态进 `DisplaySettings`；关于页 `if/else` 在
+  `PredictiveBackHandler` / `BackHandler` 之间二选一（**两条不能同时挂**）；manifest 补
+  `android:enableOnBackInvokedCallback`。版本 0.10.0/code11，commit `5ce94a1`。偏离上游之处
+  （上游用隐藏 API 翻平台标志、重启生效）写进 `android/overlay-page-and-predictive-back.md` 的「开关」一节。
 - 2026-09-29：**磨砂玻璃 + 液态玻璃 + 关于页返回手势/背景 + CI 固定签名钥匙** —— 三件事的细节都在
   work 索引里；三个新知识：`build/ci-signing-stable-key.md`、`android/miuix-blur-and-liquid-glass.md`、
   `android/overlay-page-and-predictive-back.md`（同时更正了 `compile-sdk-and-aar-metadata.md` 的 overrideLibrary

@@ -441,6 +441,21 @@
   - **待用户在真机确认**：装之前**必须先卸载旧版**（签名换了），装完在主页看「应用版本」是不是 0.9.0；
     磨砂/液态玻璃在 Android 12 以下看不到属正常（API 门槛）。
 
+  - **2026-09-29 追加（用户：把预测性返回手势加个开关）**：设置页补上游同名行
+    `settings_enable_predictive_back`（文案照抄上游 zh-CN，图标 `Icons.AutoMirrored.Rounded.MenuOpen`），
+    状态进 `DisplaySettings.enablePredictiveBack`（KEY `enable_predictive_back`），默认**开**。
+    **没照上游那套机制**：上游是应用级的 —— `KernelSUApplication.onCreate` 在 API 34+ 用隐藏 API
+    `ApplicationInfo#setEnableOnBackInvokedCallback`（配 `org.lsposed.hiddenapibypass`）翻平台标志、重启才生效、
+    只影响平台自己的返回动画（那一行也因此只在 Android 14+ 出现）。本项目没引那层依赖，预测性返回也只有
+    关于页一处 → 开关直接管那一处：开 = `PredictiveBackHandler`（跟手往右滑出）、关 = `BackHandler`
+    （照常回上一页、页面不动画），`if/else` 二选一（**两条不能同时挂**，后注册的会赢）。
+    同时 manifest 补 `android:enableOnBackInvokedCallback="true"`（配 `tools:targetApi="33"`）——
+    **API 33/34 不加它收不到进度回调**，跟手动画根本出不来；API 35+ 平台默认开着、该属性被忽略。
+    `display` 从 `ScannerShell` 提到 `ScannerScreen`（原先建在里面，关于页那一层读不到）。
+    版本 **0.10.0/code11**，本机 8 条出包前置全过。
+  - **待用户在真机确认（0.10.0）**：装之前先卸载旧版（签名换过，覆盖装不上）；主页核对「应用版本」是 0.10.0；
+    设置页应有**四行**开关（模糊 / 液态玻璃 / 预测性返回手势 / 检查更新），关掉预测性返回后关于页返回不再跟手。
+
 ## Read now
 
 - `knowledge/android/miuix-blur-and-liquid-glass.md` — 动磨砂/液态玻璃、加 blur/backdrop、或问「效果为什么看不到」时读
