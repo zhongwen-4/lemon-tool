@@ -391,7 +391,10 @@
   - 本机 8 条出包前置全过。三条知识：新增 `android/scan-history-data-source.md`（数据源选择 + 映射表 +
     两个必须知道的点）、`android/miuix-0.9.4.md` 补「查组件签名的三条路」、
     `tooling/github-push-and-local-proxy.md` 补「代理会被随时开关，先看端口有没有在听」。
-  - 顺带发现：**代理软件关掉后，git push 直连就通了**（带 `-c http.proxy=127.0.0.1:7890` 反而失败）。
+  - 推送这一天折腾了三回，最后落到最省事的一条：**代理关掉后 DNS 又把 `github.com` 解到被墙 IP**，
+    这时不用起隧道，`git -c http.curloptResolve=github.com:443:<当下通的IP> push` 一句就够
+    （实测 4 秒推完）。前提是**推之前先 TCP 测一遍候选 IP**——它们隔十几分钟通断就会反过来。
+    三条路的取舍已全部写进 `tooling/github-push-and-local-proxy.md`。
 
 ## Read now
 

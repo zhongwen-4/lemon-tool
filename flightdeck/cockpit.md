@@ -41,6 +41,8 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   commit `3ffed5b`。三条知识：`android/scan-history-data-source.md`（新增）、`android/miuix-0.9.4.md`
   补「查组件签名的三条路」、`tooling/github-push-and-local-proxy.md` 补「代理会被随时开关」，
   另在 `tooling/file-edit-anchors-and-newlines.md` 记下「脚本报 OK 但文件没变」出现过两次。
+  推送这条补全了：代理关掉后 DNS 解到被墙 IP 时，`git -c http.curloptResolve=github.com:443:<当下通的IP>`
+  一句就能推（不必起隧道），前提是推之前先挑一个当时真的通的 IP。
 - 2026-09-28：**界面整包换成 SukiSU 的骨架**（UI 口径）—— 主页 / 关于 / 设置照搬结构与尺寸、
   检查历史换成 SU 日志列表、三页数据全是空状态，`History.kt` 删掉，`ScanUi.kt` 重写（1041 → 358 行）。
   版本 0.5.0/code6，commit `8517d3f`。两个坑进了知识库：here-string 丢换行把 `package` 粘进注释

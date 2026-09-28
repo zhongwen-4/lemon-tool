@@ -1,14 +1,14 @@
-# ⚠ 推不动 GitHub：先查本机 127.0.0.1:7890 那个系统代理（PowerShell 走它、git 不走）
+# ⚠ 推不动 GitHub 的三条路：系统代理 / `http.curloptResolve` / 本地 CONNECT 隧道
 
-SUMMARY: 2026-09-28 `git push` 反复失败（`Could not connect to server` / `Proxy CONNECT aborted`），
-而同一台机器上 `Invoke-RestMethod` 调 `api.github.com` 一直正常。真凶**不是** DNS 挑被墙 IP
-（那是同一天早些时候的错误结论），是**本机装着系统代理**：
-`HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings` 里 `ProxyEnable=1`、
-`ProxyServer=127.0.0.1:7890`（且真有进程在听）。**PowerShell / `Invoke-*` 尊重这个 WinINET 代理，
-而 git 用的 libcurl 完全不理它** —— 所以同一个网络下浏览器与 PowerShell 通、git 不通。
-修法一句话：`git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 push <remote> <branch>`
-（实测 3 秒推完 `9a08f10..c14ecbb main -> main`）。
-READ WHEN: before 怀疑凭据 / 权限 / DNS —— 只要 `git push`、`git clone`、取 raw 文件连不上 github 就先看这条。
+SUMMARY: 2026-09-28 一天里 `git push` 因为**两件不同的事**失败过，别把结论记成一条：
+① 本机装着系统代理（`ProxyEnable=1`、`ProxyServer=127.0.0.1:7890`，真有进程在听）——
+**PowerShell / `Invoke-*` 尊重这个 WinINET 代理，而 git 用的 libcurl 完全不理它**，
+所以同一个网络下浏览器与 PowerShell 通、git 不通 → 给 git 加 `-c http.proxy=http://127.0.0.1:7890` 即可；
+② 代理被关掉之后，DNS 把 `github.com` 解到**被墙的 IP**（`20.205.243.166`）→ 这时**不用起隧道**，
+`git -c http.curloptResolve=github.com:443:<当下通的IP>` 一句就够（实测 4 秒推完 `3ffed5b..0cdc438`）。
+**两次都不是凭据 / 权限问题**，也都别急着怀疑网络"整个被墙了"。
+READ WHEN: before 怀疑凭据 / 权限 —— 只要 `git push`、`git clone`、取 raw 文件连不上 github 就按本文三条依次试：
+① 本机有没有系统代理在听；② 有就用 `-c http.proxy`；③ 没有就用 `-c http.curloptResolve` 钉一个当下通的 IP（最快）。
 RECHECK WHEN: 代理软件关掉或换端口之后、换机器之后、或哪天 git push 忽然直接就能过。
 
 ---
@@ -55,7 +55,32 @@ Get-NetTCPConnection -State Listen -LocalPort 7890 -ErrorAction SilentlyContinue
 判断依据是「**那个端口此刻有没有进程在听**」，不是 `ProxyEnable` 的值本身
 （这次 `ProxyEnable=1` 时确实在听，但两者理论上可以不同步）。
 
-## 备选：本地 CONNECT 隧道（没有代理时才用）
+## 最省事的第三条：`http.curloptResolve` 把 github.com 钉到一个当下通的 IP（2026-09-28 实测，4 秒推完）
+
+前提是**没有**本地代理（或不想带 `-c http.proxy`）而 DNS 又解到了被墙的 IP
+（本机 `Resolve-DnsName github.com` → `20.205.243.166`，TCP 连不上）。这时不用起隧道，
+让 git 自己把域名解析结果换掉即可：
+
+```powershell
+# 1) 先挑一个此刻真的通的 IP（这步不能省，候选 IP 会漂）
+$ips = '140.82.112.4','140.82.113.4','140.82.114.4','140.82.121.4','20.27.177.113','4.237.22.34'
+foreach ($ip in $ips) {
+  $t = New-Object System.Net.Sockets.TcpClient
+  try { if ($t.ConnectAsync($ip,443).Wait(4000) -and $t.Connected) { "$ip OK" } } catch {}
+  $t.Close()
+}
+# 2) 把通的 IP 写进去
+git -c http.curloptResolve=github.com:443:140.82.113.4 push lemon-tool main
+# -> 3ffed5b..0cdc438  main -> main
+```
+
+- **同步过去**：这条只对 `github.com` 生效（`api.github.com` 本来就能通，不用管）。
+- **失败长相**：`Failed to connect to github.com port 443 after 21102 ms: Could not connect to server`
+  —— 就是钉的那个 IP 那一刻不通了，回去重挑一个，别怀疑凭据。
+- 之前把这条误判为"不管用"（当天早先试过一次就失败），真因是**当时挑的 IP 已经掉线**：
+  同一批 IP 隔十几分钟通断就反了。所以关键在"**推之前**先测"，而不是这个选项本身。
+
+## 备选：本地 CONNECT 隧道（既没代理、`curloptResolve` 也不行时才用）
 
 思路：起一个只监听 `127.0.0.1` 的 TCP 隧道，把 `CONNECT host:443` 转给一个手工测通的 IP。
 **两个坑都踩过：**
