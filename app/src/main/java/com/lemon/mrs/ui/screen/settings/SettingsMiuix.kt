@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.material.icons.automirrored.rounded.MenuOpen
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.BlurOn
@@ -118,6 +119,20 @@ fun SettingPagerMiuix(
                         },
                         checked = display.enableFloatingBottomBar,
                         onCheckedChange = { display.updateEnableFloatingBottomBar(it) }
+                    )
+                    SwitchPreference(
+                        title = stringResource(id = R.string.settings_enable_predictive_back),
+                        summary = stringResource(id = R.string.settings_enable_predictive_back_summary),
+                        startAction = {
+                            Icon(
+                                Icons.AutoMirrored.Rounded.MenuOpen,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = stringResource(id = R.string.settings_enable_predictive_back),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = display.enablePredictiveBack,
+                        onCheckedChange = { display.updateEnablePredictiveBack(it) }
                     )
                     SwitchPreference(
                         title = stringResource(id = R.string.settings_check_update),

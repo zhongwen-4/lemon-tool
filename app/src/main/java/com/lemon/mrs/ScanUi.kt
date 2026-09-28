@@ -145,11 +145,15 @@ data class ScanReport(
 @Composable
 fun ScannerScreen(scan: (String) -> String) {
     var aboutOpen by remember { mutableStateOf(false) }
+    // 显示开关（磨砂玻璃 / 液态玻璃 / 预测性返回手势）住在主壳这一层：设置页读写它，
+    // 关于页的返回要不要跟手也看它 —— 所以在这里建一份，两个分支共用同一个实例。
+    val context = LocalContext.current
+    val display = remember(context) { DisplaySettings(context) }
     // 主壳一直留在组合里，关于页是**盖在上面**的一层，不是把主壳换掉：
     // 上游是 push 一个导航条目盖住主屏（主屏并没有被销毁），本项目没有导航库，就用同一个 Box 叠一层。
     // 2026-09-28 之前这里是 if/else 替换，于是从关于页回来会重建主壳——底栏跳回主页、扫描结果也丢了。
     Box(modifier = Modifier.fillMaxSize()) {
-        ScannerShell(scan = scan, onOpenAbout = { aboutOpen = true })
+        ScannerShell(scan = scan, onOpenAbout = { aboutOpen = true }, display = display)
 
         if (aboutOpen) {
             // 系统返回手势的进度（0..1）：由 AboutScreen 的 PredictiveBackHandler 喂上来（上游是
@@ -172,6 +176,7 @@ fun ScannerScreen(scan: (String) -> String) {
                 ) {
                     AboutScreen(
                         onBack = { aboutOpen = false },
+                        enablePredictiveBack = display.enablePredictiveBack,
                         onBackProgress = { aboutBackProgress = it },
                     )
                 }
@@ -203,7 +208,11 @@ private fun MiuixAppTheme(content: @Composable () -> Unit) {
 }
 
 @Composable
-private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
+private fun ScannerShell(
+    scan: (String) -> String,
+    onOpenAbout: () -> Unit,
+    display: DisplaySettings,
+) {
     var state by remember { mutableStateOf<ScanState>(ScanState.Idle) }
     // 检查历史里显示的「扫的是哪个文件」——用 SAF 给的显示名，比缓存路径可读。
     var targetName by remember { mutableStateOf("") }
@@ -211,8 +220,6 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
     val mainPagerState = rememberMainPagerState(pagerState)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-    // 显示开关（磨砂玻璃 / 液态玻璃）：主壳要用，设置页也要读写同一个实例，所以在这里建一份往下传。
-    val display = remember(context) { DisplaySettings(context) }
 
     // 主页的数据还是空壳（本项目没有内核 / KernelSU 那套信息）。
     val homeState = remember { HomeUiState() }

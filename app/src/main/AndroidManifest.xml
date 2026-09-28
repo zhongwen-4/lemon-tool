@@ -8,12 +8,16 @@
     <!-- miuix-blur:0.9.4 的 manifest 硬要求 minSdkVersion 33，而本项目是 24。                   上游 SukiSU（minSdk 26）就是这么放行的：库在低版本上只做运行时门控，不会真去调高版本 API。 -->
     <uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur" />
 
+    <!-- 平台级的预测性返回 opt-in：API 33/34 上不加它，关于页的「跟手滑出」收不到进度回调；
+         API 35+（targetSdk 33+）平台默认就开着，这个属性会被忽略。-->
     <application
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
-        android:theme="@style/Theme.Mrs">
+        android:theme="@style/Theme.Mrs"
+        tools:targetApi="33"
+        android:enableOnBackInvokedCallback="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"

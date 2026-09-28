@@ -1,5 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/about/AboutScreen.kt
-// 改动（改动日期：2026-09-28）：
+// 改动（改动日期：2026-09-28；2026-09-29 追加 ⑤）：
 //   ① 上游用 navigation3 的 Navigator.push/pop 进这条路由；本项目没有那套导航，改成上层传 onBack。
 //   ② 上游的 BuildConfig.VERSION_NAME、R.string.about_source_code 文案（含它自己的图标许可说明）
 //      换成我们的：版本号从 PackageManager 读，链接指向本仓库。
@@ -8,11 +8,16 @@
 //      这里用 PredictiveBackHandler 自己接——进度通过 onBackProgress 喂给上层，让关于页跟着手势
 //      往右滑出去，手势取消就弹回原位，松手完成才真的关（API < 34 上它等价于普通返回键，同样回调 onBack）。
 //      0.8.0 里用的是 BackHandler：手势一样能回上一页，只是页面不会跟着手指走。
+//   ⑤ 2026-09-29 用户要「把预测性返回手势加个开关」：开关值（DisplaySettings.enablePredictiveBack）由上层传进来，
+//      开 = ④ 的 PredictiveBackHandler（跟手滑出），关 = BackHandler（照常回上一页，页面不动画）。
+//      **两条路只能注册一条**：同一层两个返回处理都挂上时后注册的那个会赢，跟手动画会失效。
 package com.lemon.mrs.ui.screen.about
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
@@ -22,6 +27,7 @@ import kotlinx.coroutines.CancellationException
 @Composable
 fun AboutScreen(
     onBack: () -> Unit,
+    enablePredictiveBack: Boolean = true,
     onBackProgress: (Float) -> Unit = {},
 ) {
     val context = LocalContext.current
@@ -43,15 +49,22 @@ fun AboutScreen(
     )
 
     // 关于页开着时，系统返回手势先关它（回上一页），别让它把 App 退掉。
-    PredictiveBackHandler(enabled = true) { progress ->
-        try {
-            progress.collect { event -> onBackProgress(event.progress) }
-            onBackProgress(0f)
-            onBack()
-        } catch (e: CancellationException) {
-            // 手势半路松手取消：页面弹回原位，不关。
-            onBackProgress(0f)
+    if (enablePredictiveBack) {
+        PredictiveBackHandler(enabled = true) { progress ->
+            try {
+                progress.collect { event -> onBackProgress(event.progress) }
+                onBackProgress(0f)
+                onBack()
+            } catch (e: CancellationException) {
+                // 手势半路松手取消：页面弹回原位，不关。
+                onBackProgress(0f)
+            }
         }
+    } else {
+        // 普通返回：先把进度清零 —— 开关是在关于页开着的时候才可能被翻动的，
+        // 不清零的话页面会留在「跟手滑到一半」的位置上。
+        LaunchedEffect(Unit) { onBackProgress(0f) }
+        BackHandler { onBack() }
     }
 
     AboutScreenMiuix(state, actions)
