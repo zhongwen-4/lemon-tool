@@ -1,22 +1,35 @@
+// Mirrored from compose-miuix-ui example.
+//
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/effect/BgEffectBackground.kt
-// 改动：上游在 isRuntimeShaderSupported() 为真时用一整条 RuntimeShader 管线（BgEffectPainter /
-//       BgEffectConfig / BgEffectModifier，共 5 个文件）画 OS3 动态背景，运行时不可用时直接退化成
-//       一个纯 Box。本项目 minSdk 24、且不搬毛玻璃/着色器那一路，所以只保留那个「退化」分支：
-//       铺一层主题 surface 色，参数与上游完全一致，调用点不用改。
-// 改动日期：2026-09-28
+// 改动（改动日期：2026-09-28）：
+//   ① 只改包名；RuntimeShader 从 `top.yukonga.miuix.kmp.shader` 取（上游走 miuix-blur，本项目没这个坐标，
+//      理由见 BgEffectPainter.kt 的文件头）。
+//   ② `isInDarkTheme()` / `shouldShowSplitPane()` 换成本项目的实现（同名同义，上游那两个在
+//      `ui/theme/Theme.kt` 与 `ui/util/WindowSize.kt`）。
+//   ③ 与上游一样：运行时不支持 RuntimeShader（SDK < 33）时**直接退化成纯 Box**，什么都不画
+//      —— 底色由平台的 `Theme.Mrs` 窗口底色兜着（上游也是这个口径）。
 package com.lemon.mrs.ui.component.miuix.effect
 
-import androidx.compose.foundation.background
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import com.lemon.mrs.ui.theme.isInDarkTheme
+import com.lemon.mrs.ui.util.shouldShowSplitPane
+import top.yukonga.miuix.kmp.shader.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme
+import kotlin.math.floor
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
-@Suppress("UNUSED_PARAMETER")
 fun BgEffectBackground(
     dynamicBackground: Boolean,
     modifier: Modifier = Modifier,
@@ -26,12 +39,56 @@ fun BgEffectBackground(
     alpha: () -> Float = { 1f },
     content: @Composable BoxScope.() -> Unit,
 ) {
-    Box(modifier = modifier) {
+    if (!isRuntimeShaderSupported()) {
+        Box(modifier = modifier, content = content)
+        return
+    }
+    Box(
+        modifier = modifier,
+    ) {
+        val surface = MiuixTheme.colorScheme.surface
+        val deviceType = if (shouldShowSplitPane()) DeviceType.PAD else DeviceType.PHONE
+        val isDarkTheme = isInDarkTheme()
+        val painter = remember { BgEffectPainter() }
+
+        val preset = remember(deviceType, isDarkTheme) {
+            BgEffectConfig.get(deviceType, isDarkTheme)
+        }
+
+        val colorStage = remember { Animatable(0f) }
+
+        LaunchedEffect(dynamicBackground, preset) {
+            if (!dynamicBackground) return@LaunchedEffect
+            val animatesColors = preset.colors1 !== preset.colors2 || preset.colors2 !== preset.colors3
+            if (!animatesColors) return@LaunchedEffect
+
+            var targetStage = floor(colorStage.value) + 1f
+            while (isActive) {
+                delay((preset.colorInterpPeriod * 500).toLong().milliseconds)
+                colorStage.animateTo(
+                    targetValue = targetStage,
+                    animationSpec = spring(dampingRatio = 0.9f, stiffness = 35f),
+                )
+                targetStage += 1f
+            }
+        }
+
         Spacer(
             modifier = Modifier
                 .fillMaxSize()
                 .then(bgModifier)
-                .background(MiuixTheme.colorScheme.surface.copy(alpha = alpha().coerceIn(0f, 1f))),
+                .bgEffectDraw(
+                    painter = painter,
+                    preset = preset,
+                    deviceType = deviceType,
+                    isDarkTheme = isDarkTheme,
+                    surface = surface,
+                    effectBackground = effectBackground,
+                    isFullSize = isFullSize,
+                    playing = dynamicBackground,
+                    colorStage = { colorStage.value },
+                    alpha = alpha,
+                ),
         )
         content()
     }

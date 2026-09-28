@@ -4,11 +4,16 @@
 //      ArrowPreference 链接行全部与上游一致。
 //   ② 去掉毛玻璃那一路：上游在 enableBlur 为真时给 Logo、应用名和链接卡片套 textureBlur
 //      （还带 logoBlend / blendColors 两套混色表），本项目的 LocalEnableBlur 恒为 false，
-//      这些分支连同 BlurColors / BlendColorEntry / BlurBlendMode / isRuntimeShaderSupported
-//      / rememberLayerBackdrop / layerBackdrop 的引用一并删除——纯色路径与上游非毛玻璃时完全一样。
-//   ③ BgEffectBackground 用本项目的简化实现（上游那套 RuntimeShader 背景本项目不搬）。
+//      这些分支连同 BlurColors / BlendColorEntry / BlurBlendMode / rememberLayerBackdrop
+//      / layerBackdrop 的引用一并删除——纯色路径与上游非毛玻璃时完全一样。
+//   ③ 动态背景改成本项目口径：上游的开关是 `isRuntimeShaderSupported() && enableBlur && SDK >= 35`，
+//      本项目没有毛玻璃那一支（`LocalEnableBlur` 恒为 false），所以只留
+//      `isRuntimeShaderSupported() && SDK >= 35` —— Android 15+ 才画 OS3 动态渐变背景，
+//      低版本退化成平台窗口底色（上游本来也是这么门控的）；`bgModifier` 保持 `Modifier`，
+//      因为上游那里传的是 `layerBackdrop`（毛玻璃的壳），本项目不搬。
 package com.lemon.mrs.ui.screen.about
 
+import android.os.Build
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -79,6 +84,7 @@ import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.preference.ArrowPreference
+import top.yukonga.miuix.kmp.shader.isRuntimeShaderSupported
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 import top.yukonga.miuix.kmp.utils.overScrollVertical
 import top.yukonga.miuix.kmp.utils.scrollEndHaptic
@@ -224,12 +230,16 @@ private fun AboutContent(
         end = innerPadding.calculateEndPadding(layoutDirection),
     )
 
+    val effectBackground = remember {
+        isRuntimeShaderSupported() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.VANILLA_ICE_CREAM
+    }
+
     BgEffectBackground(
-        dynamicBackground = false,
+        dynamicBackground = effectBackground,
         modifier = Modifier.fillMaxSize(),
         bgModifier = Modifier,
         isFullSize = true,
-        effectBackground = false,
+        effectBackground = effectBackground,
         alpha = { 1f - scrollProgress },
     ) {
         // Logo area

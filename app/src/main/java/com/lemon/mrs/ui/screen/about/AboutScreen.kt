@@ -4,9 +4,12 @@
 //   ② 上游的 BuildConfig.VERSION_NAME、R.string.about_source_code 文案（含它自己的图标许可说明）
 //      换成我们的：版本号从 PackageManager 读，链接指向本仓库。
 //   ③ 其余（state/actions 的构造方式、extractLinks 的用法）与上游一致。
+//   ④ 补 `BackHandler`：上游的「返回」由 navigation3 的路由栈接管，本项目没有导航库，系统返回键
+//      得自己接——不接的话在关于页按返回会直接退出 App（2026-09-28 修）。
 package com.lemon.mrs.ui.screen.about
 
 import android.content.Context
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
@@ -32,6 +35,9 @@ fun AboutScreen(onBack: () -> Unit) {
         onBack = onBack,
         onOpenLink = { url -> runCatching { uriHandler.openUri(url) } },
     )
+
+    // 关于页开着时，系统返回键先关它（回主页），别让它把 App 退掉。
+    BackHandler(enabled = true) { onBack() }
 
     AboutScreenMiuix(state, actions)
 }

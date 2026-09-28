@@ -130,10 +130,35 @@ data class ScanReport(
 fun ScannerScreen(scan: (String) -> String) {
     var aboutOpen by remember { mutableStateOf(false) }
     if (aboutOpen) {
-        AboutScreen(onBack = { aboutOpen = false })
+        // 关于页也有自己的取色与动态背景，同样得在主题里（原先它落在 MiuixTheme 的默认浅色上）。
+        MiuixAppTheme {
+            AboutScreen(onBack = { aboutOpen = false })
+        }
     } else {
         ScannerShell(scan = scan, onOpenAbout = { aboutOpen = true })
     }
+}
+
+/**
+ * 本项目的 Miuix 主题：SukiSU 的**非莫奈**那一支（见 `knowledge/android/theme-non-monet-sukisu.md`）。
+ *
+ * 上游把主题套在整个 App 上，所以关于页也在主题里；本项目原先只在主壳 ScannerShell 里套，
+ * 关于页于是落到 `MiuixTheme.colorScheme` 的默认值（`lightColorScheme()`）—— 深色模式下
+ * 关于页底色发白、动态背景取的 `surface` 也不对。2026-09-28 起两个分支共用这一个入口。
+ */
+@Composable
+private fun MiuixAppTheme(content: @Composable () -> Unit) {
+    // 不取莫奈色，跟 SukiSU 默认那套一致：跟随系统明暗 + 它的默认调色板（TonalSpot）与色规（Spec2025）、
+    // 不指定主色。这样主卡与各处取色走的是 SukiSU 非莫奈那一支（硬编码的绿卡 + primary 蓝）。
+    MiuixTheme(
+        controller = remember {
+            ThemeController(
+                colorSchemeMode = ColorSchemeMode.System,
+                colorSpec = ThemeColorSpec.Spec2025,
+                paletteStyle = ThemePaletteStyle.TonalSpot,
+            )
+        }
+    ) { content() }
 }
 
 @Composable
@@ -209,17 +234,8 @@ private fun ScannerShell(scan: (String) -> String, onOpenAbout: () -> Unit) {
         mainPagerState.syncPage()
     }
 
-    // 不取莫奈色，跟 SukiSU 默认那套一致：跟随系统明暗 + 它的默认调色板（TonalSpot）与色规（Spec2025）、
-    // 不指定主色。这样主卡与各处取色走的是 SukiSU 非莫奈那一支（硬编码的绿卡 + primary 蓝）。
-    MiuixTheme(
-        controller = remember {
-            ThemeController(
-                colorSchemeMode = ColorSchemeMode.System,
-                colorSpec = ThemeColorSpec.Spec2025,
-                paletteStyle = ThemePaletteStyle.TonalSpot,
-            )
-        }
-    ) {
+    // 取色口径见 MiuixAppTheme。
+    MiuixAppTheme {
         CompositionLocalProvider(LocalMainPagerState provides mainPagerState) {
             Scaffold(
                 bottomBar = {
