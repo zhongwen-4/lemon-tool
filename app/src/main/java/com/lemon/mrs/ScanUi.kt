@@ -490,7 +490,7 @@ private fun parseReport(json: String): ScanReport {
 /**
  * 一条检查记录 -> 一个 SU 日志列表能渲染的条目。
  * 列表骨架是移植件（SulogListMiuix.kt），形状不动，映射全在这一层做：
- * 标题放模块名、描述放扫描对象、三个标签放高·中·低危计数、尾部状态放结论。
+ * 标题放模块名、描述放扫描对象、三个标签放高·中·低危计数、尾部状态放「点击查看详情」（结论在详情里）。
  */
 private fun scanRecordToSulogEntry(record: ScanRecord): SulogEntry {
     val title = record.moduleName.ifBlank { record.moduleId }

@@ -19,13 +19,15 @@
 //   ⑥ 2026-09-28 接上「检查历史」：本项目的历史是扫描记录、不是 SU 日志，所以
 //      ① 顶栏标题换成「检查历史」（R.string.scan_history，不再叫「SU 日志」）；
 //      ② 条目类型加了 SulogEventType.ScanReport 一支，四个取值小函数各补一个分支
-//         （模块名 / 扫描对象 / 高·中·低计数 / 结论）；sulogEntrySummaryTags 因此改成 @Composable
+//         （模块名 / 扫描对象 / 高·中·低计数 / 点击查看详情）；sulogEntrySummaryTags 因此改成 @Composable
 //         （标签要读 string 资源）；
 //      ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」——点了先弹确认，
 //         确认后才走 actions.onCleanFile（清空是不可逆的，不做静默删除）。
 //   ⑦ 2026-09-29 用户口径：「检查模块的结果全部放进检查历史」——条目详情里除了 fields 那几行，
 //      再加一段正文（发现逐条 + 提示，ScanUi.kt 的 scanRecordDetail 生成、走 SulogEntry.extraDetail），
 //      主页那边只留一张按风险着色的结论卡。
+//   ⑧ 2026-09-29：检查条目的右侧状态由「结论」改成「点击查看详情」——结论本身挪进详情弹窗，
+//      卡片右侧只当点击提示（用户要求「右侧写点击查看详情」）。
 package com.lemon.mrs.ui.screen.sulog
 
 import androidx.compose.foundation.Image
@@ -391,8 +393,10 @@ private fun sulogEntryDetailText(entry: SulogEntry) = buildAnnotatedString {
     }
 }
 
+@Composable
 private fun sulogEntryStatus(entry: SulogEntry): String? {
-    if (entry.eventType == SulogEventType.ScanReport) return entry.fields[ScanEntryFields.VERDICT]
+    // 本项目的检查条目：右侧不写结论（结论在详情里），只提示可以点开看详情（用户 2026-09-29 定）。
+    if (entry.eventType == SulogEventType.ScanReport) return stringResource(R.string.scan_entry_view_detail)
     return entry.fields["retval"]?.toIntOrNull()?.let { retval -> if (retval == 0) "Success" else "Exit $retval" }
 }
 
