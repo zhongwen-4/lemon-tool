@@ -47,6 +47,10 @@
     <string name="scan_history_empty_summary">回主页点「点此开始检测」，选一个模块安装包试试</string>
     <string name="scan_history_clear">清空检查历史</string>
     <string name="scan_history_clear_summary">删除全部本地记录，不影响已安装的模块</string>
+    <string name="scan_entry_name">名称</string>
+    <string name="scan_entry_path">路径</string>
+    <string name="scan_entry_time">时间</string>
+    <string name="scan_entry_tags">标签</string>
     <string name="scan_entry_view_detail">点击查看详情</string>
     <string name="settings_enable_blur">模糊</string>
     <string name="settings_enable_blur_summary">启用顶栏和底栏的模糊效果</string>

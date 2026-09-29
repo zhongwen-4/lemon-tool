@@ -28,6 +28,8 @@
 //      主页那边只留一张按风险着色的结论卡。
 //   ⑧ 2026-09-29：检查条目的右侧状态由「结论」改成「点击查看详情」——结论本身挪进详情弹窗，
 //      卡片右侧只当点击提示（用户要求「右侧写点击查看详情」）。
+//   ⑨ 2026-09-29：检查条目的卡片改成把「名称 / 路径 / 时间 / 标签」四样显式写出来（见 ScanEntryRows），
+//      第二行的「路径」放文件名；上游那套不写标签的版式原样保留成 SulogEntryRows，给将来别的日志类型用。
 package com.lemon.mrs.ui.screen.sulog
 
 import androidx.compose.foundation.Image
@@ -191,42 +193,45 @@ private fun SulogEntryCard(
         showIndication = true,
         insideMargin = PaddingValues(16.dp),
     ) {
-        val layoutDirection = LocalLayoutDirection.current
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
+        if (entry.eventType == SulogEventType.ScanReport) {
+            // 本项目的检查条目：照 SU 日志那四样显式写成四行（名称 / 路径 / 时间 / 标签），
+            // 第二行的「路径」放文件名（用户 2026-09-29 定），右侧是「点击查看详情」。
+            ScanEntryRows(entry)
+        } else {
+            // 上游 SU 日志条目的版式：不写标签、靠形状区分。本项目没有 SU 日志数据源，
+            // 这一段留给将来接别的日志类型时用，与上游保持一致。
+            SulogEntryRows(entry)
+        }
+    }
+}
+
+/** 检查条目的四行：名称 / 路径 / 时间（每行「标签 + 值」）+ 一行标签 chips。 */
+@Composable
+private fun ScanEntryRows(entry: SulogEntry) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    text = sulogEntryTitle(entry),
-                    modifier = Modifier.basicMarquee(),
-                    fontWeight = FontWeight(550),
-                    color = colorScheme.onSurface,
-                    maxLines = 1,
-                    softWrap = false,
+            ScanEntryLine(
+                label = stringResource(R.string.scan_entry_name),
+                value = sulogEntryTitle(entry),
+                valueFontWeight = FontWeight(550),
+            )
+            sulogEntryDescription(entry)?.let {
+                ScanEntryLine(
+                    label = stringResource(R.string.scan_entry_path),
+                    value = it,
                 )
-                sulogEntryDescription(entry)?.let {
-                    Text(
-                        text = it,
-                        fontSize = 12.sp,
-                        color = colorScheme.onSurfaceVariantSummary,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                entry.timestampText?.let {
-                    Text(
-                        text = it,
-                        modifier = Modifier.basicMarquee(),
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight(550),
-                        color = colorScheme.onSurfaceVariantSummary,
-                        maxLines = 1,
-                        softWrap = false,
-                    )
-                }
+            }
+            entry.timestampText?.let {
+                ScanEntryLine(
+                    label = stringResource(R.string.scan_entry_time),
+                    value = it,
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ScanEntryLabel(stringResource(R.string.scan_entry_tags))
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     val colors = listOf(
                         colorScheme.primary to colorScheme.onPrimary,
@@ -239,30 +244,132 @@ private fun SulogEntryCard(
                     }
                 }
             }
-            sulogEntryStatus(entry)?.let {
+        }
+        sulogEntryStatus(entry)?.let { SulogEntryStatusText(it) }
+        SulogEntryChevron()
+    }
+}
+
+/** 上游 SU 日志条目的版式（不写标签），结构与上游一致。 */
+@Composable
+private fun SulogEntryRows(entry: SulogEntry) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                text = sulogEntryTitle(entry),
+                modifier = Modifier.basicMarquee(),
+                fontWeight = FontWeight(550),
+                color = colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+            )
+            sulogEntryDescription(entry)?.let {
                 Text(
                     text = it,
-                    color = colorScheme.onSurfaceVariantActions,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight(550),
-                    maxLines = 1,
-                    softWrap = false,
-                    modifier = Modifier.padding(start = 16.dp),
+                    color = colorScheme.onSurfaceVariantSummary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
                 )
             }
-            Image(
-                modifier = Modifier
-                    .graphicsLayer {
-                        if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
-                    }
-                    .padding(start = 8.dp)
-                    .size(width = 10.dp, height = 16.dp),
-                imageVector = MiuixIcons.ChevronForward,
-                contentDescription = null,
-                colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariantActions),
-            )
+            entry.timestampText?.let {
+                Text(
+                    text = it,
+                    modifier = Modifier.basicMarquee(),
+                    fontSize = 12.sp,
+                    fontWeight = FontWeight(550),
+                    color = colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                    softWrap = false,
+                )
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                val colors = listOf(
+                    colorScheme.primary to colorScheme.onPrimary,
+                    colorScheme.secondaryContainer to colorScheme.onSecondaryContainer,
+                    colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer,
+                )
+                sulogEntrySummaryTags(entry).forEachIndexed { index, tag ->
+                    val (bg, fg) = colors.getOrElse(index) { colors.last() }
+                    StatusTag(label = tag, backgroundColor = bg, contentColor = fg)
+                }
+            }
         }
+        sulogEntryStatus(entry)?.let { SulogEntryStatusText(it) }
+        SulogEntryChevron()
     }
+}
+
+/** 「名称 / 路径 / 时间 / 标签」这四个标签都是两个字，宽度天然一致，四行的值就左对齐了。 */
+@Composable
+private fun ScanEntryLabel(label: String) {
+    Text(
+        text = label,
+        modifier = Modifier.padding(end = 10.dp),
+        fontSize = 12.sp,
+        color = colorScheme.onSurfaceVariantSummary,
+        maxLines = 1,
+        softWrap = false,
+    )
+}
+
+/** 一行「标签 + 值」。 */
+@Composable
+private fun ScanEntryLine(
+    label: String,
+    value: String,
+    valueFontWeight: FontWeight? = null,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        ScanEntryLabel(label)
+        Text(
+            text = value,
+            modifier = Modifier
+                .weight(1f)
+                .basicMarquee(),
+            fontSize = 13.sp,
+            fontWeight = valueFontWeight,
+            color = colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+        )
+    }
+}
+
+/** 卡片右侧那句状态（检查条目现为「点击查看详情」）。 */
+@Composable
+private fun SulogEntryStatusText(text: String) {
+    Text(
+        text = text,
+        color = colorScheme.onSurfaceVariantActions,
+        fontSize = 12.sp,
+        fontWeight = FontWeight(550),
+        maxLines = 1,
+        softWrap = false,
+        modifier = Modifier.padding(start = 16.dp),
+    )
+}
+
+/** 卡片尾部那枚箭头（RTL 下翻个面）。 */
+@Composable
+private fun SulogEntryChevron() {
+    val layoutDirection = LocalLayoutDirection.current
+    Image(
+        modifier = Modifier
+            .graphicsLayer {
+                if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+            }
+            .padding(start = 8.dp)
+            .size(width = 10.dp, height = 16.dp),
+        imageVector = MiuixIcons.ChevronForward,
+        contentDescription = null,
+        colorFilter = ColorFilter.tint(colorScheme.onSurfaceVariantActions),
+    )
 }
 
 @Composable
