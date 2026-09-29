@@ -407,7 +407,7 @@ private fun ScanResultStatusCard(
 ) {
     val dark = isInDarkTheme()
     // 卡片按「最高那一档」定色、定标题：高危 -> 中危 -> 低危（只有低危 / 信息也算低危），
-    // 一档发现都没有时也归到最低那档（不单独写「未发现风险」）。
+    // 一档发现都没有时也归到最低那档；「未发现风险项」那句只留给下面那行计数用。
     val level = when {
         report.high > 0 -> "high"
         report.medium > 0 -> "medium"
@@ -491,7 +491,7 @@ private fun ScanResultStatusCard(
     }
 }
 
-/** 「高危 n · 中危 n …」：只列非零的那几档；一档都没有就说「未发现风险」。 */
+/** 「高危 n · 中危 n …」：只列非零的那几档；一档都没有就说「未发现风险项」。 */
 @Composable
 private fun severityCountsText(report: ScanReport): String {
     val parts = buildList {

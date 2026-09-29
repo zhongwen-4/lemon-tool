@@ -38,7 +38,7 @@
     <string name="scan_severity_low">低危</string>
     <string name="scan_severity_info">信息</string>
     <string name="scan_findings_count">发现 %1$d 条</string>
-    <string name="scan_no_findings">未发现风险</string>
+    <string name="scan_no_findings">未发现风险项</string>
     <string name="scan_result_high">高危模块</string>
     <string name="scan_result_medium">中危模块</string>
     <string name="scan_result_low">低危模块</string>
