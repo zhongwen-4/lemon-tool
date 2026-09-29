@@ -407,7 +407,7 @@ private fun ScanResultStatusCard(
 ) {
     val dark = isInDarkTheme()
     // 卡片按「最高那一档」定色、定标题：高危 -> 中危 -> 低危（只有低危 / 信息也算低危），
-    // 一档都没有才落到「未发现风险」（那种情况叫它低危是假话）。
+    // 一档发现都没有时也归到最低那档（不单独写「未发现风险」）。
     val level = when {
         report.high > 0 -> "high"
         report.medium > 0 -> "medium"
@@ -429,11 +429,11 @@ private fun ScanResultStatusCard(
         "medium" -> Icons.Rounded.Warning
         else -> Icons.Rounded.CheckCircleOutline
     }
+    // 标题只写「高危模块 / 中危模块 / 低危模块」三档（用户 2026-09-29 定）。
     val title = when (level) {
-        "high" -> stringResource(R.string.scan_severity_high)
-        "medium" -> stringResource(R.string.scan_severity_medium)
-        "low" -> stringResource(R.string.scan_severity_low)
-        else -> stringResource(R.string.scan_no_findings)
+        "high" -> stringResource(R.string.scan_result_high)
+        "medium" -> stringResource(R.string.scan_result_medium)
+        else -> stringResource(R.string.scan_result_low)
     }
 
     Card(
