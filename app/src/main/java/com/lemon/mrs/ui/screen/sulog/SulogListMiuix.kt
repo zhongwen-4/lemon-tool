@@ -35,8 +35,16 @@
 //      检查条目那段等宽的「键: 值」正文换成**列表**（ScanDetailList）—— 概览一张 SU 日志式的卡、
 //      每条发现一张卡（规则 / 文件 / 说明 / 等级标签）、每条提示一张卡；数据走 SulogEntry.scanDetail
 //      （结构化的，不再是一段拼好的文本）。上游那种日志条目的详情仍是一段等宽正文，照上游不动。
+//   ⑪ 2026-09-30 用户口径：「检查历史的列表改回去，单个卡片点进去进入另一个列表」——
+//      ① 条目卡退回上一版（0.11.4）的版式：不管什么类型都走 SulogEntryRows（上游那套不写标签的
+//         标题 / 描述 / 时间 / 标签 chips），0.11.5 那套显式四行「名称 / 路径 / 时间 / 标签」整段删掉
+//         （ScanEntryRows 已删；详情的概览卡 / 发现卡里那几行「标签 + 值」仍走 ScanEntryLine / ScanEntryLabel）；
+//      ② 条目详情由弹窗改成**整页** SulogDetailScreen（骨架照关于页：SmallTopAppBar + 返回箭头 + 可滚内容），
+//         由 ScanUi.ScannerShell 盖在主壳上、跟手往右滑，返回手势与关于页同一套口径（受「预测性返回手势」开关管）。
 package com.lemon.mrs.ui.screen.sulog
 
+import androidx.activity.compose.BackHandler
+import androidx.activity.compose.PredictiveBackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
@@ -44,13 +52,19 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.add
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
@@ -59,6 +73,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DeleteSweep
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -80,6 +95,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.CancellationException
 import com.lemon.mrs.PageScaffold
 import com.lemon.mrs.R
 import com.lemon.mrs.ui.component.statustag.StatusTag
@@ -91,9 +107,13 @@ import com.lemon.mrs.ui.util.sulog.SulogEventType
 import top.yukonga.miuix.kmp.basic.ButtonDefaults
 import top.yukonga.miuix.kmp.basic.Card
 import top.yukonga.miuix.kmp.basic.Icon
+import top.yukonga.miuix.kmp.basic.IconButton
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextButton
 import top.yukonga.miuix.kmp.icon.MiuixIcons
+import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
 import top.yukonga.miuix.kmp.preference.ArrowPreference
@@ -105,16 +125,9 @@ fun SulogScreenMiuix(
     state: SulogScreenState,
     actions: SulogActions,
     bottomInnerPadding: Dp,
+    onEntryClick: (SulogEntry) -> Unit,
 ) {
-    var selectedEntry by remember { mutableStateOf<SulogEntry?>(null) }
     var clearConfirming by remember { mutableStateOf(false) }
-
-    SulogDetailDialog(
-        show = selectedEntry != null,
-        entry = selectedEntry,
-        onDismiss = { selectedEntry = null },
-    )
-
     SulogClearConfirmDialog(
         show = clearConfirming,
         onDismiss = { clearConfirming = false },
@@ -128,7 +141,7 @@ fun SulogScreenMiuix(
         sulogEntriesSection(
             entries = state.entries,
             errorMessage = state.errorMessage,
-            onEntryClick = { selectedEntry = it },
+            onEntryClick = onEntryClick,
             onClearClick = { clearConfirming = true },
         )
     }
@@ -202,64 +215,12 @@ private fun SulogEntryCard(
         showIndication = true,
         insideMargin = PaddingValues(16.dp),
     ) {
-        if (entry.eventType == SulogEventType.ScanReport) {
-            // 本项目的检查条目：照 SU 日志那四样显式写成四行（名称 / 路径 / 时间 / 标签），
-            // 第二行的「路径」放文件名（用户 2026-09-29 定），右侧是「点击查看详情」。
-            ScanEntryRows(entry)
-        } else {
-            // 上游 SU 日志条目的版式：不写标签、靠形状区分。本项目没有 SU 日志数据源，
-            // 这一段留给将来接别的日志类型时用，与上游保持一致。
-            SulogEntryRows(entry)
-        }
+        // 条目卡正文：退回上一版的版式（用户 2026-09-30 定）—— 照上游 SU 日志那套，不写标签。
+        SulogEntryRows(entry)
     }
 }
 
-/** 检查条目的四行：名称 / 路径 / 时间（每行「标签 + 值」）+ 一行标签 chips。 */
-@Composable
-private fun ScanEntryRows(entry: SulogEntry) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            ScanEntryLine(
-                label = stringResource(R.string.scan_entry_name),
-                value = sulogEntryTitle(entry),
-                valueFontWeight = FontWeight(550),
-            )
-            sulogEntryDescription(entry)?.let {
-                ScanEntryLine(
-                    label = stringResource(R.string.scan_entry_path),
-                    value = it,
-                )
-            }
-            entry.timestampText?.let {
-                ScanEntryLine(
-                    label = stringResource(R.string.scan_entry_time),
-                    value = it,
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                ScanEntryLabel(stringResource(R.string.scan_entry_tags))
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    val colors = listOf(
-                        colorScheme.primary to colorScheme.onPrimary,
-                        colorScheme.secondaryContainer to colorScheme.onSecondaryContainer,
-                        colorScheme.tertiaryContainer to colorScheme.onTertiaryContainer,
-                    )
-                    sulogEntrySummaryTags(entry).forEachIndexed { index, tag ->
-                        val (bg, fg) = colors.getOrElse(index) { colors.last() }
-                        StatusTag(label = tag, backgroundColor = bg, contentColor = fg)
-                    }
-                }
-            }
-        }
-        sulogEntryStatus(entry)?.let { SulogEntryStatusText(it) }
-        SulogEntryChevron()
-    }
-}
-
-/** 上游 SU 日志条目的版式（不写标签），结构与上游一致。 */
+/** 条目卡正文：照上游 SU 日志条目那一套 —— 标题 / 描述 / 时间 + 一行标签 chips，右侧状态 + 箭头。 */
 @Composable
 private fun SulogEntryRows(entry: SulogEntry) {
     Row(
@@ -411,49 +372,81 @@ private fun SulogMessageCard(
     }
 }
 
+/**
+ * 条目详情的**整页**（用户 2026-09-30 定：点一条卡「进另一个列表」，不再是弹窗）。
+ * 版式照关于页那套整页：SmallTopAppBar（返回箭头）+ 一条可滚的内容；
+ * 返回手势同一套口径（见 knowledge/android/overlay-page-and-predictive-back.md）：
+ * 开关打开走 PredictiveBackHandler（页面跟着手指往右滑出），关掉走 BackHandler，两条只挂一条。
+ */
 @Composable
-private fun SulogDetailDialog(
-    show: Boolean,
-    entry: SulogEntry?,
-    onDismiss: () -> Unit,
+internal fun SulogDetailScreen(
+    entry: SulogEntry,
+    onBack: () -> Unit,
+    enablePredictiveBack: Boolean = true,
+    onBackProgress: (Float) -> Unit = {},
 ) {
-    var lastEntry by remember { mutableStateOf(entry) }
-    if (entry != null) lastEntry = entry
-    val displayEntry = lastEntry ?: return
-    OverlayDialog(
-        show = show,
-        title = sulogEntryTitle(displayEntry),
-        onDismissRequest = onDismiss,
-        content = {
-            Column {
-                SelectionContainer(
-                    modifier = Modifier
-                        .weight(1f, fill = false)
-                        .verticalScroll(rememberScrollState()),
-                ) {
-                    if (displayEntry.eventType == SulogEventType.ScanReport) {
-                        // 检查条目的详情是**列表**（用户 2026-09-30 定），每一项都照 SU 日志条目卡的样式：
-                        // 概览一张、每条发现一张、每条提示一张。以前那段等宽的「键: 值」正文整段撤掉。
-                        ScanDetailList(displayEntry)
-                    } else {
-                        // 上游 SU 日志条目的详情：一段等宽的「键: 值」正文（照上游不动）。
-                        Text(
-                            text = sulogEntryDetailText(displayEntry),
-                            fontSize = 14.sp,
-                            fontFamily = FontFamily.Monospace,
+    if (enablePredictiveBack) {
+        PredictiveBackHandler(enabled = true) { progress ->
+            try {
+                progress.collect { event -> onBackProgress(event.progress) }
+                onBackProgress(0f)
+                onBack()
+            } catch (e: CancellationException) {
+                // 手势半路松手取消：页面弹回原位，不关。
+                onBackProgress(0f)
+            }
+        }
+    } else {
+        // 普通返回：先把进度清零，免得页面留在「跟手滑到一半」的位置上。
+        LaunchedEffect(Unit) { onBackProgress(0f) }
+        BackHandler { onBack() }
+    }
+
+    Scaffold(
+        topBar = {
+            SmallTopAppBar(
+                title = sulogEntryTitle(entry),
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        val layoutDirection = LocalLayoutDirection.current
+                        Icon(
+                            modifier = Modifier.graphicsLayer {
+                                if (layoutDirection == LayoutDirection.Rtl) scaleX = -1f
+                            },
+                            imageVector = MiuixIcons.Back,
+                            contentDescription = null,
+                            tint = colorScheme.onBackground,
                         )
                     }
-                }
-                Spacer(Modifier.height(12.dp))
-                TextButton(
-                    modifier = Modifier.fillMaxWidth(),
-                    text = stringResource(android.R.string.ok),
-                    onClick = onDismiss,
-                    colors = ButtonDefaults.textButtonColorsPrimary(),
+                },
+            )
+        },
+        contentWindowInsets = WindowInsets.systemBars
+            .add(WindowInsets.displayCutout)
+            .only(WindowInsetsSides.Horizontal),
+    ) { innerPadding ->
+        SelectionContainer(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding)
+                .padding(horizontal = 12.dp)
+                .padding(bottom = 24.dp),
+        ) {
+            if (entry.eventType == SulogEventType.ScanReport) {
+                // 检查条目的详情是**列表**（用户 2026-09-30 定）：概览一张、每条发现一张、
+                // 每条提示一张，都照 SU 日志条目卡的样式。
+                ScanDetailList(entry)
+            } else {
+                // 上游 SU 日志条目的详情：一段等宽的「键: 值」正文（照上游不动）。
+                Text(
+                    text = sulogEntryDetailText(entry),
+                    fontSize = 14.sp,
+                    fontFamily = FontFamily.Monospace,
                 )
             }
-        },
-    )
+        }
+    }
 }
 
 /** 检查条目的详情列表：概览卡 + 每条发现一张卡 + 每条提示一张卡（+ 截断那张）。 */

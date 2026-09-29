@@ -65,6 +65,7 @@ import com.lemon.mrs.ui.screen.home.HomePagerMiuix
 import com.lemon.mrs.ui.screen.home.HomeUiState
 import com.lemon.mrs.ui.screen.settings.SettingPagerMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogActions
+import com.lemon.mrs.ui.screen.sulog.SulogDetailScreen
 import com.lemon.mrs.ui.screen.sulog.SulogScreenMiuix
 import com.lemon.mrs.ui.screen.sulog.SulogScreenState
 import com.lemon.mrs.ui.theme.LocalEnableBlur
@@ -235,6 +236,8 @@ private fun ScannerShell(
     val sulogState = remember(history) {
         SulogScreenState(entries = history.map(::scanRecordToSulogEntry))
     }
+    // 点开一条检查记录后的详情整页：状态放在主壳这一层（关于页那层也是这个位置）。
+    var detailEntry by remember { mutableStateOf<SulogEntry?>(null) }
 
     fun runScan(path: String) {
         state = ScanState.Scanning
@@ -373,6 +376,7 @@ private fun ScannerShell(
                             state = sulogState,
                             actions = sulogActions,
                             bottomInnerPadding = bottomInnerPadding,
+                            onEntryClick = { detailEntry = it },
                         )
 
                         else -> SettingPagerMiuix(
@@ -382,6 +386,31 @@ private fun ScannerShell(
                         )
                     }
                 }
+            }
+        }
+        // 点开一条检查记录 → 详情**整页**（用户 2026-09-30 定：点一条卡「进另一个列表」，不再是弹窗）。
+        // 做法与关于页一致：盖在主壳上、跟着返回手势往右滑；开关关掉就只走普通返回。
+        detailEntry?.let { entry ->
+            var detailBackProgress by remember { mutableFloatStateOf(0f) }
+            val detailSlide by animateFloatAsState(
+                targetValue = detailBackProgress,
+                animationSpec = spring(stiffness = Spring.StiffnessMediumLow),
+                label = "detailBackSlide",
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer { translationX = size.width * detailSlide }
+                    .background(colorScheme.surface)
+                    // 点按吞在自己这一层，别漏到底下的底栏上。
+                    .pointerInput(Unit) { detectTapGestures { } },
+            ) {
+                SulogDetailScreen(
+                    entry = entry,
+                    onBack = { detailEntry = null },
+                    enablePredictiveBack = display.enablePredictiveBack,
+                    onBackProgress = { detailBackProgress = it },
+                )
             }
         }
     }
