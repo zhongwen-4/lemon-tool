@@ -24,12 +24,17 @@
 //      ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」——点了先弹确认，
 //         确认后才走 actions.onCleanFile（清空是不可逆的，不做静默删除）。
 //   ⑦ 2026-09-29 用户口径：「检查模块的结果全部放进检查历史」——条目详情里除了 fields 那几行，
-//      再加一段正文（发现逐条 + 提示，ScanUi.kt 的 scanRecordDetail 生成、走 SulogEntry.extraDetail），
+//      再加一段正文（发现逐条 + 提示，ScanUi.kt 的 scanRecordDetail 生成、走 SulogEntry.scanDetail ——
+//      ⑩ 之后那段正文改成列表渲染：extraDetail 这个字符串字段已换成结构化的 scanDetail），
 //      主页那边只留一张按风险着色的结论卡。
 //   ⑧ 2026-09-29：检查条目的右侧状态由「结论」改成「点击查看详情」——结论本身挪进详情弹窗，
 //      卡片右侧只当点击提示（用户要求「右侧写点击查看详情」）。
 //   ⑨ 2026-09-29：检查条目的卡片改成把「名称 / 路径 / 时间 / 标签」四样显式写出来（见 ScanEntryRows），
 //      第二行的「路径」放文件名；上游那套不写标签的版式原样保留成 SulogEntryRows，给将来别的日志类型用。
+//   ⑩ 2026-09-30 用户要「把检查历史卡片的详情改为列表，同样是 SU 日志的样式」：详情弹窗里
+//      检查条目那段等宽的「键: 值」正文换成**列表**（ScanDetailList）—— 概览一张 SU 日志式的卡、
+//      每条发现一张卡（规则 / 文件 / 说明 / 等级标签）、每条提示一张卡；数据走 SulogEntry.scanDetail
+//      （结构化的，不再是一段拼好的文本）。上游那种日志条目的详情仍是一段等宽正文，照上游不动。
 package com.lemon.mrs.ui.screen.sulog
 
 import androidx.compose.foundation.Image
@@ -37,6 +42,7 @@ import androidx.compose.foundation.basicMarquee
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -59,6 +65,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -76,6 +83,8 @@ import androidx.compose.ui.unit.sp
 import com.lemon.mrs.PageScaffold
 import com.lemon.mrs.R
 import com.lemon.mrs.ui.component.statustag.StatusTag
+import com.lemon.mrs.ui.theme.isInDarkTheme
+import com.lemon.mrs.ui.util.sulog.ScanDetailFinding
 import com.lemon.mrs.ui.util.sulog.ScanEntryFields
 import com.lemon.mrs.ui.util.sulog.SulogEntry
 import com.lemon.mrs.ui.util.sulog.SulogEventType
@@ -422,18 +431,16 @@ private fun SulogDetailDialog(
                         .weight(1f, fill = false)
                         .verticalScroll(rememberScrollState()),
                 ) {
-                    Text(
-                        text = sulogEntryDetailText(displayEntry),
-                        fontSize = 14.sp,
-                        fontFamily = FontFamily.Monospace,
-                    )
-                    // 本项目自己的检查结果：发现逐条 + 提示（由 ScanUi.kt 填进 extraDetail）。
-                    displayEntry.extraDetail?.let { detail ->
+                    if (displayEntry.eventType == SulogEventType.ScanReport) {
+                        // 检查条目的详情是**列表**（用户 2026-09-30 定），每一项都照 SU 日志条目卡的样式：
+                        // 概览一张、每条发现一张、每条提示一张。以前那段等宽的「键: 值」正文整段撤掉。
+                        ScanDetailList(displayEntry)
+                    } else {
+                        // 上游 SU 日志条目的详情：一段等宽的「键: 值」正文（照上游不动）。
                         Text(
-                            text = detail,
+                            text = sulogEntryDetailText(displayEntry),
                             fontSize = 14.sp,
                             fontFamily = FontFamily.Monospace,
-                            modifier = Modifier.padding(top = 12.dp),
                         )
                     }
                 }
@@ -447,6 +454,188 @@ private fun SulogDetailDialog(
             }
         },
     )
+}
+
+/** 检查条目的详情列表：概览卡 + 每条发现一张卡 + 每条提示一张卡（+ 截断那张）。 */
+@Composable
+private fun ScanDetailList(entry: SulogEntry) {
+    val detail = entry.scanDetail
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        ScanOverviewCard(entry)
+        detail?.findings?.forEach { finding -> ScanFindingCard(finding) }
+        detail?.notes?.forEachIndexed { index, note ->
+            ScanNoteCard(title = stringResource(R.string.scan_note_title, index + 1), body = note)
+        }
+        if (detail?.truncated == true) {
+            ScanNoteCard(title = stringResource(R.string.scan_truncated), body = null)
+        }
+    }
+}
+
+/**
+ * 概览卡：与列表条目卡同一套（标题 + 若干「标签 + 值」的行 + 一行标签 chips），底部补一句结论。
+ * 详情改成列表之后，原先那段「键: 值」正文里的东西一样不少地落在这张卡上。
+ */
+@Composable
+private fun ScanOverviewCard(entry: SulogEntry) {
+    val fields = entry.fields
+    DetailCard {
+        ScanEntryLine(
+            label = stringResource(R.string.scan_entry_name),
+            value = sulogEntryTitle(entry),
+            valueFontWeight = FontWeight(550),
+        )
+        fields[ScanEntryFields.TARGET]?.let {
+            ScanEntryLine(label = stringResource(R.string.scan_entry_path), value = it)
+        }
+        entry.timestampText?.let {
+            ScanEntryLine(label = stringResource(R.string.scan_entry_time), value = it)
+        }
+        fields[ScanEntryFields.VERSION]?.let {
+            ScanEntryLine(label = ScanEntryFields.VERSION, value = it)
+        }
+        fields[ScanEntryFields.PACKAGE]?.let {
+            ScanEntryLine(label = ScanEntryFields.PACKAGE, value = it)
+        }
+        fields[ScanEntryFields.AUTHOR]?.let {
+            ScanEntryLine(label = ScanEntryFields.AUTHOR, value = it)
+        }
+        fields[ScanEntryFields.FILES]?.let {
+            ScanEntryLine(label = ScanEntryFields.FILES, value = it)
+        }
+        fields[ScanEntryFields.FINDINGS]?.let {
+            ScanEntryLine(label = ScanEntryFields.FINDINGS, value = it)
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ScanEntryLabel(stringResource(R.string.scan_entry_tags))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                ScanCountTags(entry)
+            }
+        }
+        fields[ScanEntryFields.VERDICT]?.let {
+            ScanEntryWrappedLine(label = ScanEntryFields.VERDICT, value = it)
+        }
+    }
+}
+
+/** 一条发现一张卡：标题是规则名、右侧是「第几条 / 共几条」，下面依次是文件、说明与等级标签。 */
+@Composable
+private fun ScanFindingCard(finding: ScanDetailFinding) {
+    DetailCard {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = finding.rule,
+                modifier = Modifier
+                    .weight(1f)
+                    .basicMarquee(),
+                fontSize = 15.sp,
+                fontWeight = FontWeight(550),
+                color = colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false,
+            )
+            SulogEntryStatusText("${finding.position}/${finding.total}")
+        }
+        if (finding.file.isNotBlank()) {
+            ScanEntryLine(
+                label = stringResource(R.string.scan_finding_file),
+                value = finding.file + if (finding.line > 0) ":" + finding.line else "",
+            )
+        }
+        if (finding.detail.isNotBlank()) {
+            ScanEntryWrappedLine(
+                label = stringResource(R.string.scan_finding_detail),
+                value = finding.detail,
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            ScanEntryLabel(stringResource(R.string.scan_entry_tags))
+            ScanSeverityTag(label = finding.severityLabel, severity = finding.severity)
+        }
+    }
+}
+
+/** 提示 / 截断那种卡：一行标题，外加一行可选的正文。 */
+@Composable
+private fun ScanNoteCard(title: String, body: String?) {
+    DetailCard {
+        Text(
+            text = title,
+            fontSize = 15.sp,
+            fontWeight = FontWeight(550),
+            color = colorScheme.onSurface,
+        )
+        if (!body.isNullOrBlank()) {
+            Text(
+                text = body,
+                fontSize = 13.sp,
+                color = colorScheme.onSurfaceVariantSummary,
+            )
+        }
+    }
+}
+
+/** 详情列表里的一张卡：与列表条目卡同一种（默认底色 + 16dp 内边距），这样两张列表看起来是一套。 */
+@Composable
+private fun DetailCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        insideMargin = PaddingValues(16.dp),
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+            content = content,
+        )
+    }
+}
+
+/**
+ * 「标签 + 值」的一行，值**可以换行** —— 说明与结论这种长文本用它；
+ * 上面那个 [ScanEntryLine] 带 marquee 且只允许一行，给短值用。
+ */
+@Composable
+private fun ScanEntryWrappedLine(label: String, value: String) {
+    Row(verticalAlignment = Alignment.Top) {
+        ScanEntryLabel(label)
+        Text(
+            text = value,
+            modifier = Modifier.weight(1f),
+            fontSize = 13.sp,
+            color = colorScheme.onSurface,
+        )
+    }
+}
+
+/** 概览卡那几枚计数标签：只写非零的那几档，一档都没有就写「未发现风险项」。 */
+@Composable
+private fun ScanCountTags(entry: SulogEntry) {
+    val counts = listOf(
+        "high" to (stringResource(R.string.scan_severity_high) to entry.fields[ScanEntryFields.HIGH]),
+        "medium" to (stringResource(R.string.scan_severity_medium) to entry.fields[ScanEntryFields.MEDIUM]),
+        "low" to (stringResource(R.string.scan_severity_low) to entry.fields[ScanEntryFields.LOW]),
+        "info" to (stringResource(R.string.scan_severity_info) to entry.fields[ScanEntryFields.INFO]),
+    ).mapNotNull { (severity, pair) ->
+        val count = pair.second
+        if (count.isNullOrBlank() || count == "0") null else severity to (pair.first + " " + count)
+    }
+    if (counts.isEmpty()) {
+        ScanSeverityTag(label = stringResource(R.string.scan_no_findings), severity = "low")
+    } else {
+        counts.forEach { (severity, label) -> ScanSeverityTag(label = label, severity = severity) }
+    }
+}
+
+/** 一枚按等级取色的标签（主页结论卡那套红 / 黄 / 绿；信息走主题的次级容器色）。 */
+@Composable
+private fun ScanSeverityTag(label: String, severity: String) {
+    val dark = isInDarkTheme()
+    val (background, content) = when (severity) {
+        "high" -> (if (dark) Color(0xFF310808) else Color(0xFFF8E2E2)) to Color(0xFFF72727)
+        "medium" -> (if (dark) Color(0xFF3E2F1B) else Color(0xFFFFF0DB)) to Color(0xFFF5A623)
+        "low" -> (if (dark) Color(0xFF1A3825) else Color(0xFFDFFAE4)) to Color(0xFF36D167)
+        else -> colorScheme.secondaryContainer to colorScheme.onSecondaryContainer
+    }
+    StatusTag(label = label, backgroundColor = background, contentColor = content)
 }
 
 @Composable

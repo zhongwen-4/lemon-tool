@@ -72,6 +72,8 @@ import com.lemon.mrs.ui.theme.LocalEnableFloatingBottomBar
 import com.lemon.mrs.ui.theme.LocalEnableFloatingBottomBarBlur
 import com.lemon.mrs.ui.util.DisplaySettings
 import com.lemon.mrs.ui.util.rememberBlurBackdrop
+import com.lemon.mrs.ui.util.sulog.ScanDetail
+import com.lemon.mrs.ui.util.sulog.ScanDetailFinding
 import com.lemon.mrs.ui.util.sulog.ScanEntryFields
 import com.lemon.mrs.ui.util.sulog.SulogEntry
 import com.lemon.mrs.ui.util.sulog.SulogEventType
@@ -507,46 +509,43 @@ private fun scanRecordToSulogEntry(record: ScanRecord): SulogEntry {
             ScanEntryFields.MEDIUM to record.medium.toString(),
             ScanEntryFields.LOW to record.low.toString(),
             ScanEntryFields.VERDICT to record.verdict,
-            "版本" to record.version,
-            "包名" to record.moduleId,
-            "作者" to record.author,
-            "文件数" to record.fileCount.toString(),
-            "信息" to record.info.toString(),
-            "发现" to record.findings.size.toString(),
-            "时间" to time,
+            ScanEntryFields.VERSION to record.version,
+            ScanEntryFields.PACKAGE to record.moduleId,
+            ScanEntryFields.AUTHOR to record.author,
+            ScanEntryFields.FILES to record.fileCount.toString(),
+            ScanEntryFields.INFO to record.info.toString(),
+            ScanEntryFields.FINDINGS to record.findings.size.toString(),
+            ScanEntryFields.TIME to time,
         ).filterValues { it.isNotBlank() },
-        extraDetail = scanRecordDetail(record),
+        scanDetail = scanRecordDetail(record),
     )
 }
 
 /**
- * 检查历史详情里 fields 之后的那段正文 —— 写成与上面 fields 同一套「key: value」日志格式
- * （用户 2026-09-29：每条检查都照 SU 日志那种日志写法来），发现逐条一段、提示一段，全是等宽文本、可选中复制。
- * 段落标题与等级标签都复用 [ScanEntryFields] 里那套中文键名。
+ * 一条检查记录 -> 详情弹窗要渲染的那份结构化明细。
+ * 用户 2026-09-30：详情改成列表、同样是 SU 日志的样式 —— 界面侧（SulogListMiuix.kt）按
+ * 「一条发现一张 SU 日志式的卡」渲染，所以这里只把字段填好，不拼任何展示文本。
+ * 既没有发现也没有提示（也没有截断）时返回 null，弹窗就只显示概览那张卡。
  */
-private fun scanRecordDetail(record: ScanRecord): String? {
-    val lines = mutableListOf<String>()
-    record.findings.forEachIndexed { index, finding ->
-        if (index > 0) lines += ""
-        lines += "发现 " + (index + 1) + "/" + record.findings.size
-        lines += "等级: " + severityLabel(finding.severity)
-        lines += "规则: " + finding.rule
-        if (finding.file.isNotBlank()) {
-            lines += "文件: " + finding.file + if (finding.line > 0) ":" + finding.line else ""
-        }
-        if (finding.detail.isNotBlank()) lines += "说明: " + finding.detail
+private fun scanRecordDetail(record: ScanRecord): ScanDetail? {
+    val total = record.findings.size
+    val findings = record.findings.mapIndexed { index, finding ->
+        ScanDetailFinding(
+            position = index + 1,
+            total = total,
+            severity = finding.severity,
+            severityLabel = severityLabel(finding.severity),
+            rule = finding.rule,
+            file = finding.file,
+            line = finding.line,
+            detail = finding.detail,
+        )
     }
-    if (record.truncated) {
-        if (lines.isNotEmpty()) lines += ""
-        lines += "截断: 结果过多，只保留了前面这些"
-    }
-    if (record.notes.isNotEmpty()) {
-        if (lines.isNotEmpty()) lines += ""
-        record.notes.forEachIndexed { index, note ->
-            lines += "提示 " + (index + 1) + ": " + note
-        }
-    }
-    return lines.takeIf { it.isNotEmpty() }?.joinToString("\n")
+    return ScanDetail(
+        findings = findings,
+        notes = record.notes,
+        truncated = record.truncated,
+    ).takeUnless { it.isEmpty }
 }
 /** 核心给的 severity 是英文小写（high / medium / low / info），翻成与 fields 键名同一套中文。 */
 private fun severityLabel(severity: String): String = when (severity) {

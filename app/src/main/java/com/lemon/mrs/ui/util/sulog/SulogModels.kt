@@ -6,6 +6,8 @@
 //   ② 2026-09-28 补一个 ScanReport：本项目的历史是「自己每次检查模块留下的记录」，
 //      没有 SU 日志，所以给这个列表加一个自己的事件类型，让条目卡能显示模块名 / 对象路径 /
 //      高·中·低危计数 / 结论（映射在 ScanUi.kt 的 scanRecordToSulogEntry，展示在 SulogListMiuix.kt）。
+//   ③ 2026-09-30 用户要「详情改成列表、同样是 SU 日志的样式」：明细正文由一段拼好的文本改成
+//      结构化数据 ScanDetail（发现逐条 + 提示 + 截断位），SulogEntry.extraDetail 随之换成 scanDetail。
 package com.lemon.mrs.ui.util.sulog
 
 data class SulogFile(
@@ -39,10 +41,10 @@ data class SulogEntry(
     val timestampText: String?,
     val fields: Map<String, String>,
     /**
-     * ScanReport 专用：详情弹窗在 fields 之后原样渲染的那段明细正文（发现逐条 + 提示），
+     * ScanReport 专用：详情弹窗要渲染成列表的结构化明细（发现逐条 + 提示 + 截断位），
      * 由 ScanUi.kt 的 scanRecordToSulogEntry 填好。null 表示这类条目没有附加明细。
      */
-    val extraDetail: String? = null,
+    val scanDetail: ScanDetail? = null,
 ) {
     val searchableText: String by lazy {
         buildString {
@@ -61,10 +63,37 @@ data class SulogEntry(
 }
 
 /**
+ * ScanReport 的详情正文。2026-09-30 用户要求「详情改成列表」之后这里不再是拼好的文本，
+ * 而是结构化数据 —— 界面按「一条发现一张 SU 日志式的卡」渲染（SulogListMiuix.kt）。
+ */
+data class ScanDetail(
+    val findings: List<ScanDetailFinding>,
+    val notes: List<String>,
+    val truncated: Boolean,
+) {
+    val isEmpty: Boolean get() = findings.isEmpty() && notes.isEmpty() && !truncated
+}
+
+/**
+ * 一条发现。[severity] 是核心给的英文小写（high / medium / low / info），[severityLabel] 是同一套中文，
+ * 界面拿它当标签文字、按 severity 取标签颜色。
+ */
+data class ScanDetailFinding(
+    val position: Int,
+    val total: Int,
+    val severity: String,
+    val severityLabel: String,
+    val rule: String,
+    val file: String,
+    val line: Int,
+    val detail: String,
+)
+
+/**
  * ScanReport 事件用到的 fields 键名。
  * 写入方是 ScanUi.kt 的 scanRecordToSulogEntry，读取方是 SulogListMiuix.kt 的
  * 标题 / 描述 / 标签 / 结论四个取值函数 —— 放这里共用，免得两边字符串写岔。
- * 注意：详情弹窗会把 fields 原样按「key: value」逐行打出来，所以键名直接用中文。
+ * 键名直接用中文：检查条目的详情列表按这些键取概览那几行（高·中·低危计数也在内）。
  */
 object ScanEntryFields {
     const val MODULE = "模块"
@@ -74,4 +103,10 @@ object ScanEntryFields {
     const val LOW = "低危"
     const val VERDICT = "结论"
     const val INFO = "信息"
+    const val VERSION = "版本"
+    const val PACKAGE = "包名"
+    const val AUTHOR = "作者"
+    const val FILES = "文件数"
+    const val FINDINGS = "发现"
+    const val TIME = "时间"
 }
