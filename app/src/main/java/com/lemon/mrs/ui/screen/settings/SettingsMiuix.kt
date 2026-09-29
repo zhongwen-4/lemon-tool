@@ -8,8 +8,13 @@
 //   ③ 顶栏 + 一条 LazyColumn 的外壳与上游一致；毛玻璃已接上（ui/util/BlurExt.kt 换成上游原文）。
 //   ④ 2026-09-28 用户要「磨砂玻璃 / 液态玻璃」两个效果，补两行 SwitchPreference（上游同名开关），
 //      状态放进 DisplaySettings（SharedPreferences），主壳读它决定顶栏毛玻璃与底栏液态玻璃。
+//   ⑤ 2026-09-29「预测性返回手势」开关（上游同名行），2026-09-30 按用户口径改成**应用级**：
+//      翻动时除了存开关，还要照上游 `ColorPaletteScreen` 那套翻平台的预测性返回标志并 `recreate()`，
+//      这样它管的是所有预测性返回手势，不只是关于页那一处。
 package com.lemon.mrs.ui.screen.settings
 
+import android.app.Activity
+import android.os.Build
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
@@ -35,9 +40,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.lemon.mrs.MrsApplication
 import com.lemon.mrs.R
 import com.lemon.mrs.ui.theme.LocalEnableBlur
 import com.lemon.mrs.ui.util.BlurredBar
@@ -62,6 +69,7 @@ fun SettingPagerMiuix(
     bottomInnerPadding: Dp,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
+    val context = LocalContext.current
     var checkUpdateEnabled by rememberSaveable { mutableStateOf(true) }
 
     Scaffold(
@@ -132,7 +140,15 @@ fun SettingPagerMiuix(
                             )
                         },
                         checked = display.enablePredictiveBack,
-                        onCheckedChange = { display.updateEnablePredictiveBack(it) }
+                        onCheckedChange = { value ->
+                            display.updateEnablePredictiveBack(value)
+                            // 上游 ColorPaletteScreen 同款：翻平台的预测性返回标志 + 重建 Activity，
+                            // 让**所有**预测性返回手势（系统动画 + app 内返回进度）跟着这个开关走。
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                                MrsApplication.setEnableOnBackInvokedCallback(context.applicationInfo, value)
+                                (context as? Activity)?.recreate()
+                            }
+                        }
                     )
                     SwitchPreference(
                         title = stringResource(id = R.string.settings_check_update),

@@ -31,11 +31,14 @@ class DisplaySettings(context: Context) {
     /**
      * 预测性返回手势（上游 settings_enable_predictive_back）。
      *
-     * 上游是**应用级**的：Android 14+ 启动时用隐藏 API `ApplicationInfo#setEnableOnBackInvokedCallback`
-     * 翻平台的预测性返回标志（`KernelSUApplication.onCreate`）。本项目没有那层隐藏 API 依赖，
-     * 预测性返回也只有「关于页的整页跟手滑出」这一处，所以这个开关直接管那一处：
+     * **应用级**。2026-09-30 起照上游那套接上了：Android 14+ 冷启动时由 `MrsApplication.onCreate`
+     * 用隐藏 API `ApplicationInfo#setEnableOnBackInvokedCallback` 把平台标志翻成这个值；
+     * 开关翻动时设置页再翻一次平台标志并 `recreate()`（上游 `ColorPaletteScreen` 同款）。
+     * 所以它管的是**所有**预测性返回手势 —— 系统那套返回动画，以及 app 内每一处返回进度。
+     *
+     * app 内目前用到进度的只有「关于页的整页跟手滑出」：
      * 开 = `PredictiveBackHandler`（页面跟手往右滑），关 = `BackHandler`（照常回上一页，只是页面不动画）。
-     * 平台的 opt-in 走 manifest 的 `android:enableOnBackInvokedCallback`（本开关不参与）。
+     * manifest 的 `android:enableOnBackInvokedCallback` 只是出厂默认，运行时会按本开关被翻掉。
      *
      * 默认**开**：上游默认是关，但本项目 0.9.0 起关于页的返回一直是跟手的，
      * 默认改成关等于把已经看到的效果悄悄关掉。

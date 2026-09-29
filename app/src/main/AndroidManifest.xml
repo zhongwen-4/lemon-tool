@@ -9,8 +9,11 @@
     <uses-sdk tools:overrideLibrary="top.yukonga.miuix.kmp.blur" />
 
     <!-- 平台级的预测性返回 opt-in：API 33/34 上不加它，关于页的「跟手滑出」收不到进度回调；
-         API 35+（targetSdk 33+）平台默认就开着，这个属性会被忽略。-->
+         API 35+（targetSdk 33+）平台默认就开着，这个属性会被忽略。
+         2026-09-30 起它只是「出厂默认」：运行时会按设置里的「预测性返回手势」开关被 MrsApplication
+         用隐藏 API 翻掉（上游同款），所以这里固定写 true。-->
     <application
+        android:name=".MrsApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
