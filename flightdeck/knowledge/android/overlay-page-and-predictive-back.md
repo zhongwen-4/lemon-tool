@@ -38,3 +38,19 @@ API 35+（targetSdk 33+）平台默认开着、这个属性被忽略。
 配套代码：`DisplaySettings.enablePredictiveBack`（KEY `enable_predictive_back`）·
 `SettingsMiuix.kt` 一行 SwitchPreference · `ScanUi.kt` 把 `display` 提到 `ScannerScreen`（原先建在 `ScannerShell` 里，
 关于页那一层读不到）再往下传。
+
+## 第二处整页：检查历史详情（0.11.8）
+
+2026-09-30 用户要「点一条卡进另一个列表」，于是把条目详情从 `OverlayDialog` 改成**整页**
+（`SulogListMiuix.SulogDetailScreen`：`Scaffold` + `SmallTopAppBar`，返回箭头走 `navigationIcon` +
+`MiuixIcons.Back` + `IconButton`，内容是一列可滚的卡）。同一套配方，两点值得记：
+
+- **叠层要提到主壳那一层，别做在 pager 的页里**：悬浮底栏是 `Scaffold(bottomBar = …)` 画的，
+  排在**内容之后**；把整页盖在 `HorizontalPager` 的某一页里，底栏仍会浮在它上面（还能被点到）。
+  所以状态（`detailEntry`）与叠层都放在 `ScanUi.ScannerShell`：`MiuixAppTheme` 的内容里
+  `Scaffold(...)` 与 `detailEntry?.let { … }` 是**两个兄弟**（`MiuixTheme` 只是 `CompositionLocalProvider`，
+  不插布局节点 —— 实拉 0.9.4 sources jar 核对过），后画的在上层，整屏（含底栏）都盖得住。
+- 返回手势照上面那套二选一（开关开 = `PredictiveBackHandler` 跟手往右滑、关 = `BackHandler`），
+  跟手进度喂给外层的 `graphicsLayer { translationX = size.width * slide }`，与关于页同一个写法
+  （同一层仍然只能挂一套）。
+

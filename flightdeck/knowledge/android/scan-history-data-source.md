@@ -5,7 +5,8 @@ SUMMARY: 界面骨架是照 SukiSU 的 **SU 日志列表**搬的，但本项目�
 一行一条 JSON 存在 `filesDir/scan_history.jsonl`，新在前、上限 200 条、超出丢最旧。
 **骨架形状不动**（那是移植件，改它就要重写 GPL 出处与改动说明），映射全放在边界上：
 `ScanUi.kt` 的 `scanRecordToSulogEntry` 把一条记录变成 `SulogEntry`，键名在 `ScanEntryFields` 里两边共用。
-**条目详情是列表**（2026-09-30）：概览 / 每条发现 / 每条提示各一张 SU 日志式的卡，不是一段等宽正文。
+**条目详情是整页的列表**（2026-09-30 二稿）：条目卡退回上一版那套行式，
+点一条卡进「另一个列表」= 整页详情（概览 / 每条发现 / 每条提示各一张 SU 日志式的卡），不是一段等宽正文。
 READ WHEN: before 动「检查历史」这一页、或要给别的功能找本地持久化方案时。
 RECHECK WHEN: 记录里要加字段（记得同时改 `ScanEntryFields` 与 `ScanHistory.parse`），
 或用户要给历史加搜索 / 筛选 / 单条删除。
@@ -58,7 +59,7 @@ val scanDetail: ScanDetail? = null   // ScanReport 专用：详情列表的结�
 
 - 填它的是 `ScanUi.kt` 的 `scanRecordDetail(record)`：2026-09-29 那版是**一段等宽的「key: value」正文**，
   2026-09-30 用户要「详情改为列表、同样是 SU 日志的样式」之后改成**结构化数据**（见下一节）。
-- 读它的是 `SulogListMiuix.kt` 的 `SulogDetailDialog`：ScanReport 走 `ScanDetailList`（列表），
+- 读它的是 `SulogListMiuix.kt` 的 `SulogDetailScreen`（2026-09-30 二稿还是 `SulogDetailDialog` 弹窗）：ScanReport 走 `ScanDetailList`（列表），
   其它事件类型仍是上游那段等宽正文（`sulogEntryDetailText`），两者都留在 `SelectionContainer` 里可选中复制。
 - 给移植件加字段的原则照旧：**字段加在数据形状上、渲染留在边界**，骨架的版式不动。
   其它事件类型（RootExecve 等）不填 extraDetail → 行为与以前完全一致。
@@ -94,7 +95,24 @@ val scanDetail: ScanDetail? = null   // ScanReport 专用：详情列表的结�
 - 概览卡把原先 fields 正文里的东西**一样不少**地搬了过来（键名走 `ScanEntryFields`，
   2026-09-30 补了 `VERSION / PACKAGE / AUTHOR / FILES / FINDINGS / TIME` 六个常量）。
 
-## 在弹窗里放卡片：两个实测事实
+## 2026-09-30 二稿：条目卡退回上一版，详情从弹窗改成整页
+
+用户口径「检查历史的列表改回去，单个卡片点进去进入另一个列表」。先问清「改回去」指哪一段才动手 ——
+0.11.5 那四行是用户自己点名要的，猜错就是白跑一轮 CI。两件：
+
+- **条目卡退回上一版（0.11.4）的版式**：不再按事件类型分叉，一律走 `SulogEntryRows`（上游那套
+  「标题 / 描述 / 时间 + 一行标签 chips」，右侧仍是「点击查看详情」），`ScanEntryRows` 整段删掉。
+  ⚠ 删它时**别顺手删 `ScanEntryLine` / `ScanEntryLabel`** —— 这两个「标签 + 值」的小函数详情卡还在用
+  （概览卡与发现卡都靠它们渲染），跟要删的四行卡是两码事。
+- **详情由弹窗改成整页** `SulogDetailScreen`（配方见 `android/overlay-page-and-predictive-back.md` 的第二处整页）：
+  骨架照关于页（`Scaffold` + `SmallTopAppBar` 返回箭头 + 一列可滚的卡，内容仍是上一节那套 `ScanDetailList`），
+  弹窗里那个「确定」按钮不再需要；返回手势与关于页同一套二选一（开关开 = 跟手往右滑、关 = 普通返回）。
+- **坐标上的坑**：这一页不能做在 pager 的页里 —— Miuix 的悬浮底栏是 `Scaffold(bottomBar = …)` 画的、排在
+  内容之后，盖在 pager 页里只会盖住内容、底栏仍浮在上面还能被点到。所以状态 `detailEntry` 与叠层都提到
+  主壳 `ScanUi.ScannerShell`；`MiuixTheme` 只是 `CompositionLocalProvider`、不插布局节点（实拉 0.9.4 sources jar 核过）。
+- 余下那条「OverlayDialog 底色 / Card 内边距」的实测事实对**清空确认弹窗**仍然有效，留在下一节。
+
+## 弹窗里的两个实测事实（清空确认弹窗仍在用）
 
 - `MiuiX` 的 `OverlayDialog` 底色就是 `MiuixTheme.colorScheme.background`（`DialogDefaults.backgroundColor()`），
   与页面底色同一个值 —— 所以弹窗里直接放默认 `Card`（底色 `surfaceContainer`）**有对比、不会糊成一片**，

@@ -516,13 +516,25 @@
     `scanDetail: ScanDetail?`（`ScanDetail` / `ScanDetailFinding` 在 `SulogModels.kt`，
     `ScanEntryFields` 补 `VERSION/PACKAGE/AUTHOR/FILES/FINDINGS/TIME` 六个常量）。详情里的计数与等级 chip
     走主页结论卡那套红 / 黄 / 绿（`ScanSeverityTag`，信息档走主题次级容器色），列表卡的 chips 仍是上游三色 ——
-    **这一处颜色是我自己定的，用户不认就改回上游那套**。+
-+    本机 8 条出包前置全过。
+    **这一处颜色是我自己定的，用户不认就改回上游那套**。
     本机 8 条出包前置全过。`scan-history-data-source.md` 补两节（详情列表版式 + 弹窗里放卡片的两个实测事实）。
   - **待用户在真机确认（0.11.7）**：点开一条检查历史，详情应是**一列卡**：第一张概览（名称 / 路径 / 时间 /
     版本 / 包名 / 作者 / 文件数 / 发现 + 计数 chips + 结论），往下每条发现一张（规则名 / 1·12 / 文件 / 说明 /
     等级 chip），最后是提示；不再有等宽的「键: 值」正文。顺带看长说明换行后卡片高度、以及深色下
     红 / 黄 / 绿 chip 是否可读。
+  - **2026-09-30 第十一轮（用户：检查历史的列表改回去，单个卡片点进去进入另一个列表）**：
+    先问清「改回去」指哪一段再动手（0.11.5 那四行是用户自己点名要的，猜错就是白跑一轮 CI）。落地两件：
+    ① 条目卡**退回上一版（0.11.4）的版式** —— 不再按事件类型分叉，一律走 `SulogEntryRows`（上游那套
+    「标题 / 描述 / 时间 + 一行标签 chips」，右侧仍是「点击查看详情」），`ScanEntryRows` 整段删掉
+    （`ScanEntryLine` / `ScanEntryLabel` 不能跟着删，详情卡还在用）；
+    ② 条目详情由**弹窗**改成**整页** `SulogDetailScreen`（骨架照关于页：`SmallTopAppBar` + 返回箭头 +
+    一列可滚的卡，内容仍是 `ScanDetailList`），返回手势与关于页同一套二选一；状态 `detailEntry` 与叠层
+    放在主壳 `ScanUi.ScannerShell`（做在 pager 页里盖不住悬浮底栏）。版本 **0.11.8/code20**，本机 8 条
+    出包前置全过，commit `079b2c2` 已推，CI run `36645274459`两个 job 全绿（产物 `mrs-apk-0.11.8-c20-079b2c2`，1373566 B）。
+    `scan-history-data-source.md` 补一节「二稿」，`overlay-page-and-predictive-back.md` 补「第二处整页」。
+  - **待用户在真机确认（0.11.8）**：检查历史的条目卡回到 0.11.4 那副样子（不再有「名称 / 路径 / 时间 / 标签」
+    四行；第二行是扫描对象、第三行时间、第四行是高 / 中 / 低计数 chips）；点一条卡**不再弹窗**，而是整页滑进来
+    （带返回箭头），返回键 / 系统返回手势回的是检查历史这一页；关掉「预测性返回手势」开关后这一页不再跟手滑出。
   - **待用户在真机确认（0.11.3）**：结论卡上大字等级、计数、模块名三行不重叠；模块名过长时是省略号且不进图标；
     卡片标题应是「高危模块 / 中危模块 / 低危模块」（一档发现都没有时也会写「低危模块」）；
     检查历史点条目，详情是「发现 1/12 / 等级: / 规则: / 文件: / 说明:」这样的逐行日志。
@@ -565,3 +577,4 @@
 - `git push` 连接被重置 / 连不上 github.com → 读 `knowledge/tooling/github-push-and-local-proxy.md`
 - 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`
   （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.9.4.md`（组件签名与硬约束）
+
