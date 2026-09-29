@@ -66,9 +66,22 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   上游那套不写标签的版式保留成 `SulogEntryRows`。版本 **0.11.5/code17**，本机 8 条前置全过，
   commit `44c170d`（与上一轮的 `7012e3c` 一起）**都还没推**：当轮两次直连失败，按规矩停手。
   新知识 `android/compose-labeled-rows-alignment.md`。
+  **2026-09-30 第九轮（用户：预测性返回手势的开关应该控制所有的预测性返回手势）**：这是真 bug ——
+  那个开关原先只切关于页的 `PredictiveBackHandler` / `BackHandler` 两条路，系统那套返回动画与别处一概
+  不归它管。照上游补成**应用级**：新增 `MrsApplication`（`onCreate` 里 API 34+ 用 `HiddenApiBypass` 放行后
+  反射调 `ApplicationInfo#setEnableOnBackInvokedCallback`，按 `DisplaySettings.enablePredictiveBack` 翻平台标志）、
+  新依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`、manifest 挂 `android:name=".MrsApplication"`、
+  设置页翻动开关时同步翻标志并 `recreate()`（上游 `ColorPaletteScreen` 同款）。版本 **0.11.6/code18**、
+  commit `36e930a`（本地，未推），本机 8 条出包前置全过（新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。
+  新知识 `android/predictive-back-app-level-flag.md`。
 
 ## Next
 
+- **补推 4 笔本地提交**（`7012e3c` / `44c170d` / `11bcd0b` + 本轮 `36e930a`）→ 等 CI 出
+  `mrs-apk-0.11.6-c18-36e930a`，把版本号报给用户。
+- **0.11.6 的真机验收**：Android 14+ 上关掉「预测性返回手势」后，系统的返回动画（返回桌面时窗口跟手缩看）
+  应该一起消失，开启时关于页仍是跟手滑出；翻开关会 `recreate()`，主页「刚扫完」的结论卡会被清回待机
+  （结果已在检查历史里），这是照上游的代价。API < 34 上没有平台标志，开关只管 app 内那一处。
 - **真机验收**：重点看结论卡长文本换行、发现卡等级配色在深色下是否可读、条目卡在大字号下的裁切、
   清空确认弹窗的按钮宽度。扫描本身只在真机验证过「选 zip → 出报告」，这轮补上界面显示后要重走一遍。
 - 检查历史的周边（用户没要，先记着）：搜索 / 按等级筛选 / 单条删除 / 导出报告。
@@ -92,6 +105,11 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   再看顶栏毛玻璃在滚动时是否自然、底栏胶囊的折射与倾斜高光是否过度。
 
 ## 已落地（倒序；细节都在 work 包里）
+- 2026-09-30（第九轮）：**「预测性返回手势」开关改成应用级** —— 用户报的是真 bug（开关只管了关于页）。
+  新增 `MrsApplication`（API 34+ 用 `HiddenApiBypass` + 隐藏 API `ApplicationInfo#setEnableOnBackInvokedCallback`
+  翻平台标志）、依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`、manifest 挂 Application、
+  设置页翻动时同步翻标志并 `recreate()`。版本 0.11.6/code18，commit `36e930a`（本地，未推）。
+  新知识 `android/predictive-back-app-level-flag.md`；`tooling/which-hosts-are-reachable.md` 补复测与 tarball 取整仓。
 - 2026-09-29（第八轮）：**检查历史条目改成显式四行「名称 / 路径 / 时间 / 标签」**（路径放文件名，
   右侧仍是「点击查看详情」）。版本 0.11.5/code17，commit `44c170d`（本地，未推）。
   新知识 `android/compose-labeled-rows-alignment.md`。

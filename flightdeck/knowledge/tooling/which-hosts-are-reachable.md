@@ -5,10 +5,11 @@ SUMMARY: 本机外网通道不齐：**`api.github.com` 稳定可用**（`content
 `curl.exe` 都不通**（curl 连 443 直接超时约 21 s，它**不走** `Invoke-*` 用的那套系统代理）；
 `repo1.maven.org` 下载**具体 jar** 可以，目录索引常超时。坑：`Invoke-RestMethod` 遇到
 `image/svg+xml` 会**自动解析成 `XmlDocument`**，取原文要用 `.OuterXml`，此时 `.Length` 是空的，
-别据此判断失败——曾经因此误以为 Tabler 图标取不到。
+别据此判断失败——曾经因此误以为 Tabler 图标取不到。要整份源码别逐个 `contents`：`tarball/HEAD` 一个请求就够。
 
 READ WHEN: when 要从外网拉文件（图标 SVG / 源码 / Maven 构件），或 curl、`Invoke-WebRequest`
-报连接失败 / 返回空 / `Object reference not set to an instance of an object` 时。
+报连接失败 / 返回空 / `Object reference not set to an instance of an object` 时，
+或要一次性拿整份上游源码、或刚加了新依赖要跑 `--offline` 前置时。
 
 RECHECK WHEN: 换网络环境、换机器、或给 curl 配了代理之后。
 
@@ -66,3 +67,29 @@ $c = Invoke-RestMethod -Uri "https://api.github.com/repos/<owner>/<repo>/content
 - 想核对库的真实签名 / 是否含某 API：下 sources jar →
   `[System.IO.Compression.ZipFile]::OpenRead($jar)` → 遍历 `$z.Entries` 并按名字过滤，
   比翻文档页可靠。
+
+## 2026-09-30 复测 + 一次拿整份上游源码
+
+- **本地代理 7890 又在跑**（`Test-NetConnection 127.0.0.1 7890` → True），Gradle 靠
+  `~/.gradle/gradle.properties` 那四行走代理下构件是通的。上面表里「`repo.maven.apache.org` 被解析成
+  `198.18.0.66` 假地址」这次**没复现**（解到 `104.18.19.12`、TLS 握手成功）；`repo1.maven.org` 的
+  **目录索引这次也 200**（能列出 `hiddenapibypass-6.1/` 下所有构件）。结论：这两条会随环境变，
+  别当成永久不通。
+- **一次拿整份上游源码**（比逐个 `contents` 便宜得多）：
+
+  ```powershell
+  Invoke-WebRequest -Uri 'https://api.github.com/repos/<owner>/<repo>/tarball/HEAD' `
+    -Headers @{'User-Agent'='codex'} -OutFile "$env:TEMP\<repo>.tgz" -TimeoutSec 60
+  tar -xzf "$env:TEMP\<repo>.tgz" -C "$env:TEMP\<dir>"     # Windows 自带的 bsdtar
+  ```
+
+  坑：① 这个 tar **不支持 `--wildcards`**（`Option --wildcards is not supported`），要么全解、
+  要么解完再用 `Select-String` 筛；② 解到符号链接目录会报 `Can't create ... Invalid argument`
+  （内核仓库的 `kernel/include/uapi` 就是），**已解出的文件不受影响**，别当成整体失败。
+  本次 SukiSU 整仓 20 MB，解完直接 `Select-String -Pattern 'PredictiveBack|OnBackInvoked'` 就能定位。
+- **新增 Gradle 依赖后先联网跑一次**（`.\gradlew.bat :app:compileDebugKotlin`，不带 `--offline`），
+  把构件灌进 `~/.gradle/caches/modules-2/`；之后那 8 条 `--offline` 前置才过得去 —— `--offline`
+  不会去下载，会直接给 `FAILED`。
+- `Invoke-WebRequest -TimeoutSec 30` 在本机 PS 5.1 上会直接抛
+  `Object reference not set to an instance of an object`（不是超时）：加 `-UseBasicParsing`
+  或去掉 `-TimeoutSec` 就好。

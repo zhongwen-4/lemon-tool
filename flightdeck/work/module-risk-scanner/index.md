@@ -205,6 +205,7 @@
 14. 检查历史还差的周边（用户没要，先记着）：搜索 / 按等级筛选 / 单条删除 / 导出报告。
 15. 记录里现在只存 findings 的摘要字段，**没有存 notes 以外的原文上下文**；如果以后要「点开看原文件那一行」，
     得连文件内容一起存（体积会涨，要重新掂量）。
+16. ~~「预测性返回手势」的开关只作用于关于页~~ **已完成**（2026-09-30：改成应用级，见「进度」第九轮）。
 
 ## 进度
 
@@ -493,6 +494,19 @@
     放**文件名**（用户定的；SAF 拿不到真路径）；上游那套不写标签的版式原样保留成 `SulogEntryRows`。
     版本 **0.11.5/code17**，本机 8 条出包前置全过；commit `44c170d` **没推上去**（两次直连都失败，按规矩停手）。
     新知识 `android/compose-labeled-rows-alignment.md`（标签列别设固定宽度）。
+  - **2026-09-30 第九轮（用户：预测性返回手势的开关应该控制所有的预测性返回手势）**：这是真 bug ——
+    之前那个开关只切了关于页的 `PredictiveBackHandler` / `BackHandler` 两条路，系统那套返回动画与别处
+    一概不归它管。照上游补成**应用级**：新增 `MrsApplication`（`onCreate` 里 API 34+ 用 `HiddenApiBypass`
+    放行后反射调 `ApplicationInfo#setEnableOnBackInvokedCallback`，按 `DisplaySettings.enablePredictiveBack`
+    翻平台标志）、新增依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`（只出 `.aar`，别猜 `.jar`）、
+    manifest 挂 `android:name=".MrsApplication"`、设置页翻动开关时同步翻标志并 `recreate()`
+    （上游 `ColorPaletteScreen` 同款）。版本 **0.11.6/code18**，本机 8 条出包前置全过
+    （新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。新知识
+    `android/predictive-back-app-level-flag.md`。
+  - **待用户在真机确认（0.11.6）**：Android 14+ 上关掉「预测性返回手势」后，系统的返回动画（返回桌面时
+    窗口跟手缩看）应该一起没了，开启时关于页仍是跟手滑出。注意翻开关会 `recreate()`，主页「刚扫完」的
+    结论卡会被清回待机（结果已经在检查历史里）—— 照上游的代价，不是新 bug。API < 34 上平台标志不存在，
+    开关只管 app 内那一处。
   - **待用户在真机确认（0.11.3）**：结论卡上大字等级、计数、模块名三行不重叠；模块名过长时是省略号且不进图标；
     卡片标题应是「高危模块 / 中危模块 / 低危模块」（一档发现都没有时也会写「低危模块」）；
     检查历史点条目，详情是「发现 1/12 / 等级: / 规则: / 文件: / 说明:」这样的逐行日志。
@@ -509,6 +523,7 @@
 - `knowledge/android/miuix-0.9.4.md` — **动界面（MiuiX 0.9.4）前必读**：组件签名是实拉 sources jar 核对过的
 - `knowledge/android/compose-box-corner-layout.md` — 做「四角 + 溢出大图标」那种卡片版式、或卡片里文字重合时读
 - `knowledge/android/scan-history-data-source.md` — 要动「检查历史」这一页、或给功能找本地持久化方案时读
+- `knowledge/android/predictive-back-app-level-flag.md` — 动「预测性返回手势」开关、给别处返回接预测性返回、或要在本项目里反射调隐藏 API 时读
 - `knowledge/android/sukisu-ui-port.md` — 要**继续移植 SukiSU 的界面**、或给本项目加新界面时必读
 - `knowledge/android/about-bg-effect-shader.md` — 动关于页背景、移植 `ui/component/miuix/effect/*`、或判断某个效果这个版本画不画得出来时读
 - `knowledge/android/miuix-theme-scope.md` — 加「不经过主壳的页面/弹层」，或某页深色下发白时读
