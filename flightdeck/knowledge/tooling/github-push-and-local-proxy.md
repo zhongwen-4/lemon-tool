@@ -108,3 +108,30 @@ git -c http.proxy=http://127.0.0.1:18081 -c https.proxy=http://127.0.0.1:18081 p
   不排除自己就会把当前 shell 杀掉。
 - 隧道要**并发**（git 同时开几条连接），单线程接力会把 git 卡死。
 - SSH 那条（`ssh://git@ssh.github.com:443`）能连但 `Permission denied (publickey)`，别走 SSH。
+
+## 2026-09-30 实测：代理在听的时候，`curloptResolve` 那条**推不动**（两次都失败）
+
+当天 `ProxyEnable=1` 且 `127.0.0.1:7890` 确实有进程在听，我却先走了第③条：挑 IP → TLS 握手成功
+（`140.82.116.4` / `140.82.113.4` 都握上了）→ `git -c http.curloptResolve=... push`，
+两次都是 `Failed to connect to github.com port 443 after 21063 ms: Could not connect to server`。
+
+换成第②条立刻成功（3.7 秒，`c30d6c9..b203ace`）：
+
+```powershell
+git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 push lemon-tool main
+```
+
+两条补充经验：
+
+- **TLS 握手成功 ≠ 这条路能推**（又一次应验）。而且 `curloptResolve` 在「代理在听」的环境下
+  会**稳定失败**，不是运气问题 —— 所以排查顺序要严格执行：先看 7890 在不在听，**在听就先用 `-c http.proxy`**，
+  别去挑 IP。
+- 推之前有一次成本 1 秒的判据：
+
+  ```powershell
+  Invoke-WebRequest -UseBasicParsing -Uri 'https://github.com/<owner>/<repo>' -Proxy 'http://127.0.0.1:7890' -TimeoutSec 25
+  # 200 -> 代理这条路是通的，直接用 -c http.proxy，不用试别的
+  ```
+
+  注意这里要**显式 `-Proxy`**：`Invoke-*` 平时靠 WinINET，但显式指定能确认「代理→github」这一段真的通，
+  而不是「WinINET 恰好配对了」。
