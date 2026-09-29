@@ -72,13 +72,13 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   反射调 `ApplicationInfo#setEnableOnBackInvokedCallback`，按 `DisplaySettings.enablePredictiveBack` 翻平台标志）、
   新依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`、manifest 挂 `android:name=".MrsApplication"`、
   设置页翻动开关时同步翻标志并 `recreate()`（上游 `ColorPaletteScreen` 同款）。版本 **0.11.6/code18**、
-  commit `36e930a`（本地，未推），本机 8 条出包前置全过（新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。
+  commit `36e930a` 已推（连前 4 笔一起：`488a6f2..45abca4`），本机 8 条出包前置全过（新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。
   新知识 `android/predictive-back-app-level-flag.md`。
 
 ## Next
 
-- **补推 4 笔本地提交**（`7012e3c` / `44c170d` / `11bcd0b` + 本轮 `36e930a`）→ 等 CI 出
-  `mrs-apk-0.11.6-c18-36e930a`，把版本号报给用户。
+- ~~补推 4 笔 + 等 CI 出包~~ **已完成**：`488a6f2..45abca4` 一次推成，CI run `36636011139` 两个 job 全绿，
+  产物 `mrs-apk-0.11.6-c18-45abca4`（1378607 B）；把版本号报给用户、等真机反馈。
 - **0.11.6 的真机验收**：Android 14+ 上关掉「预测性返回手势」后，系统的返回动画（返回桌面时窗口跟手缩看）
   应该一起消失，开启时关于页仍是跟手滑出；翻开关会 `recreate()`，主页「刚扫完」的结论卡会被清回待机
   （结果已在检查历史里），这是照上游的代价。API < 34 上没有平台标志，开关只管 app 内那一处。
@@ -108,7 +108,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - 2026-09-30（第九轮）：**「预测性返回手势」开关改成应用级** —— 用户报的是真 bug（开关只管了关于页）。
   新增 `MrsApplication`（API 34+ 用 `HiddenApiBypass` + 隐藏 API `ApplicationInfo#setEnableOnBackInvokedCallback`
   翻平台标志）、依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`、manifest 挂 Application、
-  设置页翻动时同步翻标志并 `recreate()`。版本 0.11.6/code18，commit `36e930a`（本地，未推）。
+  设置页翻动时同步翻标志并 `recreate()`。版本 0.11.6/code18，commit `36e930a` 已推，CI run `36636011139` 两个 job 全绿（产物 `mrs-apk-0.11.6-c18-45abca4`）。
   新知识 `android/predictive-back-app-level-flag.md`；`tooling/which-hosts-are-reachable.md` 补复测与 tarball 取整仓。
 - 2026-09-29（第八轮）：**检查历史条目改成显式四行「名称 / 路径 / 时间 / 标签」**（路径放文件名，
   右侧仍是「点击查看详情」）。版本 0.11.5/code17，commit `44c170d`（本地，未推）。

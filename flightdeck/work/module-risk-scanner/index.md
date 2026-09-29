@@ -501,7 +501,7 @@
     翻平台标志）、新增依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`（只出 `.aar`，别猜 `.jar`）、
     manifest 挂 `android:name=".MrsApplication"`、设置页翻动开关时同步翻标志并 `recreate()`
     （上游 `ColorPaletteScreen` 同款）。版本 **0.11.6/code18**，本机 8 条出包前置全过
-    （新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。新知识
+    （新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。commit `36e930a` 已推，CI run `36636011139` 两个 job 全绿（产物 `mrs-apk-0.11.6-c18-45abca4`）。新知识
     `android/predictive-back-app-level-flag.md`。
   - **待用户在真机确认（0.11.6）**：Android 14+ 上关掉「预测性返回手势」后，系统的返回动画（返回桌面时
     窗口跟手缩看）应该一起没了，开启时关于页仍是跟手滑出。注意翻开关会 `recreate()`，主页「刚扫完」的
