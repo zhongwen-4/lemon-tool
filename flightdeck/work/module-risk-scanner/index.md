@@ -516,7 +516,8 @@
     `scanDetail: ScanDetail?`（`ScanDetail` / `ScanDetailFinding` 在 `SulogModels.kt`，
     `ScanEntryFields` 补 `VERSION/PACKAGE/AUTHOR/FILES/FINDINGS/TIME` 六个常量）。详情里的计数与等级 chip
     走主页结论卡那套红 / 黄 / 绿（`ScanSeverityTag`，信息档走主题次级容器色），列表卡的 chips 仍是上游三色 ——
-    **这一处颜色是我自己定的，用户不认就改回上游那套**。版本 **0.11.7/code19**，commit `d6ee190`，
+    **这一处颜色是我自己定的，用户不认就改回上游那套**。+
++    本机 8 条出包前置全过。
     本机 8 条出包前置全过。`scan-history-data-source.md` 补两节（详情列表版式 + 弹窗里放卡片的两个实测事实）。
   - **待用户在真机确认（0.11.7）**：点开一条检查历史，详情应是**一列卡**：第一张概览（名称 / 路径 / 时间 /
     版本 / 包名 / 作者 / 文件数 / 发现 + 计数 chips + 结论），往下每条发现一张（规则名 / 1·12 / 文件 / 说明 /

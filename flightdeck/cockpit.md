@@ -79,7 +79,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   （规则 / 1·12 / 文件 / 说明 / 等级 chip）、每条提示与截断各一张卡，卡片用列表条目卡那种 `Card`
   （`insideMargin = 16.dp`）；数据由 `SulogEntry.extraDetail: String?` 换成结构化的 `scanDetail: ScanDetail?`。
   详情里的计数与等级 chip 用主页那套红 / 黄 / 绿（列表卡仍是上游三色）。版本 **0.11.7/code19**、
-  commit `d6ee190`（本地，未推），本机 8 条出包前置全过。
+  commit `d6ee190` 已推，本机 8 条出包前置全过；CI run `36639652742` 两个 job 全绿（产物 `mrs-apk-0.11.7-c19-b203ace`）。
 
 ## Next
 
@@ -114,7 +114,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 
 ## 已落地（倒序；细节都在 work 包里）
 - 2026-09-30（第十轮）：**检查历史的详情改成列表** —— 概览 / 每条发现 / 每条提示各一张 SU 日志式的卡，
-  明细在数据侧换成结构化的 `ScanDetail`。版本 0.11.7/code19，commit `d6ee190`（本地，未推）。
+  明细在数据侧换成结构化的 `ScanDetail`。版本 0.11.7/code19，commit `d6ee190` 已推，CI run `36639652742` 两个 job 全绿（产物 `mrs-apk-0.11.7-c19-b203ace`）。
   知识更新 `android/scan-history-data-source.md`（详情列表版式 + 弹窗里放卡片的实测事实）与
   `tooling/file-edit-anchors-and-newlines.md`（第八次：锚点手抄漏 `val`、切片按 `)` 收尾咬掉 `{`）。
 - 2026-09-30（第九轮）：**「预测性返回手势」开关改成应用级** —— 用户报的是真 bug（开关只管了关于页）。
