@@ -5,6 +5,7 @@ SUMMARY: 界面骨架是照 SukiSU 的 **SU 日志列表**搬的，但本项目�
 一行一条 JSON 存在 `filesDir/scan_history.jsonl`，新在前、上限 200 条、超出丢最旧。
 **骨架形状不动**（那是移植件，改它就要重写 GPL 出处与改动说明），映射全放在边界上：
 `ScanUi.kt` 的 `scanRecordToSulogEntry` 把一条记录变成 `SulogEntry`，键名在 `ScanEntryFields` 里两边共用。
+**条目详情是列表**（2026-09-30）：概览 / 每条发现 / 每条提示各一张 SU 日志式的卡，不是一段等宽正文。
 READ WHEN: before 动「检查历史」这一页、或要给别的功能找本地持久化方案时。
 RECHECK WHEN: 记录里要加字段（记得同时改 `ScanEntryFields` 与 `ScanHistory.parse`），
 或用户要给历史加搜索 / 筛选 / 单条删除。
@@ -52,16 +53,13 @@ RECHECK WHEN: 记录里要加字段（记得同时改 `ScanEntryFields` 与 `Sca
 于是 `SulogEntry` 多了一个本项目自加的字段：
 
 ```kotlin
-val extraDetail: String? = null   // ScanReport 专用：详情弹窗在 fields 之后原样渲染的正文
+val scanDetail: ScanDetail? = null   // ScanReport 专用：详情列表的结构化数据（发现逐条 + 提示 + 截断位）
 ```
 
-- 填它的是 `ScanUi.kt` 的 `scanRecordDetail(record)`：**写成与 fields 同一套「key: value」日志格式**
-  （用户 2026-09-29：「每个检查都按 SU 日志那种写法来」）—— 发现逐条一段
-  （`发现 1/12` / `等级:` / `规则:` / `文件: path:line` / `说明:`），截断写 `截断: …`，
-  提示写 `提示 1: …`；等级标签复用 `ScanEntryFields.HIGH/MEDIUM/LOW/INFO`（都在同一个映射里，不再引新文案）。
-  全是等宽文本、可选中复制 —— 与 `sulogEntryDetailText` 那几行字段排在一起是同一个观感。
-- 读它的是 `SulogListMiuix.kt` 的 `SulogDetailDialog`：挂在同一个 `SelectionContainer` 里、
-  fields 之后另起一段 Text。
+- 填它的是 `ScanUi.kt` 的 `scanRecordDetail(record)`：2026-09-29 那版是**一段等宽的「key: value」正文**，
+  2026-09-30 用户要「详情改为列表、同样是 SU 日志的样式」之后改成**结构化数据**（见下一节）。
+- 读它的是 `SulogListMiuix.kt` 的 `SulogDetailDialog`：ScanReport 走 `ScanDetailList`（列表），
+  其它事件类型仍是上游那段等宽正文（`sulogEntryDetailText`），两者都留在 `SelectionContainer` 里可选中复制。
 - 给移植件加字段的原则照旧：**字段加在数据形状上、渲染留在边界**，骨架的版式不动。
   其它事件类型（RootExecve 等）不填 extraDetail → 行为与以前完全一致。
 - 主页那张结论卡的**标题直接写「高危模块 / 中危模块 / 低危模块」**（一档发现都没有时也按最低那档写；
@@ -74,3 +72,36 @@ val extraDetail: String? = null   // ScanReport 专用：详情弹窗在 fields 
   留给将来接别的日志类型用。四个标签都是两个字，宽度天然一致，所以标签列**没设固定宽度**
   （理由见 `android/compose-labeled-rows-alignment.md`）。
   那张卡的版式坑（三层 `fillMaxSize` 导致文字重叠）单独记在 `android/compose-box-corner-layout.md`。
+
+## 2026-09-30：条目详情改成列表（每项一张 SU 日志式的卡）
+
+用户原话「把检查历史卡片的详情改为列表，同样是 su 日志的样式」。做法：
+
+- 数据形状换成**结构化**的：`SulogEntry.scanDetail: ScanDetail?`，`ScanDetail` =
+  `findings: List<ScanDetailFinding>` + `notes: List<String>` + `truncated: Boolean`（`isEmpty` 便于判空）；
+  `ScanDetailFinding` 带 `position/total/severity/severityLabel/rule/file/line/detail`。
+  `ScanUi.kt` 只填字段、不拼文本；两者都在 `ui/util/sulog/SulogModels.kt`。
+- 渲染在 `SulogListMiuix.kt` 的 `ScanDetailList`：一张 `DetailCard`（= Miuix `Card` +
+  `insideMargin = PaddingValues(16.dp)`，与列表条目卡同一种）**一项**：
+  1. `ScanOverviewCard` —— 「名称 / 路径 / 时间 / 版本 / 包名 / 作者 / 文件数 / 发现」这些**复用
+     `ScanEntryLine`**（列表卡那套「标签 + 值」行），再来一行标签 chips 与一句结论；
+  2. 每条发现一张 `ScanFindingCard` —— 标题 = 规则名、右侧 = `1/12`（复用 `SulogEntryStatusText`）、
+     文件行、说明行（长文本用 `ScanEntryWrappedLine`，**不能用带 marquee 的 `ScanEntryLine`**）、等级 chip；
+  3. 每条提示 / 截断各一张 `ScanNoteCard`。
+- **颜色口径**：详情里计数与等级 chip 走主页结论卡那套红 / 黄 / 绿（`ScanSeverityTag`，
+  信息档走主题次级容器色），一档都没有时写「未发现风险项」；列表卡的 chips 仍是上游那套
+  主题三色（`sulogEntrySummaryTags`）—— 详情这一处是刻意不同的，用户若不认再改回去。
+- 概览卡把原先 fields 正文里的东西**一样不少**地搬了过来（键名走 `ScanEntryFields`，
+  2026-09-30 补了 `VERSION / PACKAGE / AUTHOR / FILES / FINDINGS / TIME` 六个常量）。
+
+## 在弹窗里放卡片：两个实测事实
+
+- `MiuiX` 的 `OverlayDialog` 底色就是 `MiuixTheme.colorScheme.background`（`DialogDefaults.backgroundColor()`），
+  与页面底色同一个值 —— 所以弹窗里直接放默认 `Card`（底色 `surfaceContainer`）**有对比、不会糊成一片**，
+  和列表页看到的是同一种关系。`DialogDefaults.insideMargin = DpSize(24.dp, 24.dp)`。
+- Miuix 的 `CardDefaults.InsideMargin` 是 **`PaddingValues(0.dp)`**，卡片想有内边距必须**显式传**
+  `insideMargin`（列表条目卡与这里的 `DetailCard` 都传 16.dp）；不传的话内容会贴着卡片边缘。
+- 这两条是**实拉 sources jar 看来的**，不是猜的：`repo1.maven.org/maven2/top/yukonga/miuix/kmp/miuix-ui-android/0.9.4/`
+  下的 `miuix-ui-android-0.9.4-sources.jar`，用
+  `[System.IO.Compression.ZipFile]::OpenRead(...)` 读 `commonMain/.../basic/Card.kt`、
+  `overlay/OverlayDialog.kt`、`layout/DialogContentLayout.kt`。查组件签名的三条路见 `android/miuix-0.9.4.md`。

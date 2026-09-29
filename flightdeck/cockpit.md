@@ -74,11 +74,19 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   设置页翻动开关时同步翻标志并 `recreate()`（上游 `ColorPaletteScreen` 同款）。版本 **0.11.6/code18**、
   commit `36e930a` 已推（连前 4 笔一起：`488a6f2..45abca4`），本机 8 条出包前置全过（新依赖先联网灌进本机 Gradle 缓存，否则 `--offline` 会 FAILED）。
   新知识 `android/predictive-back-app-level-flag.md`。
+  **2026-09-30 第十轮（用户：把检查历史卡片的详情改为列表，同样是 su 日志的样式）**：条目详情弹窗里
+  那段等宽的「键: 值」正文换成**列表**（`ScanDetailList`）—— 概览一张 SU 日志式的卡、每条发现一张卡
+  （规则 / 1·12 / 文件 / 说明 / 等级 chip）、每条提示与截断各一张卡，卡片用列表条目卡那种 `Card`
+  （`insideMargin = 16.dp`）；数据由 `SulogEntry.extraDetail: String?` 换成结构化的 `scanDetail: ScanDetail?`。
+  详情里的计数与等级 chip 用主页那套红 / 黄 / 绿（列表卡仍是上游三色）。版本 **0.11.7/code19**、
+  commit `d6ee190`（本地，未推），本机 8 条出包前置全过。
 
 ## Next
 
 - ~~补推 4 笔 + 等 CI 出包~~ **已完成**：`488a6f2..45abca4` 一次推成，CI run `36636011139` 两个 job 全绿，
   产物 `mrs-apk-0.11.6-c18-45abca4`（1378607 B）；把版本号报给用户、等真机反馈。
+- **0.11.7 的真机验收**：点开一条检查历史，详情应是一列卡（概览 / 每条发现 / 每条提示），不再有等宽正文；
+  顺带看长说明换行后的卡片高度、深色下红 / 黄 / 绿 level chip 是否可读。颜色口径若不合意就叫停改回上游三色。
 - **0.11.6 的真机验收**：Android 14+ 上关掉「预测性返回手势」后，系统的返回动画（返回桌面时窗口跟手缩看）
   应该一起消失，开启时关于页仍是跟手滑出；翻开关会 `recreate()`，主页「刚扫完」的结论卡会被清回待机
   （结果已在检查历史里），这是照上游的代价。API < 34 上没有平台标志，开关只管 app 内那一处。
@@ -105,6 +113,10 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   再看顶栏毛玻璃在滚动时是否自然、底栏胶囊的折射与倾斜高光是否过度。
 
 ## 已落地（倒序；细节都在 work 包里）
+- 2026-09-30（第十轮）：**检查历史的详情改成列表** —— 概览 / 每条发现 / 每条提示各一张 SU 日志式的卡，
+  明细在数据侧换成结构化的 `ScanDetail`。版本 0.11.7/code19，commit `d6ee190`（本地，未推）。
+  知识更新 `android/scan-history-data-source.md`（详情列表版式 + 弹窗里放卡片的实测事实）与
+  `tooling/file-edit-anchors-and-newlines.md`（第八次：锚点手抄漏 `val`、切片按 `)` 收尾咬掉 `{`）。
 - 2026-09-30（第九轮）：**「预测性返回手势」开关改成应用级** —— 用户报的是真 bug（开关只管了关于页）。
   新增 `MrsApplication`（API 34+ 用 `HiddenApiBypass` + 隐藏 API `ApplicationInfo#setEnableOnBackInvokedCallback`
   翻平台标志）、依赖 `org.lsposed.hiddenapibypass:hiddenapibypass:6.1`、manifest 挂 Application、
