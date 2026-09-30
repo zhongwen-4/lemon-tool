@@ -124,6 +124,21 @@ val scanDetail: ScanDetail? = null   // ScanReport 专用：详情列表的结�
   "红色的卡片"指的是字是红的，不是底是红的。文案 `scan_detail_disclaimer`。
 - 2026-10-01 追加：这张卡的文字**居中**（`Modifier.fillMaxWidth()` + `textAlign = TextAlign.Center`）—— 用户口径，用不着自己换行。
 
+## 2026-10-01：检查完自动进详情（开关 + 复用同一个纯映射函数）
+
+用户要「风险检查完之后直接跳转到该模块的检查历史的详情页，然后加个开关」。
+
+- 详情整页的入参是 `SulogEntry`、不是 `ScanRecord`，所以这一路**不另建映射**：拿刚写盘的那条 `ScanRecord`
+  再走一次 `ScanUi.scanRecordToSulogEntry(record)`，就是列表里那一条 —— 它是纯函数（record 进、entry 出，
+  不读盘、不取当前时间），两处结果必然一致。**代价**：这个「纯」成了隐式契约；哪天要在映射里读盘或取时间，
+  就得改成「先 append、再从 `history` 里取那一条」。
+- 开关是 `DisplaySettings.enableAutoOpenDetail`（key `enable_auto_open_detail`，默认**开**），
+  设置页照上游那套加一行 `SwitchPreference`（放在「预测性返回手势」与「检查更新」之间）。
+  `DisplaySettings` 建在主壳 `ScannerScreen` 一层、设置页与主壳共用同一个实例，所以翻开关**当场生效**、
+  不需要 `recreate()` —— 这点跟「预测性返回手势」那一行正好相反（那个必须重建 Activity）。
+- 跳转**只盖详情整页，不切底栏 / 不切 tab**：底下那页不动，返回就回到原来那页。扫包只能从主页发起，
+  所以返回必然回主页，结论卡还在。
+
 ## 弹窗里的两个实测事实（清空确认弹窗仍在用）
 
 - `MiuiX` 的 `OverlayDialog` 底色就是 `MiuixTheme.colorScheme.background`（`DialogDefaults.backgroundColor()`），

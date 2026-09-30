@@ -542,6 +542,19 @@
     `Modifier.fillMaxWidth()` + `textAlign = TextAlign.Center`（卡片本身不动，仍是白底红字），补
     `androidx.compose.ui.text.style.TextAlign` 一个 import。版本 **0.11.10/code22**，本机 8 条出包前置全过。还有 commit `05b9c9c` 已推、CI run `36782308712` 两个 job 全绿（产物 `mrs-apk-0.11.10-c22-8538aea`，1374336 B）。
     `scan-history-data-source.md` 的提示卡一节补一行「文字居中」。
+  - **2026-10-01 第十四轮（用户：风险检查完直接跳转到该模块的检查历史的详情页，然后加个开关）**：落地两件 ——
+    ① 扫描成功、`ScanHistory.append` 之后，按 `display.enableAutoOpenDetail` 直接把 `detailEntry` 设成
+    `scanRecordToSulogEntry(record)`（复用列表那条的纯映射，两处 entry 必然一致），详情整页照旧盖在主壳上，
+    底下那页不动、返回回原来那页（扫包只能从主页发起，所以返回必然回主页）；
+    ② 开关住 `DisplaySettings`（key `enable_auto_open_detail`，默认**开**），设置页照上游补第 5 行
+    `SwitchPreference`（`Summarize` 图标，排在「预测性返回手势」与「检查更新」之间）—— 跟预测性返回那行不同，
+    这个**不需要** `recreate()`：`DisplaySettings` 是主壳与设置页共用的同一个实例，当场生效。
+    版本 **0.11.11/code23**，本机 8 条出包前置全过，commit `8f5b09c` 已推，
+    CI run `36783610539` 两个 job 全绿（产物 `mrs-apk-0.11.11-c23-8f5b09c`，1375773 B）。
+    `scan-history-data-source.md` 补「检查完自动进详情」一节。
+  - **待用户在真机确认（0.11.11）**：扫完 zip 应**自动**进详情整页；返回回主页且结论卡还在；把设置页那行开关
+    关掉后再扫一次，应停在主页（不再自动跳）。顺带确认设置页现在有六行（模糊 / 液态玻璃 / 预测性返回手势 /
+    检查完自动查看详情 / 检查更新 / 关于）。
   - **待用户在真机确认（0.11.10）**：详情最上面那张提示卡的文字应是**居中**的（白底红字不变），
     与卡片宽度无关 —— 长文案换行后每一行也都居中。
   - **待用户在真机确认（0.11.8）**：检查历史的条目卡回到 0.11.4 那副样子（不再有「名称 / 路径 / 时间 / 标签」
