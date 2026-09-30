@@ -459,6 +459,7 @@ private fun RowScope.BottomTab(
 internal fun PageScaffold(
     title: String,
     bottomInnerPadding: Dp,
+    actions: @Composable RowScope.() -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
     val scrollBehavior = MiuixScrollBehavior()
@@ -466,6 +467,7 @@ internal fun PageScaffold(
         topBar = {
             TopAppBar(
                 title = title,
+                actions = actions,
                 scrollBehavior = scrollBehavior,
             )
         },

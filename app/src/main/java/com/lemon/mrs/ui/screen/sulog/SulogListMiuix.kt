@@ -78,10 +78,9 @@ import top.yukonga.miuix.kmp.icon.MiuixIcons
 import top.yukonga.miuix.kmp.icon.extended.Back
 import top.yukonga.miuix.kmp.icon.extended.ChevronForward
 import top.yukonga.miuix.kmp.overlay.OverlayDialog
-import top.yukonga.miuix.kmp.preference.ArrowPreference
 import top.yukonga.miuix.kmp.theme.MiuixTheme.colorScheme
 
-/** 检查历史页：顶栏 + 一列检查记录，点一条开详情弹窗。数据从 [state] 来，默认是空的。 */
+/** 检查历史页：顶栏（标题右侧是清空按钮）+ 一列检查记录，点一条开详情弹窗。数据从 [state] 来，默认是空的。 */
 @Composable
 fun SulogScreenMiuix(
     state: SulogScreenState,
@@ -99,12 +98,29 @@ fun SulogScreenMiuix(
         },
     )
 
-    PageScaffold(title = stringResource(R.string.scan_history), bottomInnerPadding = bottomInnerPadding) {
+    val showClearAction = state.errorMessage == null && state.entries.isNotEmpty()
+    PageScaffold(
+        title = stringResource(R.string.scan_history),
+        bottomInnerPadding = bottomInnerPadding,
+        actions = {
+            if (showClearAction) {
+                IconButton(
+                    modifier = Modifier.padding(end = 8.dp),
+                    onClick = { clearConfirming = true },
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.DeleteSweep,
+                        contentDescription = stringResource(R.string.scan_history_clear),
+                        tint = colorScheme.onSurface,
+                    )
+                }
+            }
+        },
+    ) {
         sulogEntriesSection(
             entries = state.entries,
             errorMessage = state.errorMessage,
             onEntryClick = onEntryClick,
-            onClearClick = { clearConfirming = true },
         )
     }
 }
@@ -113,7 +129,6 @@ private fun LazyListScope.sulogEntriesSection(
     entries: List<SulogEntry>,
     errorMessage: String?,
     onEntryClick: (SulogEntry) -> Unit,
-    onClearClick: () -> Unit,
 ) {
     when {
         errorMessage != null -> item {
@@ -138,27 +153,6 @@ private fun LazyListScope.sulogEntriesSection(
                     entry = entry,
                     onClick = { onEntryClick(entry) },
                 )
-            }
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 4.dp),
-                ) {
-                    ArrowPreference(
-                        title = stringResource(R.string.scan_history_clear),
-                        summary = stringResource(R.string.scan_history_clear_summary),
-                        startAction = {
-                            Icon(
-                                Icons.Rounded.DeleteSweep,
-                                contentDescription = stringResource(R.string.scan_history_clear),
-                                modifier = Modifier.padding(end = 6.dp),
-                                tint = colorScheme.onBackground,
-                            )
-                        },
-                        onClick = onClearClick,
-                    )
-                }
             }
         }
     }

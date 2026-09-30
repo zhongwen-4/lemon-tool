@@ -153,7 +153,7 @@
      ② 条目类型加了 SulogEventType.ScanReport 一支，四个取值小函数各补一个分支
         （模块名 / 扫描对象 / 高·中·低计数 / 点击查看详情）；sulogEntrySummaryTags 因此改成 @Composable
         （标签要读 string 资源）；
-     ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」——点了先弹确认，
+     ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」（2026-10-01 起挪到顶栏标题右侧，见 ⑭）——点了先弹确认，
         确认后才走 actions.onCleanFile（清空是不可逆的，不做静默删除）。
   ⑦ 2026-09-29 用户口径：「检查模块的结果全部放进检查历史」——条目详情里除了 fields 那几行，
      再加一段正文（发现逐条 + 提示，ScanUi.kt 的 scanRecordDetail 生成、走 SulogEntry.scanDetail ——
@@ -179,6 +179,13 @@
         （ScanEntryRows 已删；详情的概览卡 / 发现卡里那几行「标签 + 值」仍走 ScanEntryLine / ScanEntryLabel）；
      ② 条目详情由弹窗改成**整页** SulogDetailScreen（骨架照关于页：SmallTopAppBar + 返回箭头 + 可滚内容），
         由 ScanUi.ScannerShell 盖在主壳上、跟手往右滑，返回手势与关于页同一套口径（受「预测性返回手势」开关管）。
+  ⑭ 2026-10-01 用户要「把检查历史的删除按钮放在标题的右侧」：清空检查历史从**列表底部那一行**
+     挪到**顶栏标题右侧**（⑥③ 那行底部按钮整段删掉、`ArrowPreference` 的 import 一并删）——
+     照上游同一处（上游顶栏 actions 里的 IconButton + MiuixIcons.Delete）写成 `IconButton` +
+     我们自己的 `Icons.Rounded.DeleteSweep`（口径「图标用我们自己的」），位置与内边距照上游
+     （`Modifier.padding(end = 8.dp)`、tint 走 `colorScheme.onSurface`），点击仍先弹确认弹窗；
+     没有记录（或加载失败）时不显示。为此在 ScanUi.kt 的 PageScaffold 上开了一个可选槽位
+     `actions: @Composable RowScope.() -> Unit = {}`，原样透传给 MiuiX 的 TopAppBar。
 
 ---
 
