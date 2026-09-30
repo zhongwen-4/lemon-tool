@@ -40,6 +40,7 @@
 //      （0xFFF72727，与主页结论卡、详情等级 chip 同一个红），文案 `scan_detail_disclaimer`。
 //      用户当天追加口径「卡片是白的，字是红的」—— 上游 `WarningCard` 那种红底红字他不要，所以没用它。
 //      卡片下面才是概览 / 每条发现 / 每条提示那一列卡。
+//   ⑬ 2026-10-01 用户口径：那张提示卡的文字**居中**（fillMaxWidth() + TextAlign.Center）。
 //   ⑪ 2026-09-30 用户口径：「检查历史的列表改回去，单个卡片点进去进入另一个列表」——
 //      ① 条目卡退回上一版（0.11.4）的版式：不管什么类型都走 SulogEntryRows（上游那套不写标签的
 //         标题 / 描述 / 时间 / 标签 chips），0.11.5 那套显式四行「名称 / 路径 / 时间 / 标签」整段删掉
@@ -94,6 +95,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
@@ -442,9 +444,11 @@ internal fun SulogDetailScreen(
                 // 检查详情最上面那行提示卡（用户 2026-10-01 定）：白底（跟其它卡同一套默认底色）+ 红字。
                 DetailCard {
                     Text(
+                        modifier = Modifier.fillMaxWidth(),
                         text = stringResource(R.string.scan_detail_disclaimer),
                         fontSize = 14.sp,
                         fontWeight = FontWeight(550),
+                        textAlign = TextAlign.Center,
                         color = Color(0xFFF72727),
                     )
                 }
