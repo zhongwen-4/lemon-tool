@@ -532,6 +532,12 @@
     放在主壳 `ScanUi.ScannerShell`（做在 pager 页里盖不住悬浮底栏）。版本 **0.11.8/code20**，本机 8 条
     出包前置全过，commit `079b2c2` 已推，CI run `36645274459`两个 job 全绿（产物 `mrs-apk-0.11.8-c20-079b2c2`，1373566 B）。
     `scan-history-data-source.md` 补一节「二稿」，`overlay-page-and-predictive-back.md` 补「第二处整页」。
+  - **2026-10-01 第十二轮（用户：每个检查详情最上面写一行红色的卡片「该结果仅供参考」→ 追加「卡片是白的，字是红的」）**：
+    详情整页的内容包一层 `Column`，第一张是提示卡 —— `DetailCard`（默认卡色，浅色白 / 深色自动变深）+ 红字
+    `Color(0xFFF72727)`（与主页结论卡、详情等级 chip 同一个红），文案 `scan_detail_disclaimer`。
+    **没用上游已经移植过来的 `WarningCard`**：它默认 `level = Error`，是红底红字，用户要的是白底红字。
+    版本 **0.11.9/code21**，本机 8 条出包前置全过，commit `94e1a41` 已推，CI run `36781156133` 两个 job 全绿（产物 `mrs-apk-0.11.9-c21-94e1a41`）。
+    `scan-history-data-source.md` 补一节「详情最上面那张提示卡（白底红字）」。
   - **待用户在真机确认（0.11.8）**：检查历史的条目卡回到 0.11.4 那副样子（不再有「名称 / 路径 / 时间 / 标签」
     四行；第二行是扫描对象、第三行时间、第四行是高 / 中 / 低计数 chips）；点一条卡**不再弹窗**，而是整页滑进来
     （带返回箭头），返回键 / 系统返回手势回的是检查历史这一页；关掉「预测性返回手势」开关后这一页不再跟手滑出。
@@ -577,4 +583,5 @@
 - `git push` 连接被重置 / 连不上 github.com → 读 `knowledge/tooling/github-push-and-local-proxy.md`
 - 要改界面（MiuiX/Compose）→ 先读 `knowledge/tooling/impeccable-on-android-project.md`
   （impeccable 在本项目的调法）与 `knowledge/android/miuix-0.9.4.md`（组件签名与硬约束）
+
 

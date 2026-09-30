@@ -85,7 +85,11 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   （上游那套不写标签的行式，右侧仍是「点击查看详情」），`ScanEntryRows` 整段删掉；② 条目详情由**弹窗**改成
   **整页** `SulogDetailScreen`（骨架照关于页：`SmallTopAppBar` + 返回箭头 + 一列可滚的卡），叠层与状态放在主壳
   `ScanUi.ScannerShell`（做在 pager 页里盖不住悬浮底栏；`MiuixTheme` 不插布局节点这点已实拉 sources jar 核过）。
-  版本 **0.11.8/code20**，本机 8 条出包前置全过，commit `079b2c2` 已推，CI run `36645274459`两个 job 全绿（产物 `mrs-apk-0.11.8-c20-079b2c2`）。
+  版本 **0.11.8/code20**，本机 8 条出包前置全过，commit `079b2c2` 已推，CI run `36645274459` 两个 job 全绿（产物 `mrs-apk-0.11.8-c20-079b2c2`）。
+  **2026-10-01 第十二轮（用户：每个检查详情最上面写一行红色的卡片「该结果仅供参考」）**：先按上游 `WarningCard`
+  （红底红字）做的，用户当场改口径「卡片是白的，字是红的」—— 改成 `DetailCard`（默认卡色）+ 红字 0xFFF72727。
+  实现就在详情整页的内容最外层包一层 `Column`，第一张卡是它，下面才是 `ScanDetailList`。版本 **0.11.9/code21**，
+  本机 8 条出包前置全过，commit `94e1a41` 已推，CI run `36781156133` 两个 job 全绿（产物 `mrs-apk-0.11.9-c21-94e1a41`）。
 
 ## Next
 
@@ -120,6 +124,9 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   再看顶栏毛玻璃在滚动时是否自然、底栏胶囊的折射与倾斜高光是否过度。
 
 ## 已落地（倒序；细节都在 work 包里）
+- 2026-10-01（第十二轮）：**详情最上面加一张提示卡「该结果仅供参考」** —— 白底（`DetailCard` 默认卡色）+ 红字
+  0xFFF72727，新增 `scan_detail_disclaimer` 文案；用户否掉了上游 `WarningCard` 的红底红字。版本 0.11.9/code21，
+  commit `94e1a41` 已推，CI run `36781156133` 两个 job 全绿（产物 `mrs-apk-0.11.9-c21-94e1a41`）。知识更新 `android/scan-history-data-source.md`（提示卡一节）。
 - 2026-09-30（第十一轮）：**条目卡退回上一版 + 详情改成整页** —— 条目卡不再分类型、一律走 `SulogEntryRows`
   （上游那套行式，右侧仍是「点击查看详情」），`ScanEntryRows` 整段删掉；条目详情由弹窗改成**整页**
   `SulogDetailScreen`（骨架照关于页：`SmallTopAppBar` + 返回箭头 + 一列可滚的卡，内容仍是 `ScanDetailList`），
@@ -215,4 +222,5 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   要不要接上（进主页时后台检查 + 有新版就显示 UpdateCard）？
 - 本机要不要也装 NDK + gradle（约 1.6 GB）？现状「CI 编 APK、本机编 C++ 与 Kotlin 跑测试」已经够用。
 - 要不要兼顾 32 位设备（armeabi-v7a）？现在只出 arm64-v8a。
+
 

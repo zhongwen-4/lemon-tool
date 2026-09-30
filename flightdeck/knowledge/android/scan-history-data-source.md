@@ -112,6 +112,16 @@ val scanDetail: ScanDetail? = null   // ScanReport 专用：详情列表的结�
   主壳 `ScanUi.ScannerShell`；`MiuixTheme` 只是 `CompositionLocalProvider`、不插布局节点（实拉 0.9.4 sources jar 核过）。
 - 余下那条「OverlayDialog 底色 / Card 内边距」的实测事实对**清空确认弹窗**仍然有效，留在下一节。
 
+## 2026-10-01：详情最上面那张提示卡（白底红字）
+
+用户要「每个检查详情最上面写一行红色的卡片：该结果仅供参考」，紧接着又定颜色口径：**卡片是白的、字是红的**。
+
+- 落法：`SulogDetailScreen` 的内容包一层 `Column`，第一张就是这张提示卡 —— 它用 `DetailCard`
+  （**默认卡色**，浅色下白、深色下自动变深，所以它和下面那几列卡是同一个底），里面一个 `Text`，
+  `color = Color(0xFFF72727)`（与主页结论卡、详情等级 chip 同一个红）。
+- ⚠ **别用上游的 `WarningCard`**（本项目已经移植了它）：那个组件默认 `level = WarningLevel.Error`，
+  是**红底红字**（浅色 0xFFF8E2E2 底 / 深色 0xFF310808 底）。用户明确否掉了这个观感 ——
+  "红色的卡片"指的是字是红的，不是底是红的。文案 `scan_detail_disclaimer`。
 ## 弹窗里的两个实测事实（清空确认弹窗仍在用）
 
 - `MiuiX` 的 `OverlayDialog` 底色就是 `MiuixTheme.colorScheme.background`（`DialogDefaults.backgroundColor()`），
