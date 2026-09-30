@@ -237,6 +237,7 @@ private fun ScannerShell(
         SulogScreenState(entries = history.map(::scanRecordToSulogEntry))
     }
     // 点开一条检查记录后的详情整页：状态放在主壳这一层（关于页那层也是这个位置）。
+    // 两个来源：检查历史里点条目，或扫描成功后自动进来（开关见 DisplaySettings.enableAutoOpenDetail）。
     var detailEntry by remember { mutableStateOf<SulogEntry?>(null) }
 
     fun runScan(path: String) {
@@ -250,6 +251,9 @@ private fun ScannerShell(
                     val finishedAt = System.currentTimeMillis()
                     val record = ScanHistory.of(report, targetName, finishedAt)
                     history = withContext(Dispatchers.IO) { ScanHistory.append(context, record) }
+                    // 用户 2026-10-01：检查完**直接进这条记录的详情整页**（「检查完自动查看详情」开关，默认开）。
+                    // 底下那页不动 —— 返回就回到原来那页，跟从检查历史里点条目是同一套。
+                    if (display.enableAutoOpenDetail) detailEntry = scanRecordToSulogEntry(record)
                     ScanState.Done(report, finishedAt)
                 },
                 onFailure = { ScanState.Failed(it.message ?: "扫描失败") },

@@ -62,5 +62,7 @@
     <string name="settings_enable_glass_summary">启用悬浮底栏的液态玻璃效果</string>
     <string name="settings_enable_predictive_back">预测性返回手势</string>
     <string name="settings_enable_predictive_back_summary">启用对预测性返回手势的支持</string>
+    <string name="settings_auto_open_detail">检查完自动查看详情</string>
+    <string name="settings_auto_open_detail_summary">风险检查完成后直接打开该模块的检查详情</string>
 </resources>
 

@@ -11,6 +11,9 @@
 //   ⑤ 2026-09-29「预测性返回手势」开关（上游同名行），2026-09-30 按用户口径改成**应用级**：
 //      翻动时除了存开关，还要照上游 `ColorPaletteScreen` 那套翻平台的预测性返回标志并 `recreate()`，
 //      这样它管的是所有预测性返回手势，不只是关于页那一处。
+//   ⑥ 2026-10-01 用户要「风险检查完直接跳到该模块的检查历史的详情页」并「加个开关」：
+//      补一行「检查完自动查看详情」，状态同样进 DisplaySettings（默认开）；主壳扫描成功后读它
+//      决定要不要把详情整页直接盖上来。
 package com.lemon.mrs.ui.screen.settings
 
 import android.app.Activity
@@ -33,6 +36,7 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.BlurOn
 import androidx.compose.material.icons.rounded.Opacity
 import androidx.compose.material.icons.rounded.SystemUpdate
+import androidx.compose.material.icons.rounded.Summarize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -149,6 +153,20 @@ fun SettingPagerMiuix(
                                 (context as? Activity)?.recreate()
                             }
                         }
+                    )
+                    SwitchPreference(
+                        title = stringResource(id = R.string.settings_auto_open_detail),
+                        summary = stringResource(id = R.string.settings_auto_open_detail_summary),
+                        startAction = {
+                            Icon(
+                                Icons.Rounded.Summarize,
+                                modifier = Modifier.padding(end = 6.dp),
+                                contentDescription = stringResource(id = R.string.settings_auto_open_detail),
+                                tint = colorScheme.onBackground
+                            )
+                        },
+                        checked = display.enableAutoOpenDetail,
+                        onCheckedChange = { display.updateEnableAutoOpenDetail(it) }
                     )
                     SwitchPreference(
                         title = stringResource(id = R.string.settings_check_update),
