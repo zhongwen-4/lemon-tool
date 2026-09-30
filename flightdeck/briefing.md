@@ -13,6 +13,10 @@
 7. 如果你认为我说的不对，请直接反驳，并给出你认为正确的做法与理由。
 8. 每次更新**只动版本号**（`versionCode` 和 `versionName` 一起动），**不要动包名**——
    `com.lemon.mrs` 的 `namespace` / `applicationId` 保持不变；包名一改就是另一个 app，老用户升级不上。
+9. 移植自 SukiSU（或别处）的文件，**改动明细统一登记在 `docs/sukisu-port-changes.md`**：新搬一个文件
+   就在那边补一节（小节标题 = 文件名去掉扩展名，就是链接锚点），并在该文件头写一行
+   `改动清单：docs/sukisu-port-changes.md#<锚点>`；出处路径（上游 `manager/...`）与第三方许可声明
+   （Kyant0 / compose-miuix-ui 那几行）**留在文件里不要动**。
 
 <!-- 章节标题（Focus / In flight / Next / Open questions / Conventions /
      Subscriptions）保留英文，它们是 flightdeck 协议自己的字段名，正文一律中文。 -->

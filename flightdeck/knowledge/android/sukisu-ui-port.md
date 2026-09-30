@@ -13,6 +13,9 @@ SUMMARY: 本项目已是 **GPL-3.0**（根目录 LICENSE），与 SukiSU 源码�
 API 33/35，已经搬进来（见 `about-bg-effect-shader.md`）——「不搬 blur」与「搬那个背景」并不冲突；
 ② 上游页面的「返回」由 navigation3 的路由栈管，本项目没有导航库，**凡是从 `ScannerScreen` 切出去的子页
 都得自己接 `BackHandler`**（不接的话在子页按返回直接退出 App；关于页就是这么修的）。
+**2026-10-01 起：「改动明细」不再散在各文件头，全部集中登记在仓库的 `docs/sukisu-port-changes.md`**
+（43 个移植文件各一节 + 目录）；文件头只留「出处 + 一行 `改动清单：docs/sukisu-port-changes.md#<锚点>`」，
+**出处路径与 Apache-2.0 那两行归属必须留在文件里**（见文末「第四批」）。
 READ WHEN: before 继续移植 SukiSU（或 KernelSU 系）的界面代码、或要给本项目加新界面时。
 RECHECK WHEN: 上游大改目录结构，或本项目决定启用毛玻璃、或引入导航库之后。
 
@@ -96,3 +99,20 @@ Invoke-RestMethod -Uri "https://api.github.com/repos/SukiSU-Ultra/SukiSU-Ultra/c
 要点：**「不搬毛玻璃」不等于「不搬 RuntimeShader」** —— 毛玻璃（`layerBackdrop` / `InteractiveHighlight`）
 要的是 minSdk 33 的 **manifest** 门槛，所以那个坐标不能用；OS3 渐变背景只是**运行时**门控，
 minSdk 24 照样编得过。
+
+## 第四批：改动声明集中登记到 `docs/sukisu-port-changes.md`（2026-10-01，版本 0.11.12/code24）
+
+用户口径：**移植文件的改动你单独写一个 markdown 文件全部放在这个文件里，然后放个对应改动的链接**。
+
+- 现状：`docs/sukisu-port-changes.md` —— 43 个移植文件，一节一个文件，带目录；每节写「本文件 / 上游 / 改动明细」。
+- 文件头写法（这行就是 GPL-3.0 §5a 要的「改动声明」）：
+  `// 改动清单：docs/sukisu-port-changes.md#<锚点>`；锚点 = **小节标题小写**，标题 = 文件名去掉扩展名
+  （例：`## SulogListMiuix` -> `#suloglistmiuix`）。KDoc 写法的文件（`/* ... */`）指针写成 ` * 改动清单：…`。
+- ⚠ **只搬「改动明细」，别把出处一起搬走**：
+  ① 上游路径（`上游 manager/app/...`）留在文件里 —— 它是「这份代码从哪来」；
+  ② `Adapted from Kyant0/AndroidLiquidGlass (Apache 2.0)`（`liquid/Lens.kt`）与
+  `Adapted from compose-miuix-ui example`（`FloatingBottomBar.kt` 等）**必须原样留着**，那是第三方许可归属，
+  搬走了就成侵权；③ `Mirrored from compose-miuix-ui example.` 同理。
+- 新增移植文件时：文档补一节 + 该文件头写一行链接（已写进 `briefing.md` 的 Conventions 第 9 条）。
+- 迁移是用脚本一次做完的（读文件头 → 定位「改动」块 → 换成一指针行）：见
+  `tooling/file-edit-anchors-and-newlines.md` 的「第十次」（那次踩了 PowerShell 逗号优先级的坑）。
