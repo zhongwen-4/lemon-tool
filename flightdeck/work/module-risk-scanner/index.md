@@ -540,7 +540,7 @@
     `scan-history-data-source.md` 补一节「详情最上面那张提示卡（白底红字）」。
   - **2026-10-01 第十三轮（用户：检查详情的提示文字居中）**：那张「该结果仅供参考」提示卡的 `Text` 加了
     `Modifier.fillMaxWidth()` + `textAlign = TextAlign.Center`（卡片本身不动，仍是白底红字），补
-    `androidx.compose.ui.text.style.TextAlign` 一个 import。版本 **0.11.10/code22**，本机 8 条出包前置全过。
+    `androidx.compose.ui.text.style.TextAlign` 一个 import。版本 **0.11.10/code22**，本机 8 条出包前置全过。还有 commit `05b9c9c` 已推、CI run `36782308712` 两个 job 全绿（产物 `mrs-apk-0.11.10-c22-8538aea`，1374336 B）。
     `scan-history-data-source.md` 的提示卡一节补一行「文字居中」。
   - **待用户在真机确认（0.11.10）**：详情最上面那张提示卡的文字应是**居中**的（白底红字不变），
     与卡片宽度无关 —— 长文案换行后每一行也都居中。

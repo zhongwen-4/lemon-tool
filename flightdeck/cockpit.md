@@ -92,7 +92,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   本机 8 条出包前置全过，commit `94e1a41` 已推，CI run `36781156133` 两个 job 全绿（产物 `mrs-apk-0.11.9-c21-94e1a41`）。
   **2026-10-01 第十三轮（用户：检查详情的提示文字居中）**：那张提示卡的 `Text` 加 `fillMaxWidth()` +
   `TextAlign.Center`（卡片本身不动，仍是白底红字，补一个 `TextAlign` import）。版本 **0.11.10/code22**，
-  本机 8 条出包前置全过。
+  本机 8 条出包前置全过。  commit `05b9c9c` / `8538aea` 已推，CI run `36782308712` 两个 job 全绿（产物 `mrs-apk-0.11.10-c22-8538aea`，1374336 B）。
 
 ## Next
 
@@ -132,6 +132,7 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
 - 2026-10-01（第十三轮）：**详情那张提示卡的文字居中** —— `Modifier.fillMaxWidth()` + `TextAlign.Center`，
   卡片本身不动（仍白底红字），补一个 `TextAlign` import。版本 0.11.10/code22，本机 8 条出包前置全过。
   知识更新 `android/scan-history-data-source.md`（提示卡一节补一行「文字居中」）。
+  推送快照：`05b9c9c`（代码）/ `8538aea`（回写）已推，CI run `36782308712` 两个 job 全绿。
 - 2026-10-01（第十二轮）：**详情最上面加一张提示卡「该结果仅供参考」** —— 白底（`DetailCard` 默认卡色）+ 红字
   0xFFF72727，新增 `scan_detail_disclaimer` 文案；用户否掉了上游 `WarningCard` 的红底红字。版本 0.11.9/code21，
   commit `94e1a41` 已推，CI run `36781156133` 两个 job 全绿（产物 `mrs-apk-0.11.9-c21-94e1a41`）。知识更新 `android/scan-history-data-source.md`（提示卡一节）。
