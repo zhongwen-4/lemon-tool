@@ -122,6 +122,8 @@ val scanDetail: ScanDetail? = null   // ScanReport 专用：详情列表的结�
 - ⚠ **别用上游的 `WarningCard`**（本项目已经移植了它）：那个组件默认 `level = WarningLevel.Error`，
   是**红底红字**（浅色 0xFFF8E2E2 底 / 深色 0xFF310808 底）。用户明确否掉了这个观感 ——
   "红色的卡片"指的是字是红的，不是底是红的。文案 `scan_detail_disclaimer`。
+- 2026-10-01 追加：这张卡的文字**居中**（`Modifier.fillMaxWidth()` + `textAlign = TextAlign.Center`）—— 用户口径，用不着自己换行。
+
 ## 弹窗里的两个实测事实（清空确认弹窗仍在用）
 
 - `MiuiX` 的 `OverlayDialog` 底色就是 `MiuixTheme.colorScheme.background`（`DialogDefaults.backgroundColor()`），
