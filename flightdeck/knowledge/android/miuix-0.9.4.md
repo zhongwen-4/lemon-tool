@@ -72,7 +72,10 @@ ArrowPreference(
   —— **没有 `border` 参数**，描边得自己在外面 `Modifier.border`。
 - `CardDefaults.defaultColors(color = surfaceContainer, contentColor = onSurfaceContainer)`；`CornerRadius = 16.dp`、`InsideMargin = 0.dp`。
 - `TopAppBar(title: String, modifier, color, titleColor, largeTitle, …, navigationIcon, actions, scrollBehavior: ScrollBehavior? = null, defaultWindowInsetsPadding = true, …)`
-  —— `title` 是 **String 不是槽位**，要塞图标+两行只能自己画。
+  —— `title` 是 **String 不是槽位**，要塞图标+两行只能自己画；`actions` 是
+  `@Composable RowScope.() -> Unit`（顶栏右侧那一组，SmallTopAppBar 同款），右侧那块留白由
+  `TopAppBarDefaults.ActionIconPadding = 16.dp` 管（上游 SukiSU 的清空按钮还在里面额外加了
+  `Modifier.padding(end = 8.dp)`）。`bottomContent` 放在标题栏下方。
 - `MiuixScrollBehavior(state, canScroll, snapAnimationSpec, flingAnimationSpec): ScrollBehavior`；
   配合 `LazyColumn` 的 `.nestedScroll(scrollBehavior.nestedScrollConnection)` + `.overScrollVertical()` + `.scrollEndHaptic()`。
 - `Modifier.overScrollVertical(nestedScrollToParent = true, isEnabled = { true })`；
@@ -111,9 +114,12 @@ ArrowPreference(
    用 `[System.IO.Compression.ZipFile]` 取里面的 `classes.jar`，再
    `& "$JDK\bin\javap.exe" -classpath classes.jar top.yukonga.miuix.kmp.basic.ProgressIndicatorKt`。
    注意 javap 打出来的是**混淆后的 JVM 签名**（`LinearProgressIndicator--jt2gSs`，`Dp` 变 `float`、
-   `Color` 变 `long`），只能看形状与参数个数，**参数名要靠第 1 条**。
-3. ~~拉 `-sources.jar`~~：`repo1.maven.org` 的目录索引常超时，本机 `Invoke-WebRequest` 直连也连不上
-   （这次 2 秒就报「无法连接到远程服务器」）。别浪费步数。
+   `Color` 变 `long`），只能看形状与参数个数，**参数名要靠第 1 / 3 条**。
+3. **拉 `-sources.jar`（2026-10-01 推翻上一条旧结论：能用）**：`repo1.maven.org` 的**目录索引**
+   仍然常超时，但**具体文件按全名直下是通的** ——
+   `https://repo1.maven.org/maven2/top/yukonga/miuix/kmp/miuix-ui-android/0.9.4/miuix-ui-android-0.9.4-sources.jar`
+   （238 KB，本机 1 秒下完），解开就是 `commonMain/top/yukonga/miuix/kmp/basic/*.kt`，**带完整参数名与 KDoc**，
+   核对签名最省事的就是它（第 1 条的 GitHub 上传源同理，只是要多一次列树请求）。
 
 **这次的结果（进度指示器，0.9.4 实有）**：
 

@@ -103,9 +103,20 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   `// 改动清单：docs/sukisu-port-changes.md#<锚点>`（锚点 = 文件名小写）；**只搬改动明细**，出处（上游路径）与
   第三方归属（Kyant0 / compose-miuix-ui）原样留在文件里。版本 **0.11.12/code24**，本机 8 条出包前置全过，
   commit `5dc9020` 已推，CI run `36785091095` 两个 job 全绿（产物 `mrs-apk-0.11.12-c24-5dc9020`，1375725 B）。
+  **2026-10-01 第十六轮（用户：把检查历史的删除按钮放在标题的右侧）**：清空检查历史从**列表底部那行**
+  挪到**顶栏标题右侧** —— 照上游 SU 日志页同一处（上游顶栏 `actions` 里的 `IconButton` + `MiuixIcons.Delete`）
+  写成 `IconButton` + 我们自己的 `Icons.Rounded.DeleteSweep`，内边距 / tint 照上游（`padding(end = 8.dp)`、
+  `colorScheme.onSurface`），点击仍先弹确认弹窗，没有记录（或加载失败）时不显示；列表底部那行连同
+  `ArrowPreference` 的 import 一并删掉。为此在 `ScanUi.kt` 的 `PageScaffold` 上开了一个可选槽位
+  `actions: @Composable RowScope.() -> Unit = {}`，原样透传给 MiuiX 的 `TopAppBar`。版本 **0.11.13/code25**，
+  本机 8 条出包前置全过，commit `c41d354` 已推，CI run `36787685333` 两个 job 全绿
+  （产物 `mrs-apk-0.11.13-c25-c41d354`，1375700 B）。`sukisu-port-changes.md` 的 SulogListMiuix 一节补 ⑭、
+  `miuix-0.9.4.md` 补 TopAppBar 的 `actions` 槽与「sources jar 其实下得下来」的更正。
 
 ## Next
 
+- **0.11.13 的真机验收**：进「检查历史」，清空按钮应在**顶栏标题右侧**（列表底部那行「清空检查历史」没了）；
+  点它先弹确认弹窗，确认后列表变空态、顶栏那个图标跟着消失；历史本来就空时不显示图标。
 - ~~补推 4 笔 + 等 CI 出包~~ **已完成**：`488a6f2..45abca4` 一次推成，CI run `36636011139` 两个 job 全绿，
   产物 `mrs-apk-0.11.6-c18-45abca4`（1378607 B）；把版本号报给用户、等真机反馈。
 - **0.11.12 的真机验收**：这一版**只动注释与文档**，界面应与 0.11.11 一模一样 —— 顺手确认设置页「检查完自动查看详情」
@@ -143,6 +154,12 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   再看顶栏毛玻璃在滚动时是否自然、底栏胶囊的折射与倾斜高光是否过度。
 
 ## 已落地（倒序；细节都在 work 包里）
+- 2026-10-01（第十六轮）：**清空按钮挪到顶栏标题右侧** —— 检查历史页面照上游 SU 日志页，把「清空检查历史」
+  从列表底部那行（`Card` + `ArrowPreference`）换成顶栏 `actions` 里的 `IconButton`（我们的
+  `Icons.Rounded.DeleteSweep`），点击仍先弹确认、无记录时不显示；`ScanUi.kt` 的 `PageScaffold` 为此多了个
+  可选的 `actions` 槽。版本 0.11.13/code25，commit `c41d354` 已推，CI run `36787685333` 两个 job 全绿
+  （产物 `mrs-apk-0.11.13-c25-c41d354`，1375700 B）。知识更新 `android/miuix-0.9.4.md`（TopAppBar 的
+  `actions` 槽 + sources jar 那条旧结论被推翻：具体文件按全名直下是通的）。
 - 2026-10-01（第十五轮）：**移植文件的改动声明集中到 `docs/sukisu-port-changes.md`** —— 43 个文件的文件头只剩
   「出处 + 锚点链接」，改动明细（含日期）全进新文档；出处与 Apache-2.0 归属保持不动。版本 0.11.12/code24，
   commit `5dc9020` 已推，CI run `36785091095` 两个 job 全绿（产物 `mrs-apk-0.11.12-c24-5dc9020`，1375725 B）。
