@@ -51,9 +51,10 @@
     <string name="scan_entry_path">路径</string>
     <string name="scan_entry_time">时间</string>
     <string name="scan_entry_tags">标签</string>
-<string name="scan_finding_file">文件</string>
-<string name="scan_finding_detail">说明</string>
-<string name="scan_note_title">提示 %1$d</string>
+    <string name="scan_finding_file">文件</string>
+    <string name="scan_finding_detail">说明</string>
+    <string name="scan_note_title">提示 %1$d</string>
+    <string name="scan_detail_disclaimer">该结果仅供参考</string>
     <string name="scan_entry_view_detail">点击查看详情</string>
     <string name="settings_enable_blur">模糊</string>
     <string name="settings_enable_blur_summary">启用顶栏和底栏的模糊效果</string>
@@ -62,3 +63,4 @@
     <string name="settings_enable_predictive_back">预测性返回手势</string>
     <string name="settings_enable_predictive_back_summary">启用对预测性返回手势的支持</string>
 </resources>
+

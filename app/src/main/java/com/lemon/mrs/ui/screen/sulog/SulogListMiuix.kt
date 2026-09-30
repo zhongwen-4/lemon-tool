@@ -35,6 +35,11 @@
 //      检查条目那段等宽的「键: 值」正文换成**列表**（ScanDetailList）—— 概览一张 SU 日志式的卡、
 //      每条发现一张卡（规则 / 文件 / 说明 / 等级标签）、每条提示一张卡；数据走 SulogEntry.scanDetail
 //      （结构化的，不再是一段拼好的文本）。上游那种日志条目的详情仍是一段等宽正文，照上游不动。
+//   ⑫ 2026-10-01 用户要「每个检查详情最上面写一行红色的卡片：该结果仅供参考」——详情整页的内容最上面
+//      加一张提示卡：**白底**（复用 `DetailCard` 的默认卡色，与其它卡同一套）+ **红字**
+//      （0xFFF72727，与主页结论卡、详情等级 chip 同一个红），文案 `scan_detail_disclaimer`。
+//      用户当天追加口径「卡片是白的，字是红的」—— 上游 `WarningCard` 那种红底红字他不要，所以没用它。
+//      卡片下面才是概览 / 每条发现 / 每条提示那一列卡。
 //   ⑪ 2026-09-30 用户口径：「检查历史的列表改回去，单个卡片点进去进入另一个列表」——
 //      ① 条目卡退回上一版（0.11.4）的版式：不管什么类型都走 SulogEntryRows（上游那套不写标签的
 //         标题 / 描述 / 时间 / 标签 chips），0.11.5 那套显式四行「名称 / 路径 / 时间 / 标签」整段删掉
@@ -433,17 +438,29 @@ internal fun SulogDetailScreen(
                 .padding(horizontal = 12.dp)
                 .padding(bottom = 24.dp),
         ) {
-            if (entry.eventType == SulogEventType.ScanReport) {
-                // 检查条目的详情是**列表**（用户 2026-09-30 定）：概览一张、每条发现一张、
-                // 每条提示一张，都照 SU 日志条目卡的样式。
-                ScanDetailList(entry)
-            } else {
-                // 上游 SU 日志条目的详情：一段等宽的「键: 值」正文（照上游不动）。
-                Text(
-                    text = sulogEntryDetailText(entry),
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.Monospace,
-                )
+            Column {
+                // 检查详情最上面那行提示卡（用户 2026-10-01 定）：白底（跟其它卡同一套默认底色）+ 红字。
+                DetailCard {
+                    Text(
+                        text = stringResource(R.string.scan_detail_disclaimer),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight(550),
+                        color = Color(0xFFF72727),
+                    )
+                }
+                Spacer(Modifier.height(12.dp))
+                if (entry.eventType == SulogEventType.ScanReport) {
+                    // 检查条目的详情是**列表**（用户 2026-09-30 定）：概览一张、每条发现一张、
+                    // 每条提示一张，都照 SU 日志条目卡的样式。
+                    ScanDetailList(entry)
+                } else {
+                    // 上游 SU 日志条目的详情：一段等宽的「键: 值」正文（照上游不动）。
+                    Text(
+                        text = sulogEntryDetailText(entry),
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                    )
+                }
             }
         }
     }
