@@ -1,16 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/about/AboutScreen.kt
-// 改动（改动日期：2026-09-28；2026-09-29 追加 ⑤）：
-//   ① 上游用 navigation3 的 Navigator.push/pop 进这条路由；本项目没有那套导航，改成上层传 onBack。
-//   ② 上游的 BuildConfig.VERSION_NAME、R.string.about_source_code 文案（含它自己的图标许可说明）
-//      换成我们的：版本号从 PackageManager 读，链接指向本仓库。
-//   ③ 其余（state/actions 的构造方式、extractLinks 的用法）与上游一致。
-//   ④ 系统返回手势：上游由 navigation3 的路由栈接管（返回时整页跟着手指走）。本项目没有导航库，
-//      这里用 PredictiveBackHandler 自己接——进度通过 onBackProgress 喂给上层，让关于页跟着手势
-//      往右滑出去，手势取消就弹回原位，松手完成才真的关（API < 34 上它等价于普通返回键，同样回调 onBack）。
-//      0.8.0 里用的是 BackHandler：手势一样能回上一页，只是页面不会跟着手指走。
-//   ⑤ 2026-09-29 用户要「把预测性返回手势加个开关」：开关值（DisplaySettings.enablePredictiveBack）由上层传进来，
-//      开 = ④ 的 PredictiveBackHandler（跟手滑出），关 = BackHandler（照常回上一页，页面不动画）。
-//      **两条路只能注册一条**：同一层两个返回处理都挂上时后注册的那个会赢，跟手动画会失效。
+// 改动清单：docs/sukisu-port-changes.md#aboutscreen
 package com.lemon.mrs.ui.screen.about
 
 import android.content.Context

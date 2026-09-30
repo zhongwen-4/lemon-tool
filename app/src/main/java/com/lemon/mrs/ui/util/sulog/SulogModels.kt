@@ -1,13 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/util/SulogHelper.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 只留数据形状 SulogFile / SulogEventType / SulogEventFilter / SulogEntry 与过滤器默认值。
-//      上游同文件里的 listSulogFiles / readSulogFile / parseSulogLines / parseSulogLine /
-//      cleanSulogFile / deleteSulogFile 都要读 /data/adb/ksu/log，本项目没有这个数据源，不搬。
-//   ② 2026-09-28 补一个 ScanReport：本项目的历史是「自己每次检查模块留下的记录」，
-//      没有 SU 日志，所以给这个列表加一个自己的事件类型，让条目卡能显示模块名 / 对象路径 /
-//      高·中·低危计数 / 结论（映射在 ScanUi.kt 的 scanRecordToSulogEntry，展示在 SulogListMiuix.kt）。
-//   ③ 2026-09-30 用户要「详情改成列表、同样是 SU 日志的样式」：明细正文由一段拼好的文本改成
-//      结构化数据 ScanDetail（发现逐条 + 提示 + 截断位），SulogEntry.extraDetail 随之换成 scanDetail。
+// 改动清单：docs/sukisu-port-changes.md#sulogmodels
 package com.lemon.mrs.ui.util.sulog
 
 data class SulogFile(

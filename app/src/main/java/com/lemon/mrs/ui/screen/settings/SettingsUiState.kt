@@ -1,9 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/settings/SettingsUiState.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 上游的 colorStyle / colorSpec 用的是 com.materialkolor 的 PaletteStyle / ColorSpec 枚举名，
-//      本项目没引 materialkolor，这里改成同名字符串（PaletteStyle.TonalSpot.name / ColorSpec.SpecVersion.SPEC_2025.name）。
-//   ② SettingsScreenActions 的每个回调都补了空实现，这样设置页可以先用 SettingsUiState() +
-//      SettingsScreenActions() 建成「组件骨架、数据空着」的样子。
+// 改动清单：docs/sukisu-port-changes.md#settingsuistate
 package com.lemon.mrs.ui.screen.settings
 
 import androidx.compose.runtime.Immutable

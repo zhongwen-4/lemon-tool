@@ -1,8 +1,6 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/component/FloatingBottomBar.kt
 // 上游文件头写着：Adapted from compose-miuix-ui example (IosLiquidGlassNavigationBar) — Apache 2.0.
-// 改动（改动日期：2026-09-28）：① 只改包名（com.sukisu.ultra -> com.lemon.mrs）与 isInDarkTheme 的 import。
-//        ② 之前那一版把毛玻璃 / 液态玻璃那一路整个删了（当时 miuix-blur 的 minSdk 33 卡住），
-//        现在依赖接上了，整份换回上游原文——drawBackdrop / lens / vibrancy / innerShadow / 倾斜高光全在。
+// 改动清单：docs/sukisu-port-changes.md#floatingbottombar
 
 // Adapted from compose-miuix-ui example (IosLiquidGlassNavigationBar) — Apache 2.0.
 

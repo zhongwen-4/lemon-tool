@@ -1,9 +1,7 @@
 /*
  * 移植自 SukiSU Ultra（GPL-3.0）：
  *   manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/modifier/DragGestureInspector.kt
- * 改动：只有包名（com.sukisu.ultra → com.lemon.mrs）。代码与上游逐字相同。
- *
- * 改动日期：2026-09-27。
+ * 改动清单：docs/sukisu-port-changes.md#draggestureinspector
  */
 
 package com.lemon.mrs.ui.component.miuix.modifier

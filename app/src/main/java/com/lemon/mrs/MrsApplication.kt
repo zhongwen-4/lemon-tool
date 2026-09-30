@@ -1,9 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/KernelSUApplication.kt
-// 改动（改动日期：2026-09-30）：
-//   ① 只搬「预测性返回的平台标志」这一件事。上游这个类还管 OkHttp 缓存、SuperUserViewModel 预热、
-//      webroot、TMPDIR 等，本项目一样都不需要（没有内核那一侧的东西）。
-//   ② 上游在 onCreate 里按存下来的开关翻标志；本项目同一个口径，开关值从 DisplaySettings 读。
-//   ③ 上游的类名叫 KernelSUApplication，本项目叫 MrsApplication。
+// 改动清单：docs/sukisu-port-changes.md#mrsapplication
 package com.lemon.mrs
 
 import android.app.Application

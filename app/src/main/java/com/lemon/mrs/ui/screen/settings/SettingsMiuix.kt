@@ -1,19 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/settings/SettingsMiuix.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 上游那一整页 root 管理器的开关与子页面（SuSFS / KPM / LKM / ADB root / su compat / 卸载内核模块 /
-//      主题 / Profile 模板 / 工具 / 界面模式 / 语言）全部删掉：本项目只检查模块包，没有这些数据源。
-//      只留两行——「检查更新」（SwitchPreference）与「关于」（ArrowPreference）。
-//   ② 「检查更新」的开关状态本页自持（rememberSaveable，默认开）。用户要求数据先空着，
-//      等接上真实的自动检查逻辑，再把这行换成本页外的状态。
-//   ③ 顶栏 + 一条 LazyColumn 的外壳与上游一致；毛玻璃已接上（ui/util/BlurExt.kt 换成上游原文）。
-//   ④ 2026-09-28 用户要「磨砂玻璃 / 液态玻璃」两个效果，补两行 SwitchPreference（上游同名开关），
-//      状态放进 DisplaySettings（SharedPreferences），主壳读它决定顶栏毛玻璃与底栏液态玻璃。
-//   ⑤ 2026-09-29「预测性返回手势」开关（上游同名行），2026-09-30 按用户口径改成**应用级**：
-//      翻动时除了存开关，还要照上游 `ColorPaletteScreen` 那套翻平台的预测性返回标志并 `recreate()`，
-//      这样它管的是所有预测性返回手势，不只是关于页那一处。
-//   ⑥ 2026-10-01 用户要「风险检查完直接跳到该模块的检查历史的详情页」并「加个开关」：
-//      补一行「检查完自动查看详情」，状态同样进 DisplaySettings（默认开）；主壳扫描成功后读它
-//      决定要不要把详情整页直接盖上来。
+// 改动清单：docs/sukisu-port-changes.md#settingsmiuix
 package com.lemon.mrs.ui.screen.settings
 
 import android.app.Activity

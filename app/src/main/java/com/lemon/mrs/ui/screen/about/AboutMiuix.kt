@@ -1,16 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/about/AboutMiuix.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 只改包名与 import；版式、滚动视差、Logo 淡出/缩放、LazyColumn 结构、Card +
-//      ArrowPreference 链接行全部与上游一致。
-//   ② 关于页自己这一层不套毛玻璃（2026-09-28 仍是这样）：上游在 enableBlur 为真时给 Logo、
-//      应用名和链接卡片套 textureBlur（还带 logoBlend / blendColors 两套混色表），
-//      这些分支连同 BlurColors / BlendColorEntry / BlurBlendMode / rememberLayerBackdrop
-//      / layerBackdrop 的引用一并删除——纯色路径与上游非毛玻璃时完全一样。
-//      （顶栏 / 底栏的毛玻璃与液态玻璃在别处，见 ui/util/BlurExt.kt 与 ui/component/FloatingBottomBar.kt。）
-//   ③ 动态背景的门槛：上游是 `isRuntimeShaderSupported() && enableBlur && SDK >= 35`（Android 15+ 才画）；
-//      2026-09-28 用户反馈「关于页的背景也没实现」，门槛降到 RuntimeShader 自己的要求（API 33），
-//      Android 13 / 14 也画；更低版本由 BgEffectBackground 的静态渐变兜底。
-//      `bgModifier` 保持 `Modifier`（上游那里传的是 layerBackdrop，本项目不搬）。
+// 改动清单：docs/sukisu-port-changes.md#aboutmiuix
 package com.lemon.mrs.ui.screen.about
 
 import androidx.compose.foundation.Image

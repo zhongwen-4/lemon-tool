@@ -1,23 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/home/HomeMiuix.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 只改包名与 import；Scaffold / TopAppBar / LazyColumn / UpdateCard 的结构、尺寸、配色与上游一字不差。
-//   ② 数据先空着：HomeUiState 全默认（无内核信息、无更新信息），相应的卡片渲染出来是空的。
-//   ③ 去内核依赖：Natives.isFullFeatured() 的底边距判断改成直接用 bottomInnerPadding；
-//      Natives / KernelVersion 的取数、Preview 相关的 import 与预览块删除。
-//   ④ 毛玻璃接上了（2026-09-28 更新）：LayerBackdrop 用 miuix-blur 的真类型，
-//      backdrop 由 ui/util/BlurExt.kt 提供，顶栏跟着滚动内容一起磨砂。
-//   ⑤ 按用户口径精简主页，组件骨架保留、只改内容：
-//      - StatusCard（上游的「工作中 / 内核支持 / 不支持」三分支）改名 CheckEntryCard 且只留一支：
-//        标题「不支持」换成「点此开始检测」，动作仍是选模块 zip；另两支是 KernelSU 内核取数，本项目没有数据源。
-//      - InfoCard 只留一行「应用版本」（版本号从本机 PackageManager 取），上游那一堆内核/设备信息
-//        与 SELinux + Seccomp 两张信息卡全删。
-//      - SupportLinks（支持开发 / 了解 KernelSU）换成一行「提交 BUG」，指向本项目 issues。
-//   ⑥ 2026-09-28 接上「检查模块」：主页加一张结论卡与逐条发现卡（扫描在 ScanUi.kt 里跑，
-//      这里只负责把 ScanState 画出来）。
-//   ⑦ 2026-09-29 用户口径变了：**结果全部进「检查历史」**，主页只留一张检查卡 ——
-//      待机是「点此开始检测」，出结果后按最高风险整卡着色（高危红 / 中危黄 / 其余绿；
-//      版式照上游主页那张「工作中」卡：左上大字结论 + 一行计数、左下模块名、右下 110dp 大图标），
-//      逐条发现卡与那张详细结论卡都从主页删掉（明细在检查历史的详情里看）。
+// 改动清单：docs/sukisu-port-changes.md#homemiuix
 package com.lemon.mrs.ui.screen.home
 
 import androidx.compose.animation.AnimatedVisibility

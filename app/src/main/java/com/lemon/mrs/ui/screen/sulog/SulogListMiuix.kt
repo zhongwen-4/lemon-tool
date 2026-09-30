@@ -1,52 +1,7 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：
 //   上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/sulog/SulogMiuix.kt
 //   上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/sulog/SulogScreen.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 只搬「SU 日志列表」这一块：列表段 sulogEntriesSection、条目卡 SulogEntryCard、
-//      条目详情弹窗 SulogDetailDialog、空/错提示卡 SulogMessageCard，以及取条目标题 /
-//      描述 / 标签 / 详情文本 / 返回值的几个小函数。
-//   ② 上游那一页的顶栏（返回、清空日志、按类型筛选）、搜索框 SearchBox / SearchPager /
-//      SearchBarFake、日志文件下拉 OverlayDropdownPreference、下拉刷新 PullToRefresh、
-//      SulogStatusSection 状态提示卡，以及一切毛玻璃（rememberBlurBackdrop / BlurredBar /
-//      layerBackdrop）都不要——用户要求「其他的组件不要」。
-//   ③ 页面外壳改成项目自己的 PageScaffold（顶栏 + 一条 LazyColumn + 给悬浮底栏留白），
-//      跟主页 / 设置页同一套。
-//   ④ 列表渲染 state.entries：搜索与筛选这一路没搬，SulogScreenState.visibleEntries
-//      在本项目里没有生产者。往后接真实日志时填 entries 即可。
-//   ⑤ 条目卡尾部那个箭头：上游用 MiuixIcons.Basic.ArrowRight，但本项目锁的
-//      miuix-icons 0.9.4 只有 top.yukonga.miuix.kmp.icon.extended 一个包（没有 basic），
-//      这里改用同语义的 MiuixIcons.ChevronForward。
-//   ⑥ 2026-09-28 接上「检查历史」：本项目的历史是扫描记录、不是 SU 日志，所以
-//      ① 顶栏标题换成「检查历史」（R.string.scan_history，不再叫「SU 日志」）；
-//      ② 条目类型加了 SulogEventType.ScanReport 一支，四个取值小函数各补一个分支
-//         （模块名 / 扫描对象 / 高·中·低计数 / 点击查看详情）；sulogEntrySummaryTags 因此改成 @Composable
-//         （标签要读 string 资源）；
-//      ③ 空历史给一张提示卡；列表非空时底部加一行「清空检查历史」——点了先弹确认，
-//         确认后才走 actions.onCleanFile（清空是不可逆的，不做静默删除）。
-//   ⑦ 2026-09-29 用户口径：「检查模块的结果全部放进检查历史」——条目详情里除了 fields 那几行，
-//      再加一段正文（发现逐条 + 提示，ScanUi.kt 的 scanRecordDetail 生成、走 SulogEntry.scanDetail ——
-//      ⑩ 之后那段正文改成列表渲染：extraDetail 这个字符串字段已换成结构化的 scanDetail），
-//      主页那边只留一张按风险着色的结论卡。
-//   ⑧ 2026-09-29：检查条目的右侧状态由「结论」改成「点击查看详情」——结论本身挪进详情弹窗，
-//      卡片右侧只当点击提示（用户要求「右侧写点击查看详情」）。
-//   ⑨ 2026-09-29：检查条目的卡片改成把「名称 / 路径 / 时间 / 标签」四样显式写出来（见 ScanEntryRows），
-//      第二行的「路径」放文件名；上游那套不写标签的版式原样保留成 SulogEntryRows，给将来别的日志类型用。
-//   ⑩ 2026-09-30 用户要「把检查历史卡片的详情改为列表，同样是 SU 日志的样式」：详情弹窗里
-//      检查条目那段等宽的「键: 值」正文换成**列表**（ScanDetailList）—— 概览一张 SU 日志式的卡、
-//      每条发现一张卡（规则 / 文件 / 说明 / 等级标签）、每条提示一张卡；数据走 SulogEntry.scanDetail
-//      （结构化的，不再是一段拼好的文本）。上游那种日志条目的详情仍是一段等宽正文，照上游不动。
-//   ⑫ 2026-10-01 用户要「每个检查详情最上面写一行红色的卡片：该结果仅供参考」——详情整页的内容最上面
-//      加一张提示卡：**白底**（复用 `DetailCard` 的默认卡色，与其它卡同一套）+ **红字**
-//      （0xFFF72727，与主页结论卡、详情等级 chip 同一个红），文案 `scan_detail_disclaimer`。
-//      用户当天追加口径「卡片是白的，字是红的」—— 上游 `WarningCard` 那种红底红字他不要，所以没用它。
-//      卡片下面才是概览 / 每条发现 / 每条提示那一列卡。
-//   ⑬ 2026-10-01 用户口径：那张提示卡的文字**居中**（fillMaxWidth() + TextAlign.Center）。
-//   ⑪ 2026-09-30 用户口径：「检查历史的列表改回去，单个卡片点进去进入另一个列表」——
-//      ① 条目卡退回上一版（0.11.4）的版式：不管什么类型都走 SulogEntryRows（上游那套不写标签的
-//         标题 / 描述 / 时间 / 标签 chips），0.11.5 那套显式四行「名称 / 路径 / 时间 / 标签」整段删掉
-//         （ScanEntryRows 已删；详情的概览卡 / 发现卡里那几行「标签 + 值」仍走 ScanEntryLine / ScanEntryLabel）；
-//      ② 条目详情由弹窗改成**整页** SulogDetailScreen（骨架照关于页：SmallTopAppBar + 返回箭头 + 可滚内容），
-//         由 ScanUi.ScannerShell 盖在主壳上、跟手往右滑，返回手势与关于页同一套口径（受「预测性返回手势」开关管）。
+// 改动清单：docs/sukisu-port-changes.md#suloglistmiuix
 package com.lemon.mrs.ui.screen.sulog
 
 import androidx.activity.compose.BackHandler

@@ -1,7 +1,7 @@
 // Mirrored from compose-miuix-ui example.
 //
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/effect/BgEffectConfig.kt
-// 改动：只改包名（改动日期：2026-09-28）。四套调色板与数值一字未动。
+// 改动清单：docs/sukisu-port-changes.md#bgeffectconfig
 package com.lemon.mrs.ui.component.miuix.effect
 
 internal object BgEffectConfig {

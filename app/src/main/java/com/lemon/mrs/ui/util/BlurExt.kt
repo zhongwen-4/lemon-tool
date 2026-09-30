@@ -1,8 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/util/BlurExt.kt
-// 改动（改动日期：2026-09-28）：① 只改包名。
-//        ② 之前这里是不搬毛玻璃的占位实现（rememberBlurBackdrop 恒为 null、BlurredBar 退化纯色）；
-//        现在接上 miuix-blur 0.9.4 换回上游原文。miuix-blur 的 manifest 硬写 minSdk 33，
-//        靠 app 的 AndroidManifest 里 tools:overrideLibrary 放行，低版本由 isRenderEffectSupported() 门控。
+// 改动清单：docs/sukisu-port-changes.md#blurext
 
 package com.lemon.mrs.ui.util
 

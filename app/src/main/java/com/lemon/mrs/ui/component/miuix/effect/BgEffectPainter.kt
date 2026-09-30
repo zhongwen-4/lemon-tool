@@ -1,10 +1,7 @@
 // Mirrored from compose-miuix-ui example.
 //
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/effect/BgEffectPainter.kt
-// 改动（改动日期：2026-09-28）：① 只改包名；② 上游从 `top.yukonga.miuix.kmp.blur` 取 RuntimeShader/asBrush，
-//      本项目没有 miuix-blur（它的 manifest 硬要求 minSdk 33），改从 `top.yukonga.miuix.kmp.shader` 取
-//      ——同一套 API（`miuix-shader-android:0.9.4`，minSdk 24，内部就是包 android.graphics.RuntimeShader）。
-//      其余（uniform 名字、缓存字段、updateXxx 的顺序与短路逻辑）一字未动。
+// 改动清单：docs/sukisu-port-changes.md#bgeffectpainter
 package com.lemon.mrs.ui.component.miuix.effect
 
 import android.os.Build

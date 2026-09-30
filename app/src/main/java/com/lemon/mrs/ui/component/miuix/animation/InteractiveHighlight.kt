@@ -1,5 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/animation/InteractiveHighlight.kt
-// 改动（改动日期：2026-09-28）：只改包名（com.sukisu.ultra -> com.lemon.mrs），逻辑一字未动。
+// 改动清单：docs/sukisu-port-changes.md#interactivehighlight
 
 package com.lemon.mrs.ui.component.miuix.animation
 

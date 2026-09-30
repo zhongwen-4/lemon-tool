@@ -1,11 +1,7 @@
 /*
  * 移植自 SukiSU Ultra（GPL-3.0）：
  *   manager/app/src/main/java/com/sukisu/ultra/ui/component/bottombar/BottomBar.kt（只取 MainPagerState 那一段）
- * 改动：① 去掉 UiMode、角标、毛玻璃那些部分；② 翻页动画改用 Compose 自带的 animateScrollToPage
- *       （上游用的是 miuix 的 springAnimateToPage）；③ LocalMainPagerState 从 MainActivity 挪到这里。
- *       其余与上游一致。
- *
- * 改动日期：2026-09-27。
+ * 改动清单：docs/sukisu-port-changes.md#mainpagerstate
  */
 
 package com.lemon.mrs.ui.component.bottombar

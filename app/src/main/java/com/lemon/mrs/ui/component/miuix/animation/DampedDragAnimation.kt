@@ -1,9 +1,7 @@
 /*
  * 移植自 SukiSU Ultra（GPL-3.0）：
  *   manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/animation/DampedDragAnimation.kt
- * 改动：只有包名与 inspectDragGestures 的导入路径（com.sukisu.ultra → com.lemon.mrs）。代码与上游逐字相同。
- *
- * 改动日期：2026-09-27。
+ * 改动清单：docs/sukisu-port-changes.md#dampeddraganimation
  */
 
 package com.lemon.mrs.ui.component.miuix.animation

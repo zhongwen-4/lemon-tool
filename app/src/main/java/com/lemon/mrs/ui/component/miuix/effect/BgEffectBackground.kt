@@ -1,13 +1,7 @@
 // Mirrored from compose-miuix-ui example.
 //
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/component/miuix/effect/BgEffectBackground.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 只改包名；RuntimeShader 从 `top.yukonga.miuix.kmp.shader` 取（上游走 miuix-blur，本项目没这个坐标，
-//      理由见 BgEffectPainter.kt 的文件头）。
-//   ② `isInDarkTheme()` / `shouldShowSplitPane()` 换成本项目的实现（同名同义，上游那两个在
-//      `ui/theme/Theme.kt` 与 `ui/util/WindowSize.kt`）。
-//   ③ 运行时不支持 RuntimeShader（SDK < 33）时，上游是**直接退化成纯 Box**什么都不画；
-//      2026-09-28 改为补一层静态渐变（同一套 BgEffectConfig 调色板），低版本也看得到背景。
+// 改动清单：docs/sukisu-port-changes.md#bgeffectbackground
 package com.lemon.mrs.ui.component.miuix.effect
 
 import androidx.compose.animation.core.Animatable

@@ -1,9 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/home/HomeUtils.kt
-// 改动（改动日期：2026-09-28）：
-//   ① 只留数据形状 ManagerVersion / SystemInfo 与 getManagerVersion（版本号从 PackageManager 读，
-//      不依赖 root）。上游同文件里的 getZygiskImplementation / rememberSusfsInfo / rememberHookTypeLabel
-//      全是内核取数，本项目没有数据源，不搬。
-//   ② SystemInfo 各字段补了默认值，这样主页骨架可以先建成「数据空着」的状态。
+// 改动清单：docs/sukisu-port-changes.md#homeutils
 package com.lemon.mrs.ui.screen.home
 
 import android.content.Context

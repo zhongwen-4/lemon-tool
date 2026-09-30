@@ -1,7 +1,5 @@
 // 移植自 SukiSU Ultra（GPL-3.0）：上游 manager/app/src/main/java/com/sukisu/ultra/ui/screen/home/HomeUiState.kt
-// 改动：只改包名/import，并给每个字段补默认值——主页这一轮只留组件骨架、数据先空着，
-//       所以 HomeUiState() 就能建出一个空状态；派生属性（showGkiWarning / hasUpdate 等）与上游一字不差，
-//       往后接真实内核信息时直接赋值即可。改动日期：2026-09-28。
+// 改动清单：docs/sukisu-port-changes.md#homeuistate
 package com.lemon.mrs.ui.screen.home
 
 import androidx.compose.runtime.Immutable
