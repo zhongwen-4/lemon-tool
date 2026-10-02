@@ -135,3 +135,17 @@ git -c http.proxy=http://127.0.0.1:7890 -c https.proxy=http://127.0.0.1:7890 pus
 
   注意这里要**显式 `-Proxy`**：`Invoke-*` 平时靠 WinINET，但显式指定能确认「代理→github」这一段真的通，
   而不是「WinINET 恰好配对了」。
+
+## 2026-10-03 实测：代理软件**开着**但端口没在听（FlClash 在跑 ≠ 7890 在听）
+
+`FlClash` / `FlClashCore` / `FlClashHelperService` 三个进程都在，但 `ProxyEnable=0`，
+`Test-NetConnection 127.0.0.1 7890` 为 False；`netstat -ano | Select-String LISTENING` 里只有
+GUI 的 53626、core 的 47890 这类内部端口，**没有 7890**。同一时刻 `api.github.com` 秒回
+（`/rate_limit` 正常），`github.com:443` 却连不上、直推报 `Recv failure: Connection was reset`。
+所以「代理软件开着」不能当「代理在听」用 —— 起手仍是那两秒的判据（`Test-NetConnection` 7890 或
+对着 PID 看 `netstat`），没在听就直接走第③条。
+
+这次靠第③条 3 秒推成（`1b550b4..1fcfc76`）：候选 `140.82.112.3 / .113.3 / .114.3 / .116.3 /
+20.205.243.168 / 20.27.177.113` 全部 2 秒内 TCP 连通，钉 `140.82.112.3` 一次过。当晚
+`Resolve-DnsName github.com` **只给一个 IP（20.205.243.166）而且它不通** —— 别因为 DNS 那一个结果
+就判断"没有 IP 可用"，手头那张候选表留着用。

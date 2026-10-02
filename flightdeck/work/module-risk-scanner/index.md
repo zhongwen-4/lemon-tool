@@ -209,6 +209,8 @@
 17. ~~检查历史的详情是一坨等宽正文~~ **已完成**（2026-09-30：改成列表，每项一张 SU 日志式的卡，见「进度」第十轮）。
 18. **0.11.13 的真机验收**：进「检查历史」，清空按钮应在**顶栏标题右侧**（列表底部那行「清空检查历史」没了）；
     点它先弹确认弹窗，确认后列表变空态、顶栏那个图标跟着消失；历史本来就空时不该有图标。
+19. **0.11.14 的真机验收**：检查历史页的顶栏应是**固定的一排** —— 「检查历史」居中、清空图标在右边同一排，
+    不再出现「图标单独占上面一排、大字标题在下面一排」；滚动列表时这一页顶栏不再跟着收起/展开。
 
 ## 进度
 
@@ -582,6 +584,15 @@
     `TopAppBar`（它本来就有 `actions` 槽，见 `knowledge/android/miuix-0.9.4.md`）。版本 **0.11.13/code25**，
     本机 8 条出包前置全过，commit `c41d354` 已推，CI run `36787685333` 两个 job 全绿
     （产物 `mrs-apk-0.11.13-c25-c41d354`，1375700 B）。`docs/sukisu-port-changes.md` 的 SulogListMiuix 一节补 ⑭。
+  - **2026-10-03 第十七轮（用户：把删除图标移到跟文字一排）**：MiuiX 那种会折叠的大标题 `TopAppBar`
+    把 `actions` 钉在 52dp 顶排、大字标题在下面一排（拉 0.9.4 sources jar 核过版式，记在
+    `knowledge/android/miuix-0.9.4.md`），图标挪不过去；于是把这一页的外壳 `ScanUi.kt` 的 `PageScaffold`
+    换成**固定高度**的 `SmallTopAppBar`（标题与 actions 同在 `y = 25dp` 一排），顺手删掉只为折叠服务的
+    `MiuixScrollBehavior` 与 `LazyColumn` 上的 `nestedScroll`（`scrollEndHaptic` / `overScrollVertical` 留着）。
+    副作用：这一页不再有「大标题 → 小标题」的收起动画。版本 **0.11.14/code26**，本机 8 条出包前置全过，
+    commit `1fcfc76` 已推（7890 没在听、直推被 reset，最后走
+    `-c http.curloptResolve=github.com:443:140.82.112.3` 推成），CI run `37072013435` 两个 job 全绿
+    （产物 `mrs-apk-0.11.14-c26-1fcfc76`，1374964 B）。`docs/sukisu-port-changes.md` 补 ⑮。
 
 ## Read now
 

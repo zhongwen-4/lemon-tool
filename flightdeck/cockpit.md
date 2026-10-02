@@ -112,9 +112,22 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   本机 8 条出包前置全过，commit `c41d354` 已推，CI run `36787685333` 两个 job 全绿
   （产物 `mrs-apk-0.11.13-c25-c41d354`，1375700 B）。`sukisu-port-changes.md` 的 SulogListMiuix 一节补 ⑭、
   `miuix-0.9.4.md` 补 TopAppBar 的 `actions` 槽与「sources jar 其实下得下来」的更正。
+  **2026-10-03 第十七轮（用户：把删除图标移到跟文字一排）**：大标题 `TopAppBar` 的 `actions` 钉在
+  52dp 顶排、大字标题在下一排（拉 0.9.4 sources jar 核过版式），图标挪不过去；于是把检查历史页的外壳
+  （`ScanUi.kt` 的 `PageScaffold`）换成**固定高度**的 `SmallTopAppBar` —— 标题与图标同在一条横排，
+  代价是这一页不再有「大标题 → 小标题」的收起动画（`MiuixScrollBehavior` 与 `nestedScroll` 一并删掉）。
+  版本 **0.11.14/code26**，本机 8 条出包前置全过，commit `1fcfc76` 已推（**推送一波三折**：7890 没在听、
+  直推 `Connection was reset`，最后 `-c http.curloptResolve=github.com:443:140.82.112.3` 推成），
+  CI run `37072013435` 两个 job 全绿（产物 `mrs-apk-0.11.14-c26-1fcfc76`，1374964 B）。
+  `sukisu-port-changes.md` 补 ⑮；知识更新 `android/miuix-0.9.4.md`（TopAppBar 的 actions 排布）、
+  `tooling/github-push-and-local-proxy.md`（代理进程在 ≠ 端口在听）、
+  `tooling/powershell-aliases-and-cmdlets.md`（补第 4 个坑 `$PID`，顺手把「三个坑」改成「四个坑」、
+  细节挪进正文 —— 原文件连 `---` 分隔线都没有）。
 
 ## Next
 
+- **0.11.14 的真机验收**：检查历史页顶栏应是**固定的一排** —— 「检查历史」居中、清空图标在右边同一排
+  （不再是「图标单独一排 + 大字标题在下一排」）；滚动列表时这一页顶栏不再收起/展开。
 - **0.11.13 的真机验收**：进「检查历史」，清空按钮应在**顶栏标题右侧**（列表底部那行「清空检查历史」没了）；
   点它先弹确认弹窗，确认后列表变空态、顶栏那个图标跟着消失；历史本来就空时不显示图标。
 - ~~补推 4 笔 + 等 CI 出包~~ **已完成**：`488a6f2..45abca4` 一次推成，CI run `36636011139` 两个 job 全绿，
@@ -154,6 +167,12 @@ C++ 核心 + MiuiX(Compose) 界面，只检查未安装的模块包。
   再看顶栏毛玻璃在滚动时是否自然、底栏胶囊的折射与倾斜高光是否过度。
 
 ## 已落地（倒序；细节都在 work 包里）
+- 2026-10-03（第十七轮）：**清空图标跟标题文字同一排** —— 检查历史页的外壳 `PageScaffold` 由会折叠的
+  大标题 `TopAppBar` 换成固定高度的 `SmallTopAppBar`（标题 + actions 同排），去掉只为折叠服务的
+  `MiuixScrollBehavior` / `nestedScroll`。版本 0.11.14/code26，commit `1fcfc76` 已推（走了
+  `curloptResolve` 那条路），CI run `37072013435` 两个 job 全绿（产物 `mrs-apk-0.11.14-c26-1fcfc76`，
+  1374964 B）。知识更新 `android/miuix-0.9.4.md`、`tooling/github-push-and-local-proxy.md`、
+  `tooling/powershell-aliases-and-cmdlets.md`（第三个坑变四个）。
 - 2026-10-01（第十六轮）：**清空按钮挪到顶栏标题右侧** —— 检查历史页面照上游 SU 日志页，把「清空检查历史」
   从列表底部那行（`Card` + `ArrowPreference`）换成顶栏 `actions` 里的 `IconButton`（我们的
   `Icons.Rounded.DeleteSweep`），点击仍先弹确认、无记录时不显示；`ScanUi.kt` 的 `PageScaffold` 为此多了个

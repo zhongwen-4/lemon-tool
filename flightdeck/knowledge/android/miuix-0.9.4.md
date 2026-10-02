@@ -76,6 +76,13 @@ ArrowPreference(
   `@Composable RowScope.() -> Unit`（顶栏右侧那一组，SmallTopAppBar 同款），右侧那块留白由
   `TopAppBarDefaults.ActionIconPadding = 16.dp` 管（上游 SukiSU 的清空按钮还在里面额外加了
   `Modifier.padding(end = 8.dp)`）。`bottomContent` 放在标题栏下方。
+  **2026-10-03 拉源码核过版式**：大标题那种 `TopAppBar` 的 `actions` 固定在 **52dp 顶排**
+  （`y = CollapsedHeight/2`），展开时看得见的是下面那一排的 `largeTitle`（title1 = 32sp）——
+  也就是「图标孤零零在上面一排、大字标题在下面一排」，**两者永远不同排**；顶排那行小标题
+  （title3 = 20sp）只在滚动收起后才出现（`alpha = 1 - collapsedFraction*3`，1/3 行程就淡没了）。
+  要「标题与图标同一排」只有一条路：换 `SmallTopAppBar`（固定 50dp、`title` 居中、`actions` 同在
+  `y = 25dp`、不随滚动折叠；它还会 `SideEffect` 把共用的 `TopAppBarState` 钉住 ——
+  `pinnedBySmallTopAppBar = true`、`heightOffsetLimit/heightOffset = 0`）。
 - `MiuixScrollBehavior(state, canScroll, snapAnimationSpec, flingAnimationSpec): ScrollBehavior`；
   配合 `LazyColumn` 的 `.nestedScroll(scrollBehavior.nestedScrollConnection)` + `.overScrollVertical()` + `.scrollEndHaptic()`。
 - `Modifier.overScrollVertical(nestedScrollToParent = true, isEnabled = { true })`；
