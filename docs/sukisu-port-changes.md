@@ -186,6 +186,11 @@
      （`Modifier.padding(end = 8.dp)`、tint 走 `colorScheme.onSurface`），点击仍先弹确认弹窗；
      没有记录（或加载失败）时不显示。为此在 ScanUi.kt 的 PageScaffold 上开了一个可选槽位
      `actions: @Composable RowScope.() -> Unit = {}`，原样透传给 MiuiX 的 TopAppBar。
+  ⑮ 2026-10-03 用户要「把删除图标移到跟文字一排」：MiuiX 的大标题 `TopAppBar` 把操作图标放在
+     标题**上面**那一排（展开时图标孤零零在上面，大字标题在下面那一排），槽位换不了位置；
+     于是这一页用的外壳（ScanUi.kt 的 `PageScaffold`，非移植件）改成固定高度的 `SmallTopAppBar` ——
+     标题与 `actions` 在**同一条横排**上，代价是不再随滚动折叠（大标题→小标题那套收起动画没了）。
+     移植文件本身没动，动的是它用的外壳。
 
 ---
 

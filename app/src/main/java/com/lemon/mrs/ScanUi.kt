@@ -48,7 +48,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,10 +87,9 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import top.yukonga.miuix.kmp.basic.Icon
-import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.basic.TopAppBar
 import top.yukonga.miuix.kmp.blur.layerBackdrop
 import top.yukonga.miuix.kmp.blur.rememberLayerBackdrop
 import top.yukonga.miuix.kmp.theme.ColorSchemeMode
@@ -452,8 +451,11 @@ private fun RowScope.BottomTab(
 
 /**
  * 每一页自己的壳：顶栏 + 一条 LazyColumn。
- * 版式照 SukiSU 的 HomePagerMiuix / SettingPagerMiuix——页面自己拿 Scaffold 与 TopAppBar，
+ * 版式照 SukiSU 的 HomePagerMiuix / SettingPagerMiuix——页面自己拿 Scaffold 与顶栏，
  * 列表左右留 12dp，列表底部给悬浮底栏留出 [bottomInnerPadding]。
+ * 顶栏用**固定高度**的 SmallTopAppBar：标题与 [actions] 在**同一条横排**上（2026-10-03 用户要
+ * 「删除图标跟文字一排」）。会折叠的那种大标题 TopAppBar 把操作图标放在标题**上面**那一排，
+ * 展开时两者不同排，所以这里不用它。
  */
 @Composable
 internal fun PageScaffold(
@@ -462,13 +464,11 @@ internal fun PageScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     content: LazyListScope.() -> Unit,
 ) {
-    val scrollBehavior = MiuixScrollBehavior()
     Scaffold(
         topBar = {
-            TopAppBar(
+            SmallTopAppBar(
                 title = title,
                 actions = actions,
-                scrollBehavior = scrollBehavior,
             )
         },
         contentWindowInsets = WindowInsets.systemBars
@@ -480,7 +480,6 @@ internal fun PageScaffold(
                 .fillMaxHeight()
                 .scrollEndHaptic()
                 .overScrollVertical()
-                .nestedScroll(scrollBehavior.nestedScrollConnection)
                 .padding(horizontal = 12.dp),
             contentPadding = innerPadding,
             overscrollEffect = null,
